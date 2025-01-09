@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Image, ImageSourcePropType, View } from "react-native";
+import { Image, ImageSourcePropType, View, StyleSheet } from "react-native";
 
 import { icons } from "@/constants";
 
@@ -10,17 +10,13 @@ const TabIcon = ({
     source: ImageSourcePropType;
     focused: boolean;
 }) => (
-    <View
-        className={`flex flex-row justify-center items-center rounded-full ${focused ? "bg-general-300" : ""}`}
-    >
-        <View
-            className={`rounded-full w-12 h-12 items-center justify-center ${focused ? "bg-general-400" : ""}`}
-        >
+    <View style={[styles.tabIconContainer]}>
+        <View style={[styles.innerCircle, focused && styles.innerCircleFocused]}>
             <Image
                 source={source}
                 tintColor="white"
                 resizeMode="contain"
-                className="w-7 h-7"
+                style={styles.icon}
             />
         </View>
     </View>
@@ -29,25 +25,12 @@ const TabIcon = ({
 export default function Layout() {
     return (
         <Tabs
-            initialRouteName="index"
+            initialRouteName="home"
             screenOptions={{
                 tabBarActiveTintColor: "white",
                 tabBarInactiveTintColor: "white",
                 tabBarShowLabel: false,
-                tabBarStyle: {
-                    backgroundColor: "#333333",
-                    borderRadius: 50,
-                    paddingBottom: 0, // ios only
-                    overflow: "hidden",
-                    marginHorizontal: 20,
-                    marginBottom: 20,
-                    height: 78,
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    flexDirection: "row",
-                    position: "absolute",
-                },
+                tabBarStyle: styles.tabBar,
             }}
         >
             <Tabs.Screen
@@ -71,7 +54,7 @@ export default function Layout() {
                 }}
             />
             <Tabs.Screen
-                name="reservations"
+                name="resos"
                 options={{
                     title: "Reservations",
                     headerShown: false,
@@ -81,7 +64,7 @@ export default function Layout() {
                 }}
             />
             <Tabs.Screen
-                name="driver-info"
+                name="profile"
                 options={{
                     title: "Profile",
                     headerShown: false,
@@ -93,3 +76,42 @@ export default function Layout() {
         </Tabs>
     );
 }
+
+const styles = StyleSheet.create({
+    tabBar: {
+        backgroundColor: "#333333",
+        borderRadius: 50,
+        paddingBottom: 0, // iOS only
+        overflow: "hidden",
+        marginHorizontal: 20,
+        marginBottom: 20,
+        height: 70,
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        flexDirection: "row",
+        position: "absolute",
+    },
+    tabIconContainer: {
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
+        borderRadius: 50,
+        marginBottom:25,
+    },
+    innerCircle: {
+        borderRadius: 50,
+        width: 48,
+        height: 48,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    innerCircleFocused: {
+        backgroundColor: "#6B7280",
+    },
+    icon: {
+        width: 28,
+        height: 28,
+        marginHorizontal: 8,
+    },
+});

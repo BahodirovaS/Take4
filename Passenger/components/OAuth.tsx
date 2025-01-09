@@ -1,6 +1,6 @@
 import { useOAuth } from "@clerk/clerk-expo";
 import { router } from "expo-router";
-import { Alert, Image, Text, View } from "react-native";
+import { Alert, Image, Text, View, StyleSheet } from "react-native";
 
 import CustomButton from "@/components/CustomButton";
 import { icons } from "@/constants";
@@ -22,20 +22,20 @@ const OAuth = () => {
 
   return (
     <View>
-      <View className="flex flex-row justify-center items-center mt-4 gap-x-3">
-        <View className="flex-1 h-[1px] bg-general-100" />
-        <Text className="text-lg">Or</Text>
-        <View className="flex-1 h-[1px] bg-general-100" />
+      <View style={styles.dividerContainer}>
+        <View style={styles.divider} />
+        <Text style={styles.dividerText}>Or</Text>
+        <View style={styles.divider} />
       </View>
 
       <CustomButton
         title="Log In with Google"
-        className="mt-5 w-full shadow-none"
+        style={styles.googleButton}
         IconLeft={() => (
           <Image
             source={icons.google}
             resizeMode="contain"
-            className="w-5 h-5 mx-2"
+            style={styles.googleIcon}
           />
         )}
         bgVariant="outline"
@@ -45,5 +45,34 @@ const OAuth = () => {
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  dividerContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 16,
+    gap: 12,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#E0E0E0",
+  },
+  dividerText: {
+    fontSize: 18,
+    color: "#000000",
+  },
+  googleButton: {
+    marginTop: 20,
+    width: "100%",
+    shadowOpacity: 0,
+  },
+  googleIcon: {
+    width: 20,
+    height: 20,
+    marginHorizontal: 8,
+  },
+});
 
 export default OAuth;
