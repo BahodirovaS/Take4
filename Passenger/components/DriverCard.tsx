@@ -1,68 +1,120 @@
 import React from "react";
-import { Image, Text, TouchableOpacity, View } from "react-native";
-
+import { Image, Text, TouchableOpacity, View, StyleSheet } from "react-native";
 import { icons } from "@/constants";
 import { formatTime } from "@/lib/utils";
 import { DriverCardProps } from "@/types/type";
 
 const DriverCard = ({ item, selected, setSelected }: DriverCardProps) => {
+  const roundedMinutes = Math.round(item.time! * 10) / 10;
 
-  const roundedMinutes = Math.round(item.time! * 10) / 10
+  const getSeatCategory = (carSeats: number) => {
+    switch (carSeats) {
+      case 4:
+        return "Standard";
+      case 6:
+        return "Comfort";
+      case 7:
+        return "XL";
+      default:
+        return `${carSeats} seats`;
+    }
+  };
+
   return (
     <TouchableOpacity
       onPress={setSelected}
-      className={`${
-        selected === item.id ? "bg-general-600" : "bg-white"
-      } flex flex-row items-center justify-between py-5 px-3 rounded-xl`}
+      style={[styles.card, selected === item.id && styles.selectedCard]}
     >
-      <Image
-        source={{ uri: item.profile_image_url }}
-        className="w-14 h-14 rounded-full"
-      />
-
-      <View className="flex-1 flex flex-col items-start justify-center mx-3">
-        <View className="flex flex-row items-center justify-start mb-1">
-          <Text className="text-lg font-JakartaRegular">{item.title}</Text>
-
-          <View className="flex flex-row items-center space-x-1 ml-2">
-            <Image source={icons.star} className="w-3.5 h-3.5" />
-            <Text className="text-sm font-JakartaRegular">4</Text>
-          </View>
+      <View style={styles.cardContent}>
+        <View style={styles.seatCategoryContainer}>
+          <Text style={styles.seatCategoryText}>
+            {getSeatCategory(item.car_seats)}
+          </Text>
         </View>
 
-        <View className="flex flex-row items-center justify-start">
-          <View className="flex flex-row items-center">
-            <Image source={icons.dollar} className="w-4 h-4" />
-            <Text className="text-sm font-JakartaRegular ml-1">
-              ${item.price}
-            </Text>
+        <View style={styles.priceTimeContainer}>
+          <View style={styles.priceContainer}>
+            <Image source={icons.dollar} style={styles.dollarIcon} />
+            <Text style={styles.priceText}>${item.price}</Text>
           </View>
 
-          <Text className="text-sm font-JakartaRegular text-general-800 mx-1">
-            |
-          </Text>
+          <Text style={styles.separator}>|</Text>
 
-          <Text className="text-sm font-JakartaRegular text-general-800">
-            {formatTime(roundedMinutes)}
-          </Text>
+          <Text style={styles.timeText}>{formatTime(roundedMinutes)}</Text>
 
-          <Text className="text-sm font-JakartaRegular text-general-800 mx-1">
-            |
-          </Text>
+          <Text style={styles.separator}>|</Text>
 
-          <Text className="text-sm font-JakartaRegular text-general-800">
-            {item.car_seats} seats
-          </Text>
+          <Text style={styles.seatText}>{item.car_seats} seats</Text>
         </View>
       </View>
-
-      <Image
-        source={{ uri: item.car_image_url }}
-        className="h-14 w-14"
-        resizeMode="contain"
-      />
     </TouchableOpacity>
   );
 };
+
+const styles = StyleSheet.create({
+  card: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 20,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    backgroundColor: "white",
+  },
+  selectedCard: {
+    backgroundColor: "#D9E4FF",
+  },
+  cardContent: {
+    flex: 1,
+    flexDirection: "column",
+    alignItems: "flex-start",
+    justifyContent: "center",
+    marginHorizontal: 12,
+  },
+  seatCategoryContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-start",
+    marginBottom: 5,
+  },
+  seatCategoryText: {
+    fontSize: 18,
+    fontFamily: "JakartaRegular",
+  },
+  priceTimeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-start",
+  },
+  priceContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  dollarIcon: {
+    width: 16,
+    height: 16,
+  },
+  priceText: {
+    fontSize: 14,
+    fontFamily: "JakartaRegular",
+    marginLeft: 4,
+  },
+  separator: {
+    fontSize: 14,
+    fontFamily: "JakartaRegular",
+    color: "#6B6B6B",
+    marginHorizontal: 4,
+  },
+  timeText: {
+    fontSize: 14,
+    fontFamily: "JakartaRegular",
+    color: "#6B6B6B",
+  },
+  seatText: {
+    fontSize: 14,
+    fontFamily: "JakartaRegular",
+    color: "#6B6B6B",
+  },
+});
 
 export default DriverCard;

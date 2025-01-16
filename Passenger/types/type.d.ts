@@ -7,8 +7,10 @@ declare interface Driver {
   profile_image_url: string;
   car_image_url: string;
   car_seats: number;
-  pets: bookean;
+  pets: boolean;
   rating: number;
+  status: boolean;
+  clerk_id:string;
 }
 
 declare interface MarkerData {
@@ -22,8 +24,10 @@ declare interface MarkerData {
   rating: number;
   first_name: string;
   last_name: string;
-  time?: number;
-  price?: string;
+  clerk_id: string;
+  time: number;
+  price: string;
+  status: boolean;
 }
 
 declare interface MapProps {
@@ -94,7 +98,7 @@ declare interface PaymentProps {
   fullName: string;
   email: string;
   amount: string;
-  driverId: number;
+  driver_id: string;
   rideTime: number;
 }
 
@@ -128,9 +132,10 @@ declare interface LocationStore {
 declare interface DriverStore {
   drivers: MarkerData[];
   selectedDriver: number | null;
-  setSelectedDriver: (driverId: number) => void;
+  setSelectedDriver: (driver_id: number) => void;
   setDrivers: (drivers: MarkerData[]) => void;
   clearSelectedDriver: () => void;
+  fetchDrivers: () => Promise<void>;
 }
 
 declare interface DriverCardProps {

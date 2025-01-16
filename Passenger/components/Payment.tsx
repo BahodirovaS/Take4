@@ -2,7 +2,7 @@ import { useAuth } from "@clerk/clerk-expo";
 import { useStripe } from "@stripe/stripe-react-native";
 import { router } from "expo-router";
 import React, { useState } from "react";
-import { Alert, Image, Text, View } from "react-native";
+import { Alert, Image, Text, View, StyleSheet } from "react-native";
 import { ReactNativeModal } from "react-native-modal";
 
 import CustomButton from "@/components/CustomButton";
@@ -11,13 +11,13 @@ import { fetchAPI } from "@/lib/fetch";
 import { useLocationStore } from "@/store";
 import { PaymentProps } from "@/types/type";
 
-const Payment = ({
+const Payment: React.FC<PaymentProps> = ({
   fullName,
   email,
   amount,
-  driverId,
+  driver_id,
   rideTime,
-}: PaymentProps) => {
+}) => {
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const {
     userAddress,
@@ -54,7 +54,7 @@ const Payment = ({
         confirmHandler: async (
           paymentMethod,
           shouldSavePaymentMethod,
-          intentCreationCallback,
+          intentCreationCallback
         ) => {
           const { paymentIntent, customer } = await fetchAPI(
             "/(api)/(stripe)/create",
@@ -69,7 +69,7 @@ const Payment = ({
                 amount: amount,
                 paymentMethodId: paymentMethod.id,
               }),
-            },
+            }
           );
 
           if (paymentIntent.client_secret) {
@@ -102,7 +102,7 @@ const Payment = ({
                   ride_time: rideTime.toFixed(0),
                   fare_price: parseInt(amount) * 100,
                   payment_status: "paid",
-                  driver_id: driverId,
+                  driver_id: driver_id,
                   user_id: userId,
                 }),
               });
@@ -126,7 +126,7 @@ const Payment = ({
     <>
       <CustomButton
         title="Confirm Ride"
-        className="my-10"
+        style={styles.confirmButton}
         onPress={openPaymentSheet}
       />
 
@@ -134,14 +134,12 @@ const Payment = ({
         isVisible={success}
         onBackdropPress={() => setSuccess(false)}
       >
-        <View className="flex flex-col items-center justify-center bg-white p-7 rounded-2xl">
-          <Image source={images.check} className="w-28 h-28 mt-5" />
+        <View style={styles.modalContainer}>
+          <Image source={images.check} style={styles.checkImage} />
 
-          <Text className="text-2xl text-center font-JakartaBold mt-5">
-            Booking placed successfully
-          </Text>
+          <Text style={styles.modalTitle}>Booking placed successfully</Text>
 
-          <Text className="text-md text-general-200 font-JakartaRegular text-center mt-3">
+          <Text style={styles.modalText}>
             Thank you for your booking. Your reservation has been successfully
             placed. Please proceed with your trip.
           </Text>
@@ -152,12 +150,48 @@ const Payment = ({
               setSuccess(false);
               router.push("/(root)/(tabs)/home");
             }}
-            className="mt-5"
+            style={styles.backButton}
           />
         </View>
       </ReactNativeModal>
     </>
   );
 };
+
+const styles = StyleSheet.create({
+  confirmButton: {
+    marginVertical: 10,
+    marginBottom: 70,
+  },
+  modalContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "white",
+    padding: 20,
+    borderRadius: 20,
+  },
+  checkImage: {
+    width: 112,
+    height: 112,
+    marginTop: 20,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontFamily: "JakartaBold",
+    marginTop: 20,
+    textAlign: "center",
+  },
+  modalText: {
+    fontSize: 16,
+    color: "#A0A0A0",
+    fontFamily: "JakartaRegular",
+    textAlign: "center",
+    marginTop: 10,
+  },
+  backButton: {
+    marginTop: 20,
+  },
+});
 
 export default Payment;

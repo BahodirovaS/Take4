@@ -53,8 +53,20 @@ export const useLocationStore = create<LocationStore>((set) => ({
 export const useDriverStore = create<DriverStore>((set) => ({
   drivers: [] as MarkerData[],
   selectedDriver: null,
-  setSelectedDriver: (driverId: number) =>
-    set(() => ({ selectedDriver: driverId })),
+
+  fetchDrivers: async () => {
+    try {
+      const response = await fetch("/(api)/driverInfo");
+      const result = await response.json();
+      set({ drivers: result.data || result });
+    } catch (error) {
+      console.error("Error fetching drivers:", error);
+    }
+  },
+
+
+  setSelectedDriver: (driver_id: number) =>
+    set(() => ({ selectedDriver: driver_id })),
   setDrivers: (drivers: MarkerData[]) => set(() => ({ drivers })),
   clearSelectedDriver: () => set(() => ({ selectedDriver: null })),
 }));
