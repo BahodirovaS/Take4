@@ -17,7 +17,7 @@ const FindRide: React.FC = () => {
     } = useLocationStore();
 
     return (
-        <RideLayout title="Ride">
+        <RideLayout title="Ride Details">
             <View style={styles.inputContainer}>
                 <Text style={styles.label}>From</Text>
                 <GoogleTextInput

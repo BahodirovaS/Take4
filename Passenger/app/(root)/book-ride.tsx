@@ -31,24 +31,22 @@ const BookRide: React.FC = () => {
             merchantIdentifier="merchant.com.uber"
             urlScheme="myapp"
         >
-            <RideLayout title="Book Ride">
+            <RideLayout title="Book Your Ride">
                 <>
-                    <Text style={styles.title}>Ride Information</Text>
-
                     <View style={styles.infoCard}>
-                        <View style={styles.infoRow}>
+                        <View style={[styles.infoRow, styles.borderedRow]}>
                             <Text style={styles.infoText}>Ride Price</Text>
                             <Text style={[styles.infoText, styles.price]}>
                                 ${price.toFixed(2)}
                             </Text>
                         </View>
 
-                        <View style={styles.infoRow}>
+                        <View style={[styles.infoRow, styles.borderedRow]}>
                             <Text style={styles.infoText}>Pickup In</Text>
                             <Text style={styles.infoText}>{formatTime(5)}</Text>
                         </View>
 
-                        <View style={styles.infoRow}>
+                        <View style={[styles.infoRow, styles.borderedRow]}>
                             <Text style={styles.infoText}>Arrival Time</Text>
                             <Text style={styles.infoText}>{arrivalTime}</Text>
                         </View>
@@ -90,27 +88,23 @@ const BookRide: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-    title: {
-        fontSize: 20,
-        fontFamily: "JakartaSemiBold",
-        marginBottom: 12,
-    },
     infoCard: {
         flexDirection: "column",
         alignItems: "flex-start",
         justifyContent: "center",
         borderRadius: 30,
         backgroundColor: "white",
-        marginTop: 20,
     },
     infoRow: {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
         width: "100%",
+        paddingVertical: 12,
+    },
+    borderedRow: {
         borderBottomWidth: 1,
         borderBottomColor: "#CED4DA",
-        paddingVertical: 12,
     },
     infoText: {
         fontSize: 16,
@@ -123,7 +117,7 @@ const styles = StyleSheet.create({
         flexDirection: "column",
         alignItems: "flex-start",
         justifyContent: "center",
-        marginTop: 20,
+        paddingBottom: 10,
     },
     addressRow: {
         flexDirection: "row",
@@ -133,7 +127,8 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderColor: "#CED4DA",
         width: "100%",
-        paddingVertical: 12,
+        paddingVertical: 15,
+        paddingLeft: 10,
     },
     addressText: {
         fontSize: 16,
