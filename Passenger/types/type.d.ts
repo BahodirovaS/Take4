@@ -32,6 +32,7 @@ declare interface MarkerData {
   status: boolean;
 }
 
+
 declare interface MapProps {
   destinationLatitude?: number;
   destinationLongitude?: number;

@@ -27,7 +27,7 @@ const DriverCard = ({ item, selected, setSelected }: DriverCardProps) => {
     const { user } = useUser();
     const { userAddress, destinationAddress } = useLocationStore();
 
-    const { price, distance, time, arrivalTime } = PriceCalculator(
+    const { price } = PriceCalculator(
         userAddress!,
         destinationAddress!,
         mileageAPI

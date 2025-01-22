@@ -53,6 +53,7 @@ export const useLocationStore = create<LocationStore>((set) => ({
 export const useDriverStore = create<DriverStore>((set) => ({
   drivers: [] as MarkerData[],
   selectedDriver: null,
+  selectedPrice: 0,
 
   fetchDrivers: async () => {
     try {

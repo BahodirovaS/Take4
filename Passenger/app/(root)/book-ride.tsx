@@ -25,6 +25,15 @@ const BookRide: React.FC = () => {
         mileageAPI
     );
 
+    let adjustedPrice = price;
+    if (driverDetails) {
+        if (driverDetails.car_seats === 6) {
+            adjustedPrice *= 1.2;
+        } else if (driverDetails.car_seats >= 7) {
+            adjustedPrice *= 1.5;
+        }
+    }
+
     return (
         <StripeProvider
             publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY!}
@@ -37,7 +46,7 @@ const BookRide: React.FC = () => {
                         <View style={[styles.infoRow, styles.borderedRow]}>
                             <Text style={styles.infoText}>Ride Price</Text>
                             <Text style={[styles.infoText, styles.price]}>
-                                ${price.toFixed(2)}
+                                ${adjustedPrice.toFixed(2)}
                             </Text>
                         </View>
 

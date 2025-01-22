@@ -5,9 +5,8 @@ import DriverCard from "@/components/DriverCard";
 import RideLayout from "@/components/RideLayout";
 import { useDriverStore } from "@/store";
 import { useEffect } from "react";
-import { Driver } from "@/types/type";
 
-const ConfirmRide = () => {
+const Reservations = () => {
     const { drivers, selectedDriver, setSelectedDriver, fetchDrivers } = useDriverStore();
 
     useEffect(() => {
@@ -17,7 +16,7 @@ const ConfirmRide = () => {
     const availableDrivers = drivers?.filter((driver) => driver.status === true);
 
     return (
-        <RideLayout title={"Choose a Ride"} snapPoints={["45%", "85%"]}>
+        <RideLayout title={"Reserve a Ride"} snapPoints={["65%", "85%"]}>
             <FlatList
                 data={availableDrivers}
                 keyExtractor={(item, index) => index.toString()}
@@ -32,7 +31,7 @@ const ConfirmRide = () => {
                     <View style={styles.footer}>
                         <CustomButton
                             title="Select Ride"
-                            onPress={() => router.push("/(root)/book-ride")}
+                            onPress={() => router.push("/(root)/confirm-reservation")}
                         />
                     </View>
                 )}
@@ -45,8 +44,8 @@ const styles = StyleSheet.create({
     footer: {
         marginHorizontal: 20,
         marginTop: 20,
-        marginBottom: 10,
+        marginBottom: 20,
     },
 });
 
-export default ConfirmRide;
+export default Reservations;

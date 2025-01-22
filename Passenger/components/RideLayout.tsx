@@ -10,7 +10,6 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Map from "@/components/Map";
 import { icons } from "@/constants";
 
-// Define the props type for the RideLayout component
 interface RideLayoutProps {
   title: string;
   snapPoints?: string[];
@@ -28,8 +27,11 @@ const RideLayout: React.FC<RideLayoutProps> = ({ title, snapPoints, children }) 
         </TouchableOpacity>
         <Map />
       </View>
-
-      <BottomSheet ref={bottomSheetRef} snapPoints={snapPoints || ["60%", "85%"]} index={0}>
+      <BottomSheet
+        ref={bottomSheetRef}
+        snapPoints={snapPoints || ["45%", "85%"]}
+        index={0}
+      >
         <BottomSheetView style={styles.bottomSheetView}>
           <Text style={styles.bottomSheetTitle}>{title}</Text>
           {children}
@@ -67,6 +69,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     paddingTop: 10,
+    paddingBottom:20,
   },
   bottomSheetTitle: {
     fontSize: 20,
