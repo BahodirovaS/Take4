@@ -11,6 +11,8 @@ declare interface Driver {
   rating: number;
   status: boolean;
   clerk_id:string;
+  time: number;
+  price: string;
 }
 
 declare interface MarkerData {

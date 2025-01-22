@@ -3,6 +3,9 @@ import { Image, Text, TouchableOpacity, View, StyleSheet } from "react-native";
 import { icons } from "@/constants";
 import { formatTime } from "@/lib/utils";
 import { DriverCardProps } from "@/types/type";
+import { useUser } from "@clerk/clerk-expo";
+import { useLocationStore } from "@/store";
+import { PriceCalculator } from "@/lib/price";
 
 const DriverCard = ({ item, selected, setSelected }: DriverCardProps) => {
   const roundedMinutes = Math.round(item.time! * 10) / 10;
@@ -20,6 +23,29 @@ const DriverCard = ({ item, selected, setSelected }: DriverCardProps) => {
     }
   };
 
+  const mileageAPI = process.env.EXPO_PUBLIC_DIRECTIONS_API_KEY!;
+    const { user } = useUser();
+    const { userAddress, destinationAddress } = useLocationStore();
+
+    const { price, distance, time, arrivalTime } = PriceCalculator(
+        userAddress!,
+        destinationAddress!,
+        mileageAPI
+    );
+
+    const calculatePrice = (carSeats: number) => {
+      const seatCategory = getSeatCategory(carSeats);
+      if (seatCategory === "Comfort") {
+        return price * 1.2;
+      }
+      if (seatCategory === "XL") {
+        return price * 1.5;
+      }
+      return price;
+    };
+
+    const adjustedPrice = calculatePrice(item.car_seats);
+
   return (
     <TouchableOpacity
       onPress={setSelected}
@@ -35,12 +61,8 @@ const DriverCard = ({ item, selected, setSelected }: DriverCardProps) => {
         <View style={styles.priceTimeContainer}>
           <View style={styles.priceContainer}>
             <Image source={icons.dollar} style={styles.dollarIcon} />
-            <Text style={styles.priceText}>${item.price}</Text>
+            <Text style={styles.priceText}>{adjustedPrice.toFixed(2)}</Text>
           </View>
-
-          <Text style={styles.separator}>|</Text>
-
-          <Text style={styles.timeText}>{formatTime(roundedMinutes)}</Text>
 
           <Text style={styles.separator}>|</Text>
 

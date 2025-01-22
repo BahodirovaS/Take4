@@ -16,7 +16,7 @@ const ConfirmRide = () => {
     const availableDrivers = drivers?.filter((driver) => driver.status === true);
 
     return (
-        <RideLayout title={"Choose a Ride"} snapPoints={["65%", "85%"]}>
+        <RideLayout title={"Choose a Ride"} snapPoints={["45%", "85%"]}>
             <FlatList
                 data={availableDrivers}
                 keyExtractor={(item, index) => index.toString()}
