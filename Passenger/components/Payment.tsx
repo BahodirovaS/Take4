@@ -48,7 +48,7 @@ const Payment: React.FC<PaymentProps> = ({
       merchantDisplayName: "Example, Inc.",
       intentConfiguration: {
         mode: {
-          amount: parseInt(amount) * 100,
+          amount: Math.round(parseFloat(amount) * 100),
           currencyCode: "usd",
         },
         confirmHandler: async (
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     marginBottom: 70,
   },
   modalContainer: {
-    flex: 1,
+    height:400,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "white",
@@ -191,6 +191,8 @@ const styles = StyleSheet.create({
   },
   backButton: {
     marginTop: 20,
+    width: 200,
+    paddingVertical: 20,
   },
 });
 

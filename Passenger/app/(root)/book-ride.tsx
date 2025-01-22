@@ -15,6 +15,7 @@ const BookRide: React.FC = () => {
     const { userAddress, destinationAddress } = useLocationStore();
     const { drivers, selectedDriver } = useDriverStore();
 
+
     const driverDetails = drivers?.find(
         (driver) => +driver.id === selectedDriver
     );
@@ -86,8 +87,8 @@ const BookRide: React.FC = () => {
                     <Payment
                         fullName={user?.fullName!}
                         email={user?.emailAddresses[0].emailAddress!}
-                        amount={price.toFixed(2).toString()}
-                        driver_id={driverDetails?.clerk_id ?? ""}
+                        amount={adjustedPrice.toFixed(2).toString()}
+                        driver_id={driverDetails?.id?.toString() ?? ""}
                         rideTime={time}
                     />
                 </>

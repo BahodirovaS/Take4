@@ -29,7 +29,7 @@ const RideLayout: React.FC<RideLayoutProps> = ({ title, snapPoints, children }) 
       </View>
       <BottomSheet
         ref={bottomSheetRef}
-        snapPoints={snapPoints || ["45%", "85%"]}
+        snapPoints={snapPoints || ["65%", "85%"]}
         index={0}
       >
         <BottomSheetView style={styles.bottomSheetView}>
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     paddingTop: 10,
-    paddingBottom:20,
+    paddingBottom: 10,
   },
   bottomSheetTitle: {
     fontSize: 20,

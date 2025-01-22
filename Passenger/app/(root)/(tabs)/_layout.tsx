@@ -53,7 +53,7 @@ export default function Layout() {
                     ),
                 }}
             />
-            <Tabs.Screen
+            {/* <Tabs.Screen
                 name="resos"
                 options={{
                     title: "Reservations",
@@ -62,7 +62,7 @@ export default function Layout() {
                         <TabIcon source={icons.clock} focused={focused} />
                     ),
                 }}
-            />
+            /> */}
             <Tabs.Screen
                 name="profile"
                 options={{

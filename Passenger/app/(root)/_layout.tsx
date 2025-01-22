@@ -27,7 +27,7 @@ const Layout = () => {
                     headerShown: false,
                 }}
             />
-            <Stack.Screen
+            {/* <Stack.Screen
                 name="reservations"
                 options={{
                     headerShown: false,
@@ -38,7 +38,7 @@ const Layout = () => {
                 options={{
                     headerShown: false,
                 }}
-            />
+            /> */}
         </Stack>
     );
 };
