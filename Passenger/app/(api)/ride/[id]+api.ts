@@ -19,7 +19,8 @@ export async function GET(request: Request, { id }: { id: string }) {
             rides.fare_price,
             rides.payment_status,
             rides.created_at,
-            'driver', json_build_object(
+            rides.user_id,
+            json_build_object(
                 'driver_id', drivers.driver_id,
                 'first_name', drivers.first_name,
                 'last_name', drivers.last_name
@@ -34,7 +35,7 @@ export async function GET(request: Request, { id }: { id: string }) {
             rides.created_at DESC;
     `;
 
-    return Response.json({ data: response });
+    return Response.json({ success: true, data: response });
   } catch (error) {
     console.error("Error fetching recent rides:", error);
     return Response.json({ error: "Internal Server Error" }, { status: 500 });

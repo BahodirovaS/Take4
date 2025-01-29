@@ -18,7 +18,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import GoogleTextInput from "@/components/GoogleTextInput";
 import Map from "@/components/Map";
 import RideCard from "@/components/RideCard";
-import { icons, images } from "@/constants";
+import { data, icons, images } from "@/constants";
 import { useFetch } from "@/lib/fetch";
 import { useLocationStore } from "@/store";
 import { Ride } from "@/types/type";
@@ -38,8 +38,9 @@ const Home = () => {
     const {
         data: recentRides,
         loading,
-        error,
+        error
     } = useFetch<Ride[]>(`/(api)/ride/${user?.id}`);
+
 
     useEffect(() => {
         (async () => {
@@ -126,7 +127,7 @@ const Home = () => {
                             </View>
                         </>
 
-                        <Text style={styles.sectionTitle}>Recent Rides</Text>
+                        <Text style={styles.sectionTitle}>Ride History</Text>
                     </>
                 }
             />
