@@ -14,6 +14,7 @@ const Profile = () => {
         phoneNumber: "",
     });
 
+
     useEffect(() => {
         const fetchUserPhones = async () => {
             if (user) {
@@ -24,7 +25,7 @@ const Profile = () => {
                         email: user?.primaryEmailAddress?.emailAddress || "",
                     }));
 
-                    const response = await fetchAPI(`/(api)/user`, {
+                    const response = await fetchAPI(`/(api)/userPhoneGet`, {
                         method: "GET",
                         headers: {
                             "Content-Type": "application/json",
@@ -40,11 +41,11 @@ const Profile = () => {
                             phoneNumber: phone_number,
                         });
                     } else {
-                        Alert.alert("Error", "Failed to load driver information.");
+                        Alert.alert("Error", "Failed to load passenger information.");
                     }
                 } catch (error) {
-                    console.error("Error fetching driver info:", error);
-                    Alert.alert("Error", "An error occurred while loading driver information.");
+                    console.error("Error fetching passenger info:", error);
+                    Alert.alert("Error", "An error occurred while loading passenger information.");
                 }
             }
         };
