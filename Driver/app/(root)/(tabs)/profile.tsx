@@ -36,8 +36,6 @@ const DriverInfo = () => {
         carSeats: 4,
     });
 
-    const [loading, setLoading] = useState(true);
-
     useEffect(() => {
         const fetchDriverInfo = async () => {
             if (user) {

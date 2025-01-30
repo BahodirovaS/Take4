@@ -103,7 +103,6 @@ const Home = () => {
             }
 
             const data = await response.json();
-            console.log('Status updated:', data);
         } catch (error) {
             console.error('Error updating status:', error);
             setIsOnline(prevStatus => !prevStatus);
