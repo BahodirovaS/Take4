@@ -156,7 +156,8 @@ const styles = StyleSheet.create({
         height: 160,
     },
     noResultText: {
-        fontSize: 14,
+        fontSize: 12,
+        textAlign: "center",
     },
     header: {
         flexDirection: 'row',
@@ -166,7 +167,7 @@ const styles = StyleSheet.create({
     },
     welcomeText: {
         fontSize: 24,
-        fontFamily: 'JakartaExtraBold', // Ensure this font is properly linked
+        fontFamily: 'JakartaExtraBold',
     },
     signOutButton: {
         justifyContent: 'center',
@@ -188,7 +189,7 @@ const styles = StyleSheet.create({
     },
     sectionTitle: {
         fontSize: 20,
-        fontFamily: 'JakartaBold', // Ensure this font is properly linked
+        fontFamily: 'JakartaBold',
         marginTop: 20,
         marginBottom: 10,
     },
