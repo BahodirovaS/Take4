@@ -123,7 +123,7 @@ const Home = () => {
                         <>
                             <Text style={styles.sectionTitle}>Your current location</Text>
                             <View style={styles.mapContainer}>
-                                <Map />
+                                <Map showLocationButton={true} />
                             </View>
                         </>
 

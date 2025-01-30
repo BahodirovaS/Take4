@@ -7,7 +7,7 @@ import { useLocationStore } from "@/store";
 
 const directionsAPI = process.env.EXPO_PUBLIC_DIRECTIONS_API_KEY;
 
-const DriverMap = () => {
+const DriverMap = ({ showLocationButton }: { showLocationButton?: boolean }) => {
   const {
     userLongitude,
     userLatitude,
@@ -122,9 +122,11 @@ const DriverMap = () => {
         )}
       </MapView>
 
-      <TouchableOpacity style={styles.button} onPress={goToUserLocation}>
-        <Image source={icons.to} style={styles.buttonIcon} />
-      </TouchableOpacity>
+      {showLocationButton && (
+        <TouchableOpacity style={styles.button} onPress={goToUserLocation}>
+          <Image source={icons.to} style={styles.buttonIcon} />
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -147,7 +149,7 @@ const styles = StyleSheet.create({
   },
   button: {
     position: "absolute",
-    bottom: 10,
+    top: 10,
     right: 10,
     backgroundColor: "#e0e0e0",
     paddingVertical: 10,
