@@ -239,10 +239,10 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     online: {
-        backgroundColor: "#34D399", // Green for online
+        backgroundColor: "#F87171", // Red for when driver wants to go offline
     },
     offline: {
-        backgroundColor: "#F87171", // Red for offline
+        backgroundColor: "#34D399", // Green for when driver wants to go online
     },
     toggleButtonText: {
         color: "#ffff",

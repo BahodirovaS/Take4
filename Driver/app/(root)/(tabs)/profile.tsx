@@ -36,6 +36,8 @@ const DriverInfo = () => {
         carSeats: 4,
     });
 
+    const [loading, setLoading] = useState(true);
+
     useEffect(() => {
         const fetchDriverInfo = async () => {
             if (user) {
@@ -70,7 +72,9 @@ const DriverInfo = () => {
                             carSeats: car_seats,
                         });
                     } else {
-                        Alert.alert("Error", "Failed to load driver information.");
+                        if (!form.name || !form.email) {
+                            Alert.alert("Error", "Failed to load driver information.");
+                        }
                     }
                 } catch (error) {
                     console.error("Error fetching driver info:", error);
@@ -104,7 +108,7 @@ const DriverInfo = () => {
                 return Alert.alert("Error", "Please fill out all required fields.");
             }
 
-            const response = await fetchAPI("/(api)/driver", {
+            const response = await fetchAPI("/(api)/driverInfo", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -143,14 +147,33 @@ const DriverInfo = () => {
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            <KeyboardAvoidingView style={styles.keyboardAvoiding} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-                <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollViewContent}>
-                    <Text style={styles.title}>Driver Information</Text>
-                    <InputField label="Name" value={form.name} onChangeText={(value) => setForm({ ...form, name: value })} editable={false} />
-                    <InputField label="Email" value={form.email} onChangeText={(value) => setForm({ ...form, email: value })} editable={false} />
+            <KeyboardAvoidingView
+                style={styles.keyboardAvoiding}
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+            >
+                <ScrollView
+                    style={styles.scrollView}
+                    contentContainerStyle={styles.scrollViewContent}
+                >
+                    <Text
+                        style={styles.title}>
+                        Driver Information
+                    </Text>
+                    <InputField
+                        label="Name"
+                        value={form.name}
+                        onChangeText={(value) => setForm({ ...form, name: value })}
+                        editable={false}
+                    />
+                    <InputField
+                        label="Email"
+                        value={form.email}
+                        onChangeText={(value) => setForm({ ...form, email: value })}
+                        editable={false}
+                    />
                     <InputField
                         label="Phone Number"
-                        placeholder="123-456-7890"
+                        placeholder="Format 123-456-7890"
                         value={form.phoneNumber}
                         onChangeText={(value) => {
                             let formattedValue = value.replace(/\D/g, '');
@@ -162,12 +185,42 @@ const DriverInfo = () => {
                             setForm({ ...form, phoneNumber: formattedValue });
                         }}
                     />
-                    <InputField label="Address" placeholder="Enter your address" value={form.address} onChangeText={(value) => setForm({ ...form, address: value })} />
-                    <InputField label="Date of Birth" placeholder="YYYY-MM-DD" value={form.dob} onChangeText={(value) => setForm({ ...form, dob: value })} />
-                    <InputField label="Driver's License" placeholder="Enter license number" value={form.licence} onChangeText={(value) => setForm({ ...form, licence: value })} />
-                    <InputField label="Vehicle Make" placeholder="Enter vehicle make" value={form.vMake} onChangeText={(value) => setForm({ ...form, vMake: value })} />
-                    <InputField label="Vehicle Plate" placeholder="Enter license plate number" value={form.vPlate} onChangeText={(value) => setForm({ ...form, vPlate: value })} />
-                    <InputField label="Insurance Number" placeholder="Enter insurance number" value={form.vInsurance} onChangeText={(value) => setForm({ ...form, vInsurance: value })} />
+                    <InputField
+                        label="Address"
+                        placeholder="Enter your address"
+                        value={form.address}
+                        onChangeText={(value) => setForm({ ...form, address: value })}
+                    />
+                    <InputField
+                        label="Date of Birth"
+                        placeholder="YYYY-MM-DD"
+                        value={form.dob}
+                        onChangeText={(value) => setForm({ ...form, dob: value })}
+                    />
+                    <InputField
+                        label="Driver's License"
+                        placeholder="Enter license number"
+                        value={form.licence}
+                        onChangeText={(value) => setForm({ ...form, licence: value })}
+                    />
+                    <InputField
+                        label="Vehicle Make"
+                        placeholder="Enter vehicle make"
+                        value={form.vMake}
+                        onChangeText={(value) => setForm({ ...form, vMake: value })}
+                    />
+                    <InputField
+                        label="Vehicle Plate"
+                        placeholder="Enter license plate number"
+                        value={form.vPlate}
+                        onChangeText={(value) => setForm({ ...form, vPlate: value })}
+                    />
+                    <InputField
+                        label="Insurance Number"
+                        placeholder="Enter insurance number"
+                        value={form.vInsurance}
+                        onChangeText={(value) => setForm({ ...form, vInsurance: value })}
+                    />
                     <Text style={styles.carSeatsTitle}>Car Seats</Text>
                     <View style={styles.carSeatOptions}>
                         {carSeatOptions.map((option) => (
@@ -268,14 +321,12 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         paddingHorizontal: 20,
         borderRadius: 9999,
-        borderWidth: 1,
-        borderColor: "#e5e7eb",
     },
     petsButtonSelected: {
-        backgroundColor: "#3b82f6",
+        backgroundColor: "#34D399", //Green for yes
     },
     petsButtonUnselected: {
-        backgroundColor: "#f3f4f6",
+        backgroundColor: "#F87171", //Red for no
     },
     petsButtonText: {
         fontSize: 16,

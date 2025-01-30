@@ -5,7 +5,7 @@ export async function POST(request: Request) {
         const sql = neon(`${process.env.DATABASE_URL}`);
         const requestData = await request.json();
 
-        const { phoneNumber, address, dob, licence, vMake, vPlate, vInsurance, pets, carSeats, clerkId } = requestData
+        const { phoneNumber, address, dob, licence, vMake, vPlate, vInsurance, pets, carSeats, clerkId } = requestData;
 
         if (!phoneNumber || !address || !dob || !licence || !vMake || !vPlate || !vInsurance || !carSeats || !clerkId) {
             return Response.json(
@@ -15,30 +15,16 @@ export async function POST(request: Request) {
         }
 
         const existingUser = await sql`
-            SELECT * FROM driver_info WHERE clerk_id = ${clerkId};
+            SELECT driver_id FROM drivers WHERE clerk_id = ${clerkId};
         `;
         let response;
 
         if (existingUser.length > 0) {
+            const driver_id = existingUser[0].driver_id;
 
             response = await sql`
-                UPDATE driver_info
-                SET
-                    phone_number = ${phoneNumber},
-                    address = ${address},
-                    dob = ${dob},
-                    licence = ${licence},
-                    v_make = ${vMake},
-                    v_plate = ${vPlate},
-                    v_insurance = ${vInsurance},
-                    pets = ${pets},
-                    car_seats = ${carSeats}
-                WHERE clerk_id = ${clerkId}
-                RETURNING *;
-            `;
-        } else {
-            response = await sql`
                 INSERT INTO driver_info (
+                    driver_id,
                     phone_number,
                     address,
                     dob,
@@ -51,6 +37,45 @@ export async function POST(request: Request) {
                     clerk_id
                 )
                 VALUES (
+                    ${driver_id},
+                    ${phoneNumber},
+                    ${address},
+                    ${dob},
+                    ${licence},
+                    ${vMake},
+                    ${vPlate},
+                    ${vInsurance},
+                    ${pets},
+                    ${carSeats},
+                    ${clerkId}
+                )
+                RETURNING *;
+            `;
+        } else {
+            const driverInsertResponse = await sql`
+                INSERT INTO drivers (clerk_id)
+                VALUES (${clerkId})
+                RETURNING driver_id;
+            `;
+
+            const driver_id = driverInsertResponse[0].driver_id;
+
+            response = await sql`
+                INSERT INTO driver_info (
+                    driver_id,
+                    phone_number,
+                    address,
+                    dob,
+                    licence,
+                    v_make,
+                    v_plate,
+                    v_insurance,
+                    pets,
+                    car_seats,
+                    clerk_id
+                )
+                VALUES (
+                    ${driver_id},
                     ${phoneNumber},
                     ${address},
                     ${dob},
