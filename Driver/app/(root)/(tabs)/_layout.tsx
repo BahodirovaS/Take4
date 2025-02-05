@@ -44,7 +44,7 @@ export default function Layout() {
                 }}
             />
             <Tabs.Screen
-                name="chat"
+                name="chatroom"
                 options={{
                     title: "Chat",
                     headerShown: false,
