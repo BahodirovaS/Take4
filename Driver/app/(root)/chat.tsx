@@ -13,9 +13,10 @@ import {
 import { collection, addDoc, query, orderBy, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useUser } from "@clerk/clerk-expo";
-import { Message } from "@/types/type";
+import { Message, Ride } from "@/types/type";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useFetch } from "@/lib/fetch";
 
 const Chat = () => {
     const [messages, setMessages] = useState<Message[]>([]);
@@ -23,6 +24,14 @@ const Chat = () => {
     const { user } = useUser();
     const [otherPersonName, setOtherPersonName] = useState<string>("");
     const router = useRouter();
+
+    const {
+            data: recentRides,
+            loading,
+            error
+        } = useFetch<Ride[]>(`/(api)/ride/${user?.id}`);
+
+        console.log(recentRides)
 
     useEffect(() => {
         const q = query(collection(db, "messages"), orderBy("timestamp", "desc"));

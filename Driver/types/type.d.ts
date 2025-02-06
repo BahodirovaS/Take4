@@ -66,6 +66,7 @@ declare interface Message {
   text: string;
   senderName: string;
   senderId: string;
+  recepientId: string;
   timestamp: any;
 }
 
