@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
     footer: {
         marginHorizontal: 20,
         marginTop: 20,
-        marginBottom: 10,
+        marginBottom: 20,
     },
 });
 

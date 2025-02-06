@@ -17,6 +17,7 @@ export async function POST(request: Request) {
       user_id,
     } = body;
 
+    console.log(driver_id, user_id,)
     if (
       !origin_address ||
       !destination_address ||

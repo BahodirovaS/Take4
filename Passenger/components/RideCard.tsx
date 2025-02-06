@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-start",
-    paddingTop: 10
+    paddingTop: 10,
   },
   mapImage: {
     width: 80,

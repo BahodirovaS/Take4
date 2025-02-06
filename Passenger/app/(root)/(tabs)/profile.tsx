@@ -14,7 +14,6 @@ const Profile = () => {
         phoneNumber: "",
     });
 
-
     useEffect(() => {
         const fetchUserPhones = async () => {
             if (user) {

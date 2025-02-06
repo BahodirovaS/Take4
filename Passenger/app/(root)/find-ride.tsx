@@ -46,11 +46,11 @@ const FindRide: React.FC = () => {
                     onPress={() => router.push(`/(root)/confirm-ride`)}
                     style={styles.button}
                 />
-                <CustomButton
+                {/* <CustomButton
                     title="Reserve for later"
                     onPress={() => router.push(`/(root)/reservations`)}
                     style={styles.button}
-                />
+                /> */}
             </View>
         </RideLayout>
     );

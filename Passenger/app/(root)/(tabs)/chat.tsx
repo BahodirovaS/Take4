@@ -17,7 +17,7 @@ const Chat: React.FC = () => {
                     />
                     <Text style={styles.noMessagesText}>No Messages Yet</Text>
                     <Text style={styles.instructionText}>
-                        Start a conversation with your friends and family
+                        Start a conversation now
                     </Text>
                 </View>
             </ScrollView>
