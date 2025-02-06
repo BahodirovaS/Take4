@@ -49,7 +49,7 @@ const DriverCard = ({ item, selected, setSelected }: DriverCardProps) => {
   return (
     <TouchableOpacity
       onPress={setSelected}
-      style={[styles.card, selected === item.id && styles.selectedCard]}
+      style={[styles.card, selected === item.driver_id && styles.selectedCard]}
     >
       <View style={styles.cardContent}>
         <View style={styles.seatCategoryContainer}>

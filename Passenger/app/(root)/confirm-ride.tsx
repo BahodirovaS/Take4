@@ -17,7 +17,7 @@ const ConfirmRide = () => {
     const availableDrivers = drivers?.filter((driver) => driver.status === true);
 
     return (
-        <RideLayout title={"Choose a Ride"} snapPoints={["45%", "85%"]}>
+        <RideLayout title={"Choose a Ride"} snapPoints={["65%", "85%"]}>
             <FlatList
                 data={availableDrivers}
                 keyExtractor={(item, index) => index.toString()}
@@ -25,7 +25,7 @@ const ConfirmRide = () => {
                     <DriverCard
                         item={item}
                         selected={selectedDriver!}
-                        setSelected={() => setSelectedDriver(item.id)}
+                        setSelected={() => setSelectedDriver(item.driver_id)}
                     />
                 )}
                 ListFooterComponent={() => (
@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
     footer: {
         marginHorizontal: 20,
         marginTop: 20,
-        marginBottom: 10,
+        marginBottom: 40,
     },
 });
 
