@@ -21,14 +21,14 @@ export async function GET(request: Request, { id }: { id: string }) {
             rides.created_at,
             rides.user_id,
             json_build_object(
-                'driver_id', drivers.driver_id,
+                'clerk_id', drivers.clerk_id,
                 'first_name', drivers.first_name,
                 'last_name', drivers.last_name
             ) AS driver
         FROM
             rides
         INNER JOIN
-            drivers ON rides.driver_id = drivers.driver_id
+            drivers ON rides.driver_id = drivers.clerk_id
         WHERE
             rides.user_id = ${id}
         ORDER BY

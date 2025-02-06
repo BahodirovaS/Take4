@@ -20,7 +20,9 @@ const BookRide: React.FC = () => {
         (driver) => +driver.driver_id === selectedDriver
     );
 
-    console.log
+    const driverClerkId = drivers?.find(
+        (driver) => +driver.driver_id === selectedDriver
+    )?.clerk_id;
 
     const { price, distance, time, arrivalTime } = PriceCalculator(
         userAddress!,
@@ -90,7 +92,7 @@ const BookRide: React.FC = () => {
                         fullName={user?.fullName!}
                         email={user?.emailAddresses[0].emailAddress!}
                         amount={adjustedPrice.toFixed(2).toString()}
-                        driver_id={driverDetails?.driver_id?.toString() ?? ""}
+                        driver_id={driverClerkId?.toString() ?? ""}
                         rideTime={time}
                     />
                 </>

@@ -31,6 +31,8 @@ const Payment: React.FC<PaymentProps> = ({
   const { userId } = useAuth();
   const [success, setSuccess] = useState<boolean>(false);
 
+  console.log(userId)
+  
   const openPaymentSheet = async () => {
     await initializePaymentSheet();
 
