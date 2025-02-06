@@ -61,6 +61,14 @@ declare interface Ride {
   };
 }
 
+declare interface Message {
+  id: string;
+  text: string;
+  senderName: string;
+  senderId: string;
+  timestamp: any;
+}
+
 declare interface ButtonProps extends TouchableOpacityProps {
   title: string;
   bgVariant?: "primary" | "secondary" | "danger" | "outline" | "success";
