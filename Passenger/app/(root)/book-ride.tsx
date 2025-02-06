@@ -20,6 +20,8 @@ const BookRide: React.FC = () => {
         (driver) => +driver.id === selectedDriver
     );
 
+    console.log
+
     const { price, distance, time, arrivalTime } = PriceCalculator(
         userAddress!,
         destinationAddress!,
