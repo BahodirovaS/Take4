@@ -14,7 +14,7 @@ import {
     ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
+import messaging from "@react-native-firebase/messaging";
 import GoogleTextInput from "@/components/GoogleTextInput";
 import Map from "@/components/Map";
 import RideCard from "@/components/RideCard";
@@ -24,10 +24,33 @@ import { useLocationStore } from "@/store";
 import { Ride } from "@/types/type";
 
 const Home = () => {
+
     const { user } = useUser();
     const { signOut } = useAuth();
-
     const { setUserLocation, setDestinationLocation } = useLocationStore();
+    const { data: recentRides, loading, error } = useFetch<Ride[]>(`/(api)/ride/${user?.id}`);
+    const [hasPermission, setHasPermission] = useState<boolean>(false);
+    const [isOnline, setIsOnline] = useState<boolean>(false);
+
+    useEffect(() => {
+        (async () => {
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== "granted") {
+                setHasPermission(false);
+                return;
+            }
+            let location = await Location.getCurrentPositionAsync({});
+            const address = await Location.reverseGeocodeAsync({
+                latitude: location.coords?.latitude!,
+                longitude: location.coords?.longitude!,
+            });
+            setUserLocation({
+                latitude: location.coords?.latitude,
+                longitude: location.coords?.longitude,
+                address: `${address[0].name}, ${address[0].region}`,
+            });
+        })();
+    }, []);
 
     const handleSignOut = async () => {
         try {
@@ -39,7 +62,6 @@ const Home = () => {
                     clerkId: user?.id,
                 }),
             });
-
             if (!response.ok) {
                 throw new Error('Failed to update status to offline');
             }
@@ -50,45 +72,14 @@ const Home = () => {
         }
     };
 
-    const [hasPermission, setHasPermission] = useState<boolean>(false);
-    const [isOnline, setIsOnline] = useState<boolean>(false);
-
-
-    const {
-        data: recentRides,
-        loading,
-        error
-    } = useFetch<Ride[]>(`/(api)/ride/${user?.id}`);
-
-
-    useEffect(() => {
-        (async () => {
-            let { status } = await Location.requestForegroundPermissionsAsync();
-            if (status !== "granted") {
-                setHasPermission(false);
-                return;
-            }
-
-            let location = await Location.getCurrentPositionAsync({});
-
-            const address = await Location.reverseGeocodeAsync({
-                latitude: location.coords?.latitude!,
-                longitude: location.coords?.longitude!,
-            });
-
-            setUserLocation({
-                latitude: location.coords?.latitude,
-                longitude: location.coords?.longitude,
-                address: `${address[0].name}, ${address[0].region}`,
-            });
-        })();
-    }, []);
+    // const handleSignOut = async () => {
+    //     router.replace("/(auth)/sign-in")
+    // }
 
     const toggleOnlineStatus = async () => {
         try {
             const newStatus = !isOnline;
             setIsOnline(newStatus);
-
             const response = await fetch('/(api)/status', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -97,11 +88,9 @@ const Home = () => {
                     clerkId: user?.id,
                 }),
             });
-
             if (!response.ok) {
                 throw new Error('Failed to update status');
             }
-
             const data = await response.json();
         } catch (error) {
             console.error('Error updating status:', error);

@@ -4,11 +4,28 @@ import { formatDate } from "@/lib/utils";
 import { Message } from "@/types/type";
 
 const MessageCard: React.FC<{ message: Message }> = ({ message }) => {
+
+    const timestamp = message.timestamp ? new Date(message.timestamp) : null;
+    let formattedDate = "Unknown Date";
+
+    if (timestamp) {
+        const now = new Date();
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(now.getDate() - 7);
+
+        if (timestamp > oneWeekAgo) {
+            formattedDate = timestamp.toLocaleDateString("en-US", { weekday: "long" });
+        } else {
+            formattedDate = timestamp.toLocaleDateString("en-US", { month: "numeric", day: "numeric", year: "2-digit" });
+        }
+    }
+
+
     return (
         <View style={styles.cardContainer}>
             <View style={styles.cardContent}>
             <Text style={styles.senderName}>{message.senderName}</Text>
-            <Text style={styles.timestamp}>{formatDate(message.timestamp)}</Text>
+            <Text style={styles.timestamp}>{formattedDate}</Text>
             </View>
         </View>
     );

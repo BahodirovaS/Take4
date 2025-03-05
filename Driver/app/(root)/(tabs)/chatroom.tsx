@@ -5,19 +5,28 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import MessageCard from "@/components/MessageCard";
-import { Message } from "@/types/type";
+import { Message, Ride } from "@/types/type";
 import { images } from "@/constants";
+import { useFetch } from "@/lib/fetch";
 
 const Chatroom = () => {
     const { user } = useUser();
     const [chats, setChats] = useState<Message[]>([]);
     const [loading, setLoading] = useState(true);
 
+
+
     useEffect(() => {
         const q = query(collection(db, "messages"), orderBy("timestamp", "desc"));
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            const messagesData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Message));
-            setChats(messagesData);
+            const messagesData = snapshot.docs.map((doc) => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    ...data,
+                    timestamp: data.timestamp ? data.timestamp.toDate() : null,
+                } as Message;
+            });            setChats(messagesData);
             setLoading(false);
         });
         return unsubscribe;
