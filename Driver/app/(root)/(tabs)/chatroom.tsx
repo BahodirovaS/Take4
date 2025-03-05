@@ -11,10 +11,8 @@ import { useFetch } from "@/lib/fetch";
 
 const Chatroom = () => {
     const { user } = useUser();
-    const [chats, setChats] = useState<Message[]>([]);
+    const [chats, setChats] = useState<Map<string, Message>>(new Map());
     const [loading, setLoading] = useState(true);
-
-
 
     useEffect(() => {
         const q = query(collection(db, "messages"), orderBy("timestamp", "desc"));
@@ -26,16 +24,36 @@ const Chatroom = () => {
                     ...data,
                     timestamp: data.timestamp ? data.timestamp.toDate() : null,
                 } as Message;
-            });            setChats(messagesData);
+            });
+
+            const groupedChats = new Map<string, Message>();
+
+            messagesData.forEach((message) => {
+                const otherPersonId = message.senderId === user?.id ? message.receiverId : message.senderId;
+                const chatId = `${user?.id}-${otherPersonId}`; // Create a unique chat ID based on the pair
+
+                if (!groupedChats.has(chatId)) {
+                    groupedChats.set(chatId, message);
+                } else {
+                    const existingMessage = groupedChats.get(chatId);
+                    // Only update the chat if the current message is newer
+                    if (existingMessage && message.timestamp > existingMessage.timestamp) {
+                        groupedChats.set(chatId, message);
+                    }
+                }
+            });
+
+            setChats(groupedChats);
             setLoading(false);
         });
+
         return unsubscribe;
-    }, []);
+    }, [user?.id]);
 
     return (
         <SafeAreaView style={styles.container}>
             <FlatList
-                data={chats}
+                data={Array.from(chats.values())}  // Convert the map to an array for FlatList
                 renderItem={({ item }) => <MessageCard message={item} />}
                 keyExtractor={(item) => item.id}
                 keyboardShouldPersistTaps="handled"
