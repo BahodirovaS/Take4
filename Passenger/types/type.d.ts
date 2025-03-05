@@ -32,6 +32,16 @@ declare interface MarkerData {
   status: boolean;
 }
 
+declare interface Message {
+  id: string;
+  text: string;
+  senderName: string;
+  senderId: string;
+  recipientId: string;
+  recipientName: string;
+  timestamp: Date | any;
+}
+
 
 declare interface MapProps {
   destinationLatitude?: number;

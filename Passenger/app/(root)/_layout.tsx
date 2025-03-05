@@ -27,6 +27,12 @@ const Layout = () => {
                     headerShown: false,
                 }}
             />
+            <Stack.Screen
+                name="chat"
+                options={{
+                    headerShown: false,
+                }}
+            />
             {/* <Stack.Screen
                 name="reservations"
                 options={{
