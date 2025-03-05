@@ -1,9 +1,13 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { formatDate } from "@/lib/utils";
 import { Message } from "@/types/type";
+import { useUser } from "@clerk/clerk-expo";
+import { useRouter } from "expo-router";
 
 const MessageCard: React.FC<{ message: Message }> = ({ message }) => {
+    const { user } = useUser();
+    const router = useRouter();
 
     const timestamp = message.timestamp ? new Date(message.timestamp) : null;
     let formattedDate = "Unknown Date";
@@ -20,14 +24,31 @@ const MessageCard: React.FC<{ message: Message }> = ({ message }) => {
         }
     }
 
+    const otherPersonId = message.senderId === user?.id
+        ? message.recepientId
+        : message.senderId;
+
+    const otherPersonName = message.senderId === user?.id
+        ? message.recepientName
+        : message.senderName;
+
+    const handleChatPress = () => {
+        router.push({
+            pathname: '/(root)/chat',
+            params: {
+                otherPersonId: otherPersonId,
+                otherPersonName: otherPersonName
+            }
+        });
+    };
 
     return (
-        <View style={styles.cardContainer}>
+        <TouchableOpacity onPress={handleChatPress} style={styles.cardContainer}>
             <View style={styles.cardContent}>
-            <Text style={styles.senderName}>{message.senderName}</Text>
-            <Text style={styles.timestamp}>{formattedDate}</Text>
+                <Text style={styles.senderName}>{otherPersonName}</Text>
+                <Text style={styles.timestamp}>{formattedDate}</Text>
             </View>
-        </View>
+        </TouchableOpacity>
     );
 };
 
@@ -42,7 +63,6 @@ const styles = StyleSheet.create({
         borderBottomColor: "#f0f0f0",
         borderBottomStartRadius: 30,
         borderBottomEndRadius: 30,
-
     },
     cardContent: {
         flex: 1,

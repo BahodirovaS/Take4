@@ -67,8 +67,8 @@ declare interface Message {
   senderName: string;
   senderId: string;
   recepientId: string;
-  timestamp: any;
-  receiverId: string;
+  recepientName: string;
+  timestamp: Date | any;
 }
 
 declare interface ButtonProps extends TouchableOpacityProps {

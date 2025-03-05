@@ -10,42 +10,43 @@ import {
     TouchableOpacity,
     StyleSheet
 } from "react-native";
-import { collection, addDoc, query, orderBy, onSnapshot } from "firebase/firestore";
+import { collection, addDoc, query, where, orderBy, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useUser } from "@clerk/clerk-expo";
 import { Message, Ride } from "@/types/type";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useFetch } from "@/lib/fetch";
+import { useRouter, useLocalSearchParams } from "expo-router";
+
 
 const Chat = () => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
     const { user } = useUser();
-    const [otherPersonName, setOtherPersonName] = useState<string>("");
     const router = useRouter();
-
-    const {
-            data: recentRides,
-            loading,
-            error
-        } = useFetch<Ride[]>(`/(api)/ride/${user?.id}`);
-
-        console.log(recentRides)
+    const { otherPersonId, otherPersonName } = useLocalSearchParams<{
+        otherPersonId: string;
+        otherPersonName: string;
+    }>();
 
     useEffect(() => {
-        const q = query(collection(db, "messages"), orderBy("timestamp", "desc"));
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const messagesData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Message));
-            setMessages(messagesData);
+        if (!user?.id || !otherPersonId) return;
+        const q = query(
+            collection(db, "messages"),
+            where("senderId", "in", [user.id, otherPersonId]),
+            where("recepientId", "in", [user.id, otherPersonId]),
+            orderBy("timestamp", "desc")
+        );
 
-            const otherMessage = messagesData.find((message) => message.senderId !== user?.id);
-            if (otherMessage) {
-                setOtherPersonName(otherMessage.senderName);
-            }
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const messagesData = snapshot.docs.map((doc) => ({
+                id: doc.id,
+                ...doc.data()
+            } as Message));
+            setMessages(messagesData);
         });
+
         return unsubscribe;
-    }, [user?.id]);
+    }, [user?.id, otherPersonId]);
 
     const sendMessage = async () => {
         if (!input.trim()) return;
@@ -54,6 +55,8 @@ const Chat = () => {
                 text: input,
                 senderId: user?.id || "guest",
                 senderName: `${user?.firstName} ${user?.lastName}` || "Guest",
+                recepientId: otherPersonId,
+                recepientName: otherPersonName,
                 timestamp: new Date(),
             });
             setInput("");
@@ -61,6 +64,8 @@ const Chat = () => {
             console.error("Error sending message: ", error);
         }
     };
+
+
 
     const handleGoBack = () => {
         router.replace("/chatroom");
@@ -76,9 +81,9 @@ const Chat = () => {
                     <TouchableOpacity onPress={handleGoBack}>
                         <Ionicons name="arrow-back" size={24} color="black" />
                     </TouchableOpacity>
-                {otherPersonName && (
-                    <Text style={styles.otherPersonName}>{otherPersonName}</Text>
-                )}
+                    {otherPersonName && (
+                        <Text style={styles.otherPersonName}>{otherPersonName}</Text>
+                    )}
                 </View>
                 <FlatList
                     data={messages}
@@ -123,6 +128,8 @@ const Chat = () => {
         </SafeAreaView>
     );
 };
+
+
 
 const styles = StyleSheet.create({
     safeArea: {

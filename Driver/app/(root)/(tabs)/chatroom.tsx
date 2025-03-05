@@ -1,15 +1,31 @@
 import { useUser } from "@clerk/clerk-expo";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, Image, Text, View, StyleSheet } from "react-native";
+import {
+    ActivityIndicator,
+    FlatList,
+    Image,
+    Text,
+    View,
+    StyleSheet,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
+import {
+    collection,
+    query,
+    orderBy,
+    onSnapshot
+} from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import MessageCard from "@/components/MessageCard";
 import { Message, Ride } from "@/types/type";
 import { images } from "@/constants";
 import { useFetch } from "@/lib/fetch";
+import { useRouter } from "expo-router";
+
 
 const Chatroom = () => {
+
+    const router = useRouter();
     const { user } = useUser();
     const [chats, setChats] = useState<Map<string, Message>>(new Map());
     const [loading, setLoading] = useState(true);
@@ -29,14 +45,16 @@ const Chatroom = () => {
             const groupedChats = new Map<string, Message>();
 
             messagesData.forEach((message) => {
-                const otherPersonId = message.senderId === user?.id ? message.receiverId : message.senderId;
-                const chatId = `${user?.id}-${otherPersonId}`; // Create a unique chat ID based on the pair
+                const otherPersonId = message.senderId === user?.id
+                    ? message.recepientId
+                    : message.senderId;
+
+                const chatId = `${user?.id}-${otherPersonId}`;
 
                 if (!groupedChats.has(chatId)) {
                     groupedChats.set(chatId, message);
                 } else {
                     const existingMessage = groupedChats.get(chatId);
-                    // Only update the chat if the current message is newer
                     if (existingMessage && message.timestamp > existingMessage.timestamp) {
                         groupedChats.set(chatId, message);
                     }
@@ -50,10 +68,11 @@ const Chatroom = () => {
         return unsubscribe;
     }, [user?.id]);
 
+
     return (
         <SafeAreaView style={styles.container}>
             <FlatList
-                data={Array.from(chats.values())}  // Convert the map to an array for FlatList
+                data={Array.from(chats.values())}
                 renderItem={({ item }) => <MessageCard message={item} />}
                 keyExtractor={(item) => item.id}
                 keyboardShouldPersistTaps="handled"
