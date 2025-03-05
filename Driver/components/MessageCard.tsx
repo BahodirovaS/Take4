@@ -25,11 +25,11 @@ const MessageCard: React.FC<{ message: Message }> = ({ message }) => {
     }
 
     const otherPersonId = message.senderId === user?.id
-        ? message.recepientId
+        ? message.recipientId
         : message.senderId;
 
     const otherPersonName = message.senderId === user?.id
-        ? message.recepientName
+        ? message.recipientName
         : message.senderName;
 
     const handleChatPress = () => {

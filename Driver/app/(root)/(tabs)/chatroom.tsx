@@ -13,13 +13,13 @@ import {
     collection,
     query,
     orderBy,
-    onSnapshot
+    onSnapshot,
+    where
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import MessageCard from "@/components/MessageCard";
 import { Message, Ride } from "@/types/type";
 import { images } from "@/constants";
-import { useFetch } from "@/lib/fetch";
 import { useRouter } from "expo-router";
 
 
@@ -30,9 +30,23 @@ const Chatroom = () => {
     const [chats, setChats] = useState<Map<string, Message>>(new Map());
     const [loading, setLoading] = useState(true);
 
+
     useEffect(() => {
-        const q = query(collection(db, "messages"), orderBy("timestamp", "desc"));
-        const unsubscribe = onSnapshot(q, (snapshot) => {
+        if (!user?.id) return;
+
+        const senderQuery = query(
+            collection(db, "messages"),
+            where("senderId", "==", user.id),
+            orderBy("timestamp", "desc")
+        );
+
+        const recipientQuery = query(
+            collection(db, "messages"),
+            where("recipientId", "==", user.id),
+            orderBy("timestamp", "desc")
+        );
+
+        const unsubscribeSender = onSnapshot(senderQuery, (snapshot) => {
             const messagesData = snapshot.docs.map((doc) => {
                 const data = doc.data();
                 return {
@@ -42,30 +56,46 @@ const Chatroom = () => {
                 } as Message;
             });
 
-            const groupedChats = new Map<string, Message>();
-
-            messagesData.forEach((message) => {
-                const otherPersonId = message.senderId === user?.id
-                    ? message.recepientId
-                    : message.senderId;
-
-                const chatId = `${user?.id}-${otherPersonId}`;
-
-                if (!groupedChats.has(chatId)) {
-                    groupedChats.set(chatId, message);
-                } else {
-                    const existingMessage = groupedChats.get(chatId);
-                    if (existingMessage && message.timestamp > existingMessage.timestamp) {
-                        groupedChats.set(chatId, message);
-                    }
-                }
+            setChats((prevChats) => {
+                const updatedChats = new Map(prevChats);
+                messagesData.forEach((message) => {
+                    const otherPersonId = message.senderId === user?.id
+                        ? message.recipientId
+                        : message.senderId;
+                    const chatId = `${user?.id}-${otherPersonId}`;
+                    updatedChats.set(chatId, message);
+                });
+                return updatedChats;
             });
-
-            setChats(groupedChats);
-            setLoading(false);
         });
 
-        return unsubscribe;
+        const unsubscribeRecipient = onSnapshot(recipientQuery, (snapshot) => {
+            const messagesData = snapshot.docs.map((doc) => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    ...data,
+                    timestamp: data.timestamp ? data.timestamp.toDate() : null,
+                } as Message;
+            });
+
+            setChats((prevChats) => {
+                const updatedChats = new Map(prevChats);
+                messagesData.forEach((message) => {
+                    const otherPersonId = message.senderId === user?.id
+                        ? message.recipientId
+                        : message.senderId;
+                    const chatId = `${user?.id}-${otherPersonId}`;
+                    updatedChats.set(chatId, message);
+                });
+                return updatedChats;
+            });
+        });
+
+        return () => {
+            unsubscribeSender();
+            unsubscribeRecipient();
+        };
     }, [user?.id]);
 
 

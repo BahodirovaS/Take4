@@ -33,7 +33,7 @@ const Chat = () => {
         const q = query(
             collection(db, "messages"),
             where("senderId", "in", [user.id, otherPersonId]),
-            where("recepientId", "in", [user.id, otherPersonId]),
+            where("recipientId", "in", [user.id, otherPersonId]),
             orderBy("timestamp", "desc")
         );
 
@@ -55,8 +55,8 @@ const Chat = () => {
                 text: input,
                 senderId: user?.id || "guest",
                 senderName: `${user?.firstName} ${user?.lastName}` || "Guest",
-                recepientId: otherPersonId,
-                recepientName: otherPersonName,
+                recipientId: otherPersonId,
+                recipientName: otherPersonName,
                 timestamp: new Date(),
             });
             setInput("");
