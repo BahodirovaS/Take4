@@ -33,6 +33,18 @@ const Layout = () => {
                     headerShown: false,
                 }}
             />
+            <Stack.Screen
+                name="ride-requested"
+                options={{
+                    headerShown: false,
+                }}
+            />
+            <Stack.Screen
+                name="ride-confirmed"
+                options={{
+                    headerShown: false,
+                }}
+            />
             {/* <Stack.Screen
                 name="reservations"
                 options={{

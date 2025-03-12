@@ -10,6 +10,9 @@ import { images } from "@/constants";
 import { fetchAPI } from "@/lib/fetch";
 import { useLocationStore } from "@/store";
 import { PaymentProps } from "@/types/type";
+import { db } from "@/lib/firebase"
+import { collection, addDoc } from "firebase/firestore";
+
 
 const Payment: React.FC<PaymentProps> = ({
   fullName,
@@ -32,7 +35,7 @@ const Payment: React.FC<PaymentProps> = ({
   const [success, setSuccess] = useState<boolean>(false);
 
   console.log(userId)
-  
+
   const openPaymentSheet = async () => {
     await initializePaymentSheet();
 
@@ -89,24 +92,20 @@ const Payment: React.FC<PaymentProps> = ({
             });
 
             if (result.client_secret) {
-              await fetchAPI("/(api)/ride/create", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  origin_address: userAddress,
-                  destination_address: destinationAddress,
-                  origin_latitude: userLatitude,
-                  origin_longitude: userLongitude,
-                  destination_latitude: destinationLatitude,
-                  destination_longitude: destinationLongitude,
-                  ride_time: rideTime.toFixed(0),
-                  fare_price: parseInt(amount) * 100,
-                  payment_status: "paid",
-                  driver_id: driver_id,
-                  user_id: userId,
-                }),
+              await addDoc(collection(db, "rideRequests"), {
+                origin_address: userAddress,
+                destination_address: destinationAddress,
+                origin_latitude: userLatitude,
+                origin_longitude: userLongitude,
+                destination_latitude: destinationLatitude,
+                destination_longitude: destinationLongitude,
+                ride_time: rideTime.toFixed(0),
+                fare_price: parseInt(amount) * 100,
+                payment_status: "paid",
+                driver_id: driver_id,
+                user_id: userId,
+                status: "pending",
+                createdAt: new Date(),
               });
 
               intentCreationCallback({
@@ -147,13 +146,14 @@ const Payment: React.FC<PaymentProps> = ({
           </Text>
 
           <CustomButton
-            title="Back Home"
+            title="View Ride Status"
             onPress={() => {
               setSuccess(false);
-              router.push("/(root)/(tabs)/home");
+              router.push("/(root)/ride-requested");
             }}
             style={styles.backButton}
           />
+
         </View>
       </ReactNativeModal>
     </>
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
     marginBottom: 70,
   },
   modalContainer: {
-    height:400,
+    height: 400,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "white",
