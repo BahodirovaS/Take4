@@ -12,6 +12,8 @@ import {
     FlatList,
     StyleSheet,
     ActivityIndicator,
+    Alert,
+    Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import messaging from "@react-native-firebase/messaging";
@@ -22,6 +24,9 @@ import { data, icons, images } from "@/constants";
 import { useFetch } from "@/lib/fetch";
 import { useLocationStore } from "@/store";
 import { Ride } from "@/types/type";
+import { collection, query, where, onSnapshot, doc, updateDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
 
 const Home = () => {
 
@@ -31,50 +36,114 @@ const Home = () => {
     const { data: recentRides, loading, error } = useFetch<Ride[]>(`/(api)/ride/${user?.id}`);
     const [hasPermission, setHasPermission] = useState<boolean>(false);
     const [isOnline, setIsOnline] = useState<boolean>(false);
+    const [rideRequests, setRideRequests] = useState<Ride[]>([]);
+    const [newRequest, setNewRequest] = useState<Ride | null>(null);
+    const [modalVisible, setModalVisible] = useState(false);
+
 
     useEffect(() => {
-        (async () => {
+        const fetchLocation = async () => {
             let { status } = await Location.requestForegroundPermissionsAsync();
-            if (status !== "granted") {
-                setHasPermission(false);
-                return;
-            }
+            if (status !== "granted") return;
+
             let location = await Location.getCurrentPositionAsync({});
             const address = await Location.reverseGeocodeAsync({
                 latitude: location.coords?.latitude!,
                 longitude: location.coords?.longitude!,
             });
+
             setUserLocation({
                 latitude: location.coords?.latitude,
                 longitude: location.coords?.longitude,
                 address: `${address[0].name}, ${address[0].region}`,
             });
-        })();
+        }
+        fetchLocation()
     }, []);
 
-    const handleSignOut = async () => {
-        try {
-            const response = await fetch('/(api)/status', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    status: false,
-                    clerkId: user?.id,
-                }),
+    useEffect(() => {
+        if (!user?.id) return;
+
+        const q = query(
+            collection(db, "rideRequests"),
+            where("driver_id", "==", user.id),
+            where("status", "==", "pending")
+        );
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const requests = snapshot.docs.map((doc) => {
+                const data = doc.data();
+
+                return {
+                    id: doc.id,
+                    origin_address: data.origin_address,
+                    destination_address: data.destination_address,
+                    origin_latitude: data.origin_latitude,
+                    origin_longitude: data.origin_longitude,
+                    destination_latitude: data.destination_latitude,
+                    destination_longitude: data.destination_longitude,
+                    ride_time: data.ride_time,
+                    fare_price: data.fare_price,
+                    payment_status: data.payment_status,
+                    driver_id: String(data.driver_id),
+                    user_id: data.user_id,
+                    created_at: data.created_at?.toDate() || new Date(),
+                    driver: {
+                        first_name: data.driver?.first_name || "",
+                        last_name: data.driver?.last_name || "",
+                        car_seats: data.driver?.car_seats || 0,
+                    },
+                } as Ride;
             });
-            if (!response.ok) {
-                throw new Error('Failed to update status to offline');
+
+            setRideRequests(requests);
+
+            if (requests.length > 0) {
+                setNewRequest(requests[0]);
+                setModalVisible(true);
             }
-            await signOut();
-            router.replace("/(auth)/sign-in");
-        } catch (error) {
-            console.error('Error during sign out:', error);
-        }
+        });
+
+        return () => unsubscribe();
+    }, [user?.id]);
+
+    const acceptRide = async (rideId: string) => {
+        await updateDoc(doc(db, "rideRequests", rideId), { status: "accepted" });
+        setModalVisible(false);
+        Alert.alert("Ride Accepted", "You have accepted the ride.");
     };
 
+    const declineRide = async (rideId: string) => {
+        await updateDoc(doc(db, "rideRequests", rideId), { status: "declined" });
+        setModalVisible(false);
+        Alert.alert("Ride Declined", "You have declined the ride.");
+    };
+
+
     // const handleSignOut = async () => {
-    //     router.replace("/(auth)/sign-in")
-    // }
+    //     try {
+    //         const response = await fetch('/(api)/status', {
+    //             method: 'POST',
+    //             headers: { 'Content-Type': 'application/json' },
+    //             body: JSON.stringify({
+    //                 status: false,
+    //                 clerkId: user?.id,
+    //             }),
+    //         });
+    //         if (!response.ok) {
+    //             throw new Error('Failed to update status to offline');
+    //         }
+    //         await signOut();
+    //         router.replace("/(auth)/sign-in");
+    //     } catch (error) {
+    //         console.error('Error during sign out:', error);
+    //     }
+    // };
+
+    const handleSignOut = async () => {
+        signOut()
+        router.replace("/(auth)/sign-in")
+    }
 
     const toggleOnlineStatus = async () => {
         try {
@@ -100,6 +169,49 @@ const Home = () => {
 
     return (
         <SafeAreaView style={styles.container}>
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={modalVisible}
+                onRequestClose={() => setModalVisible(false)}
+            >
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>New Ride Request!</Text>
+
+                        <View style={styles.modalDetails}>
+                            <Text style={styles.modalLabel}>Pickup:</Text>
+                            <Text style={styles.modalText}>{newRequest?.origin_address}</Text>
+
+                            <Text style={styles.modalLabel}>Dropoff:</Text>
+                            <Text style={styles.modalText}>{newRequest?.destination_address}</Text>
+
+                            <Text style={styles.modalLabel}>Ride Time:</Text>
+                            <Text style={styles.modalText}>{newRequest?.ride_time} min</Text>
+
+                            <Text style={styles.modalLabel}>Fare Price:</Text>
+                            <Text style={styles.modalText}> ${((newRequest?.fare_price ?? 0) / 100).toFixed(2)}
+                            </Text>
+                        </View>
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity
+                                onPress={() => acceptRide(newRequest!.id)}
+                                style={[styles.button, styles.acceptButton]}
+                            >
+                                <Text style={styles.buttonText}>Accept</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                onPress={() => declineRide(newRequest!.id)}
+                                style={[styles.button, styles.declineButton]}
+                            >
+                                <Text style={styles.buttonText}>Decline</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+
+            </Modal>
             <FlatList
                 data={recentRides?.slice(0, 5)}
                 renderItem={({ item }) => <RideCard ride={item} />}
@@ -165,6 +277,74 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: 'white',
+    },
+    modalContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "rgba(0,0,0,0.6)",
+    },
+    modalContent: {
+        width: 320,
+        padding: 25,
+        backgroundColor: "white",
+        borderRadius: 15,
+        alignItems: "center",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 5,
+        elevation: 5,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: "bold",
+        color: "#333",
+        marginBottom: 15,
+    },
+    modalDetails: {
+        width: "100%",
+        paddingVertical: 10,
+        paddingHorizontal: 15,
+        backgroundColor: "#F3F4F6",
+        borderRadius: 10,
+        marginBottom: 15,
+    },
+    modalLabel: {
+        fontSize: 14,
+        fontWeight: "bold",
+        color: "#555",
+        marginBottom: 2,
+    },
+    modalText: {
+        fontSize: 18,
+        fontWeight: "600",
+        color: "#222",
+        marginBottom: 10,
+    },
+    modalButtons: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        width: "100%",
+    },
+    button: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: 8,
+        marginHorizontal: 8,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    acceptButton: {
+        backgroundColor: "#34D399",
+    },
+    declineButton: {
+        backgroundColor: "#F87171",
+    },
+    buttonText: {
+        color: "white",
+        fontWeight: "bold",
+        fontSize: 16,
     },
     flatList: {
         paddingHorizontal: 20,

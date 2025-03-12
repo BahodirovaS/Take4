@@ -41,7 +41,6 @@ export const googleOAuth = async (startOAuthFlow: any) => {
 
         const userEmail = signUp.emailAddress;
 
-        // Check if user exists in the drivers table
         const response = await fetchAPI("/(api)/driverGet", {
           method: "POST",
           body: JSON.stringify({ email: userEmail }),
