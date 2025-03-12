@@ -39,6 +39,23 @@ export const googleOAuth = async (startOAuthFlow: any) => {
       if (setActive) {
         await setActive({ session: createdSessionId });
 
+        const userEmail = signUp.emailAddress;
+
+        // Check if user exists in the drivers table
+        const response = await fetchAPI("/(api)/driverGet", {
+          method: "POST",
+          body: JSON.stringify({ email: userEmail }),
+        });
+
+        const { exists } = await response.json();
+
+        if (!exists) {
+          return {
+            success: false,
+            message: "No driver account found with these credentials.",
+          };
+        }
+
         if (signUp.createdUserId) {
           await fetchAPI("/(api)/user", {
             method: "POST",
@@ -50,7 +67,7 @@ export const googleOAuth = async (startOAuthFlow: any) => {
             }),
           });
         }
-        router.push('/(root)/(tabs)/home')
+        router.push("/(root)/(tabs)/home");
 
         return {
           success: true,
@@ -69,7 +86,8 @@ export const googleOAuth = async (startOAuthFlow: any) => {
     return {
       success: false,
       code: err.code,
-      message: err?.errors[0]?.longMessage,
+      message: err?.errors?.[0]?.longMessage || "An unknown error occurred",
     };
   }
 };
+
