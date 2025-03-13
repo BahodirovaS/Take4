@@ -131,30 +131,30 @@ const Home = () => {
     };
 
 
-    // const handleSignOut = async () => {
-    //     try {
-    //         const response = await fetch('/(api)/status', {
-    //             method: 'POST',
-    //             headers: { 'Content-Type': 'application/json' },
-    //             body: JSON.stringify({
-    //                 status: false,
-    //                 clerkId: user?.id,
-    //             }),
-    //         });
-    //         if (!response.ok) {
-    //             throw new Error('Failed to update status to offline');
-    //         }
-    //         await signOut();
-    //         router.replace("/(auth)/sign-in");
-    //     } catch (error) {
-    //         console.error('Error during sign out:', error);
-    //     }
-    // };
-
     const handleSignOut = async () => {
-        signOut()
-        router.replace("/(auth)/sign-in")
-    }
+        try {
+            const response = await fetch('/(api)/status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    status: false,
+                    clerkId: user?.id,
+                }),
+            });
+            if (!response.ok) {
+                throw new Error('Failed to update status to offline');
+            }
+            await signOut();
+            router.replace("/(auth)/sign-in");
+        } catch (error) {
+            console.error('Error during sign out:', error);
+        }
+    };
+
+    // const handleSignOut = async () => {
+    //     signOut()
+    //     router.replace("/(auth)/sign-in")
+    // }
 
     const toggleOnlineStatus = async () => {
         try {
