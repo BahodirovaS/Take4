@@ -8,6 +8,14 @@ const Layout = () => {
                 name="chat"
                 options={{ headerShown: false }}
             />
+            <Stack.Screen
+                name="active-ride"
+                options={{ 
+                    headerShown: false,
+                    headerLeft: () => null,
+                    gestureEnabled: false 
+                }}
+            />
         </Stack>
     );
 };

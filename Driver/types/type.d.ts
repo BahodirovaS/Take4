@@ -54,13 +54,21 @@ declare interface Ride {
   payment_status: string;
   driver_id: string;
   user_id: string;
-  created_at: string | Date;
+  created_at: string;
+  status: string;
   driver: {
     first_name: string;
     last_name: string;
     car_seats: number;
   };
 }
+
+interface ActiveRideProps {
+  rideId: string;
+  onComplete: () => void;
+  onCancel: () => void;
+}
+
 
 declare interface Message {
   id: string;

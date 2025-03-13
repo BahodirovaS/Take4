@@ -107,11 +107,21 @@ const Home = () => {
     }, [user?.id]);
 
     const acceptRide = async (rideId: string) => {
-        console.log("Accepting ride:", rideId);
         try {
-            await updateDoc(doc(db, "rideRequests", rideId), { status: "accepted" });
+            await updateDoc(doc(db, "rideRequests", rideId), { 
+                status: "accepted",
+                accepted_at: new Date()
+            });
             setModalVisible(false);
-            Alert.alert("Success", "You have accepted the ride.");
+            
+            const rideIdString = String(rideId)
+
+            router.push({
+                pathname: '/(root)/active-ride',
+                params: { 
+                    rideId: rideIdString
+                }
+            });
         } catch (error) {
             console.error("Error accepting ride:", error);
             Alert.alert("Error", "Failed to accept the ride. Please try again.");
