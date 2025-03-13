@@ -26,6 +26,7 @@ import { useLocationStore } from "@/store";
 import { Ride } from "@/types/type";
 import { collection, query, where, onSnapshot, doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import RideRequestBottomSheet from "@/components/RideRequest";
 
 
 const Home = () => {
@@ -34,7 +35,6 @@ const Home = () => {
     const { signOut } = useAuth();
     const { setUserLocation, setDestinationLocation } = useLocationStore();
     const { data: recentRides, loading, error } = useFetch<Ride[]>(`/(api)/ride/${user?.id}`);
-    const [hasPermission, setHasPermission] = useState<boolean>(false);
     const [isOnline, setIsOnline] = useState<boolean>(false);
     const [rideRequests, setRideRequests] = useState<Ride[]>([]);
     const [newRequest, setNewRequest] = useState<Ride | null>(null);
@@ -95,7 +95,6 @@ const Home = () => {
                     },
                 } as Ride;
             });
-
             setRideRequests(requests);
 
             if (requests.length > 0) {
@@ -166,52 +165,17 @@ const Home = () => {
             setIsOnline(prevStatus => !prevStatus);
         }
     };
+    
 
     return (
         <SafeAreaView style={styles.container}>
-            <Modal
-                animationType="slide"
-                transparent={true}
+            <RideRequestBottomSheet
                 visible={modalVisible}
-                onRequestClose={() => setModalVisible(false)}
-            >
-                <View style={styles.modalContainer}>
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>New Ride Request!</Text>
-
-                        <View style={styles.modalDetails}>
-                            <Text style={styles.modalLabel}>Pickup:</Text>
-                            <Text style={styles.modalText}>{newRequest?.origin_address}</Text>
-
-                            <Text style={styles.modalLabel}>Dropoff:</Text>
-                            <Text style={styles.modalText}>{newRequest?.destination_address}</Text>
-
-                            <Text style={styles.modalLabel}>Ride Time:</Text>
-                            <Text style={styles.modalText}>{newRequest?.ride_time} min</Text>
-
-                            <Text style={styles.modalLabel}>Fare Price:</Text>
-                            <Text style={styles.modalText}> ${((newRequest?.fare_price ?? 0) / 100).toFixed(2)}
-                            </Text>
-                        </View>
-                        <View style={styles.modalButtons}>
-                            <TouchableOpacity
-                                onPress={() => acceptRide(newRequest!.id)}
-                                style={[styles.button, styles.acceptButton]}
-                            >
-                                <Text style={styles.buttonText}>Accept</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                onPress={() => declineRide(newRequest!.id)}
-                                style={[styles.button, styles.declineButton]}
-                            >
-                                <Text style={styles.buttonText}>Decline</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-
-            </Modal>
+                ride={newRequest}
+                onAccept={acceptRide}
+                onDecline={declineRide}
+                onClose={() => setModalVisible(false)}
+            />
             <FlatList
                 data={recentRides?.slice(0, 5)}
                 renderItem={({ item }) => <RideCard ride={item} />}
