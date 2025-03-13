@@ -107,15 +107,27 @@ const Home = () => {
     }, [user?.id]);
 
     const acceptRide = async (rideId: string) => {
-        await updateDoc(doc(db, "rideRequests", rideId), { status: "accepted" });
-        setModalVisible(false);
-        Alert.alert("Ride Accepted", "You have accepted the ride.");
+        console.log("Accepting ride:", rideId);
+        try {
+            await updateDoc(doc(db, "rideRequests", rideId), { status: "accepted" });
+            setModalVisible(false);
+            Alert.alert("Success", "You have accepted the ride.");
+        } catch (error) {
+            console.error("Error accepting ride:", error);
+            Alert.alert("Error", "Failed to accept the ride. Please try again.");
+        }
     };
 
     const declineRide = async (rideId: string) => {
-        await updateDoc(doc(db, "rideRequests", rideId), { status: "declined" });
-        setModalVisible(false);
-        Alert.alert("Ride Declined", "You have declined the ride.");
+        console.log("Declining ride:", rideId);
+        try {
+            await updateDoc(doc(db, "rideRequests", rideId), { status: "declined" });
+            setModalVisible(false);
+            Alert.alert("Declined", "You have declined the ride.");
+        } catch (error) {
+            console.error("Error declining ride:", error);
+            Alert.alert("Error", "Failed to decline the ride. Please try again.");
+        }
     };
 
 
