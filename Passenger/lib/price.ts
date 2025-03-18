@@ -28,9 +28,9 @@ export const PriceCalculator = (
                 const durationInSeconds = legs.duration.value; // in seconds
 
                 const distanceInMiles = distanceInMeters * 0.000621371; // meters to miles
-                const durationInMinutes = Math.ceil(durationInSeconds / 60); // seconds to minutes
-
-                setDistance(distanceInMiles);
+                const durationInMinutes = Math.round(durationInSeconds / 60); // seconds to minutes
+                
+                setDistance(Number(distanceInMiles.toFixed(1))); // Keep 1 decimal place
                 setTime(durationInMinutes);
 
                 const totalPrice =

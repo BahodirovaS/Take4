@@ -11,7 +11,9 @@ const DriverCard = ({ item, selected, setSelected }: DriverCardProps) => {
   const roundedMinutes = Math.round(item.time! * 10) / 10;
 
   const getSeatCategory = (carSeats: number) => {
-    switch (carSeats) {
+    const seats = typeof carSeats === 'string' ? parseInt(carSeats) : carSeats;
+
+    switch (seats) {
       case 4:
         return "Standard";
       case 6:
@@ -19,7 +21,7 @@ const DriverCard = ({ item, selected, setSelected }: DriverCardProps) => {
       case 7:
         return "XL";
       default:
-        return `${carSeats} seats`;
+        return `${seats} seats`;
     }
   };
 

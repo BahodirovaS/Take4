@@ -1,60 +1,102 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
-import { router, useNavigation } from "expo-router";
+import { View, Text, ActivityIndicator, StyleSheet, TouchableOpacity, Alert } from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
 import { db } from "@/lib/firebase";
-import { doc, setDoc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { useUser } from "@clerk/clerk-expo";
 import { useLocationStore, useDriverStore } from "@/store";
-import { PriceCalculator } from "@/lib/price";
+import CustomButton from "@/components/CustomButton";
 
 const RideRequest: React.FC = () => {
-    const navigation = useNavigation();
     const { user } = useUser();
-    const { userAddress, destinationAddress } = useLocationStore();
-    const { drivers, selectedDriver } = useDriverStore();
-    const mileageAPI = process.env.EXPO_PUBLIC_DIRECTIONS_API_KEY!;
-
-    const driverDetails = drivers?.find(
-        (driver) => +driver.driver_id === selectedDriver
-    );
-    const driverClerkId = driverDetails?.clerk_id;
-
-    const { price, distance, time, arrivalTime } = PriceCalculator(
-        userAddress!,
-        destinationAddress!,
-        mileageAPI
-    );
+    const { rideId } = useLocalSearchParams();
+    const [status, setStatus] = useState<string>("requested");
+    const [elapsedTime, setElapsedTime] = useState<number>(0);
     
-    const adjustedPrice = driverDetails?.car_seats
-    ? driverDetails.car_seats >= 6
-        ? price * 1.2
-        : price
-    : price;
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setElapsedTime(prev => prev + 1);
+        }, 1000);
+        
+        return () => clearInterval(timer);
+    }, []);
 
-    const [rideId, setRideId] = useState<string | null>(null);
-
+    const formatElapsedTime = () => {
+        const minutes = Math.floor(elapsedTime / 60);
+        const seconds = elapsedTime % 60;
+        return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+    };
 
     useEffect(() => {
         if (!rideId) return;
-        const rideRef = doc(db, "rideRequests", rideId);
+        
+        const rideRef = doc(db, "rideRequests", rideId as string);
         
         const unsubscribe = onSnapshot(rideRef, (snapshot) => {
             const data = snapshot.data();
-            if (data?.status === "accepted") {
-                router.replace({
-                    pathname: "/ride-confirmed",
-                    params: { rideId },
-                });
+            if (data) {
+                setStatus(data.status);
+                
+                if (data.status === "accepted") {
+                    router.replace({
+                        pathname: "/ride-confirmed",
+                        params: { rideId },
+                    });
+                } else if (data.status === "rejected") {
+                    // Handle rejection - could show alert or search for another driver
+                    Alert.alert(
+                        "Ride Rejected",
+                        "Driver has rejected your ride request. You can try another driver.",
+                        [
+                            {
+                                text: "OK",
+                                onPress: () => router.back()
                             }
+                        ]
+                    );
+                }
+            }
         });
 
         return () => unsubscribe();
     }, [rideId]);
 
+    const cancelRideRequest = async () => {
+        if (!rideId) return;
+        
+        try {
+            const rideRef = doc(db, "rideRequests", rideId as string);
+            await updateDoc(rideRef, {
+                status: "cancelled_by_user",
+                cancelledAt: new Date()
+            });
+            
+            router.back();
+        } catch (error) {
+            console.error("Error cancelling ride:", error);
+            Alert.alert("Error", "Failed to cancel ride. Please try again.");
+        }
+    };
+
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>Ride Request Pending...</Text>
+            <Text style={styles.title}>Finding Your Driver</Text>
             <ActivityIndicator size="large" color="#000" />
+            
+            <Text style={styles.statusText}>
+                {status === "requested" && "Waiting for a driver to accept your ride..."}
+                {status === "requested" && "Processing your ride request..."}
+            </Text>
+            
+            <Text style={styles.timeText}>
+                Waiting time: {formatElapsedTime()}
+            </Text>
+            
+            <CustomButton
+                title="Cancel Request"
+                onPress={cancelRideRequest}
+                style={styles.cancelButton}
+            />
         </View>
     );
 };
@@ -64,11 +106,30 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
+        padding: 20,
     },
     title: {
-        fontSize: 20,
+        fontSize: 24,
         fontWeight: "bold",
-        marginBottom: 10,
+        marginBottom: 20,
+        fontFamily: "JakartaBold",
+    },
+    statusText: {
+        fontSize: 16,
+        marginTop: 20,
+        textAlign: "center",
+        color: "#666",
+        fontFamily: "JakartaRegular",
+    },
+    timeText: {
+        fontSize: 14,
+        marginTop: 10,
+        color: "#888",
+        fontFamily: "JakartaRegular",
+    },
+    cancelButton: {
+        marginTop: 40,
+        backgroundColor: "#FF3B30",
     },
 });
 

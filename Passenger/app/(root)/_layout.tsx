@@ -45,18 +45,19 @@ const Layout = () => {
                     headerShown: false,
                 }}
             />
-            {/* <Stack.Screen
-                name="reservations"
+            <Stack.Screen
+                name="reserve-ride"
                 options={{
                     headerShown: false,
                 }}
             />
             <Stack.Screen
-                name="confirm-reservation"
+                name="reserve-book-ride"
                 options={{
                     headerShown: false,
                 }}
-            /> */}
+            />
+            
         </Stack>
     );
 };

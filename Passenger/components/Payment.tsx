@@ -8,18 +8,26 @@ import { ReactNativeModal } from "react-native-modal";
 import CustomButton from "@/components/CustomButton";
 import { images } from "@/constants";
 import { fetchAPI } from "@/lib/fetch";
-import { useLocationStore } from "@/store";
+import { useLocationStore, useReservationStore } from "@/store";
 import { PaymentProps } from "@/types/type";
-import { db } from "@/lib/firebase"
+import { db } from "@/lib/firebase";
 import { collection, addDoc } from "firebase/firestore";
 
+interface EnhancedPaymentProps extends PaymentProps {
+  isScheduled?: boolean;
+  scheduledDate?: string;
+  scheduledTime?: string;
+}
 
-const Payment: React.FC<PaymentProps> = ({
+const Payment: React.FC<EnhancedPaymentProps> = ({
   fullName,
   email,
   amount,
   driver_id,
   rideTime,
+  isScheduled = false,
+  scheduledDate,
+  scheduledTime,
 }) => {
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const {
@@ -30,11 +38,27 @@ const Payment: React.FC<PaymentProps> = ({
     destinationAddress,
     destinationLongitude,
   } = useLocationStore();
+  const { clearReservation } = useReservationStore();
 
   const { userId } = useAuth();
   const [success, setSuccess] = useState<boolean>(false);
+  const [rideId, setRideId] = useState<string | null>(null);
 
-  console.log(userId)
+
+  const buttonTitle = isScheduled ? "Pay & Confirm Reservation" : "Confirm Ride";
+  const modalTitle = isScheduled ? "Reservation Confirmed" : "Booking placed successfully";
+  const modalText = isScheduled
+    ? `Thank you for your booking. Your ride has been scheduled for ${scheduledDate} at ${scheduledTime}. We'll notify you when your driver is on the way.`
+    : "Thank you for your booking. Your reservation has been successfully placed. Please proceed with your trip.";
+  const buttonText = isScheduled ? "View My Rides" : "View Ride Status";
+
+  // Explicitly type the redirectPath
+  const redirectPath = isScheduled
+    ? "/(root)/(tabs)/resos"
+    : {
+      pathname: "/(root)/ride-requested",
+      params: { rideId: rideId || undefined }
+    };
 
   const openPaymentSheet = async () => {
     await initializePaymentSheet();
@@ -61,6 +85,14 @@ const Payment: React.FC<PaymentProps> = ({
           shouldSavePaymentMethod,
           intentCreationCallback
         ) => {
+          console.log('Scheduled Ride Data:', {
+            isScheduled,
+            scheduledDate,
+            scheduledTime,
+            fullName,
+            email
+          });
+
           const { paymentIntent, customer } = await fetchAPI(
             "/(api)/(stripe)/create",
             {
@@ -92,7 +124,7 @@ const Payment: React.FC<PaymentProps> = ({
             });
 
             if (result.client_secret) {
-              await addDoc(collection(db, "rideRequests"), {
+              const rideData = {
                 origin_address: userAddress,
                 destination_address: destinationAddress,
                 origin_latitude: userLatitude,
@@ -100,13 +132,70 @@ const Payment: React.FC<PaymentProps> = ({
                 destination_latitude: destinationLatitude,
                 destination_longitude: destinationLongitude,
                 ride_time: rideTime.toFixed(0),
-                fare_price: parseInt(amount) * 100,
+                fare_price: Math.round(parseFloat(amount) * 100),
                 payment_status: "paid",
                 driver_id: driver_id,
                 user_id: userId,
-                status: "pending",
                 createdAt: new Date(),
-              });
+              };
+
+              if (isScheduled && scheduledDate && scheduledTime) {
+                try {
+                  const dateParts = scheduledDate.split(', ');
+                  const dateString = dateParts.length > 1 ? dateParts[1] : scheduledDate;
+
+                  const months = [
+                    'January', 'February', 'March', 'April', 'May', 'June',
+                    'July', 'August', 'September', 'October', 'November', 'December'
+                  ];
+
+                  const [month, day] = dateString.split(' ');
+                  const monthIndex = months.indexOf(month);
+                  const currentYear = new Date().getFullYear();
+
+                  const [timePart, modifier] = scheduledTime.split(' ');
+                  const [hour, minute] = timePart.split(':').map(Number);
+
+                  let adjustedHour = hour;
+                  if (modifier === 'PM' && hour !== 12) {
+                    adjustedHour += 12;
+                  } else if (modifier === 'AM' && hour === 12) {
+                    adjustedHour = 0;
+                  }
+
+                  const scheduledDateTime = new Date(
+                    currentYear,
+                    monthIndex,
+                    parseInt(day),
+                    adjustedHour,
+                    minute
+                  );
+
+                  Object.assign(rideData, {
+                    status: "scheduled",
+                    scheduled_date: scheduledDate,
+                    scheduled_time: scheduledTime,
+                    scheduled_datetime: scheduledDateTime,
+                  });
+
+                  console.log('Parsed Scheduled DateTime:', {
+                    originalDate: scheduledDate,
+                    originalTime: scheduledTime,
+                    parsedDateTime: scheduledDateTime
+                  });
+                } catch (error) {
+                  console.error('Error parsing scheduled date/time:', error);
+                  return;
+                }
+              } else {
+                // This is a real-time ride
+                Object.assign(rideData, {
+                  status: "requested",
+                });
+              }
+
+              const rideDoc = await addDoc(collection(db, "rideRequests"), rideData);
+              setRideId(rideDoc.id);
 
               intentCreationCallback({
                 clientSecret: result.client_secret,
@@ -115,7 +204,7 @@ const Payment: React.FC<PaymentProps> = ({
           }
         },
       },
-      returnURL: "myapp://book-ride",
+      returnURL: isScheduled ? "myapp://reserve-book-ride" : "myapp://book-ride",
     });
 
     if (!error) {
@@ -123,10 +212,24 @@ const Payment: React.FC<PaymentProps> = ({
     }
   };
 
+  const handleSuccessButtonPress = () => {
+    setSuccess(false);
+
+    if (isScheduled) {
+      clearReservation();
+      router.replace("/(root)/(tabs)/resos");
+    } else {
+      router.push({
+        pathname: "/(root)/ride-requested",
+        params: { rideId: rideId || undefined }
+      });
+    }
+  };
+
   return (
     <>
       <CustomButton
-        title="Confirm Ride"
+        title={buttonTitle}
         style={styles.confirmButton}
         onPress={openPaymentSheet}
       />
@@ -138,22 +241,15 @@ const Payment: React.FC<PaymentProps> = ({
         <View style={styles.modalContainer}>
           <Image source={images.check} style={styles.checkImage} />
 
-          <Text style={styles.modalTitle}>Booking placed successfully</Text>
+          <Text style={styles.modalTitle}>{modalTitle}</Text>
 
-          <Text style={styles.modalText}>
-            Thank you for your booking. Your reservation has been successfully
-            placed. Please proceed with your trip.
-          </Text>
+          <Text style={styles.modalText}>{modalText}</Text>
 
           <CustomButton
-            title="View Ride Status"
-            onPress={() => {
-              setSuccess(false);
-              router.push("/(root)/ride-requested");
-            }}
+            title={buttonText}
+            onPress={handleSuccessButtonPress}
             style={styles.backButton}
           />
-
         </View>
       </ReactNativeModal>
     </>

@@ -113,6 +113,9 @@ declare interface PaymentProps {
   amount: string;
   driver_id: string;
   rideTime: number;
+  isScheduled?: boolean;
+  scheduledDate?: string;
+  scheduledTime?: string;
 }
 
 declare interface LocationStore {
@@ -149,6 +152,15 @@ declare interface DriverStore {
   setDrivers: (drivers: MarkerData[]) => void;
   clearSelectedDriver: () => void;
   fetchDrivers: () => Promise<void>;
+}
+
+interface ReservationStore {
+  scheduledDate: string | null;
+  scheduledTime: string | null;
+  reservationId: string | null;
+  setScheduledDateTime: (date: string, time: string) => void;
+  setReservationId: (id: string) => void;
+  clearReservation: () => void;
 }
 
 declare interface DriverCardProps {

@@ -7,7 +7,7 @@ import { useLocationStore } from "@/store";
 
 const directionsAPI = process.env.EXPO_PUBLIC_DIRECTIONS_API_KEY;
 
-const DriverMap = ({ showLocationButton }: { showLocationButton?: boolean }) => {
+const Map = ({ showLocationButton }: { showLocationButton?: boolean }) => {
   const {
     userLongitude,
     userLatitude,
@@ -164,4 +164,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default DriverMap;
+export default Map;
