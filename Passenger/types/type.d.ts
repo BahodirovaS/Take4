@@ -71,6 +71,23 @@ declare interface Ride {
   };
 }
 
+interface RideRequest {
+  id: string;
+  scheduled_date: string;
+  scheduled_time: string;
+  origin_address: string;
+  destination_address: string;
+  origin_longitude: number;
+  origin_latitude: number;
+  destination_longitude: number;
+  destination_latitude: number;
+  fare_price: number;
+  status: string;
+  driver_id: string;
+  createdAt: Date;
+}
+
+
 declare interface ButtonProps extends TouchableOpacityProps {
   title: string;
   bgVariant?: "primary" | "secondary" | "danger" | "outline" | "success";
@@ -154,13 +171,15 @@ declare interface DriverStore {
   fetchDrivers: () => Promise<void>;
 }
 
-interface ReservationStore {
-  scheduledDate: string | null;
-  scheduledTime: string | null;
-  reservationId: string | null;
-  setScheduledDateTime: (date: string, time: string) => void;
-  setReservationId: (id: string) => void;
-  clearReservation: () => void;
+
+interface RideRequest {
+  id: string;
+  scheduled_date: string;
+  scheduled_time: string;
+  origin_address: string;
+  destination_address: string;
+  fare_price: number;
+  status: string;
 }
 
 declare interface DriverCardProps {
