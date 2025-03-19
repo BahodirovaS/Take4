@@ -126,8 +126,8 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
                 ride_time: rideTime.toFixed(0),
                 fare_price: Math.round(parseFloat(amount) * 100),
                 payment_status: "paid",
-                driver_id: driver_id,
                 user_id: userId,
+                driver_id: driver_id,
                 createdAt: new Date(),
               };
 

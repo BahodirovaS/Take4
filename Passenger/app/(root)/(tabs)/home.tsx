@@ -70,7 +70,7 @@ const Home = () => {
                 const q = query(
                     ridesRef, 
                     where("user_id", "==", user.id),
-                    where("status", "in", ["completed", "accepted"])
+                    where("status", "in", ["completed"])
                 );
                 
                 const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -94,9 +94,9 @@ const Home = () => {
                                 ? data.created_at.toDate().toISOString() 
                                 : new Date().toISOString(),
                             driver: {
-                                first_name: data.driver?.first_name || "",
-                                last_name: data.driver?.last_name || "",
-                                car_seats: data.driver?.car_seats || 0,
+                                first_name: data.driver?.firstName || "",
+                                last_name: data.driver?.lastName || "",
+                                car_seats: data.driver?.carSeats || 0,
                             },
                             status: data.status
                         } as Ride;

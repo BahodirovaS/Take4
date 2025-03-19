@@ -17,12 +17,9 @@ const BookRide: React.FC = () => {
 
 
     const driverDetails = drivers?.find(
-        (driver) => +driver.driver_id === selectedDriver
+        (driver) => driver.clerk_id === selectedDriver
     );
-
-    const driverClerkId = drivers?.find(
-        (driver) => +driver.driver_id === selectedDriver
-    )?.clerk_id;
+    const driverClerkId = driverDetails?.clerk_id
 
     const { price, distance, time, arrivalTime } = PriceCalculator(
         userAddress!,
