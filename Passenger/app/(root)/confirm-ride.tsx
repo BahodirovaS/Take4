@@ -9,7 +9,12 @@ import { useEffect } from "react";
 const ConfirmRide = () => {
 
     const { reserved } = useLocalSearchParams();
-    const { drivers, selectedDriver, setSelectedDriver, fetchDrivers } = useDriverStore();
+    const { 
+        drivers, 
+        selectedDriver, 
+        setSelectedDriver, 
+        fetchDrivers 
+    } = useDriverStore();
     const { scheduledDate, scheduledTime } = useReservationStore();
 
     useEffect(() => {
@@ -19,6 +24,7 @@ const ConfirmRide = () => {
     const driversToShow = reserved === "true"
         ? drivers
         : drivers?.filter((driver) => driver.status === true);
+
 
     const handleSelectRide = () => {
         if (reserved === "true") {
@@ -42,12 +48,12 @@ const ConfirmRide = () => {
             )}
             <FlatList
                 data={driversToShow}
-                keyExtractor={(item, index) => index.toString()}
+                keyExtractor={(item) => item.clerk_id.toString()}
                 renderItem={({ item, index }) => (
                     <DriverCard
                         item={item}
                         selected={selectedDriver!}
-                        setSelected={() => setSelectedDriver(item.driver_id)}
+                        setSelected={() => setSelectedDriver(item.clerk_id)}
                     />
                 )}
                 ListFooterComponent={() => (

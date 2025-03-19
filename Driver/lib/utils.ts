@@ -1,4 +1,7 @@
 import { Ride } from "@/types/type";
+import { collection, query, where, getDocs, addDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
 
 export const sortRides = (rides: Ride[]): Ride[] => {
   const result = rides.sort((a, b) => {
@@ -44,3 +47,51 @@ export function formatDate(dateString: string): string {
 
   return `${day < 10 ? "0" + day : day} ${month} ${year}`;
 }
+
+export const createDriver = async (driverData: any) => {
+  try {
+    const driversRef = collection(db, "drivers");
+    const docRef = await addDoc(driversRef, {
+      ...driverData,
+      createdAt: new Date(),
+      status: false // Default to offline
+    });
+    
+    return {
+      id: docRef.id,
+      ...driverData
+    };
+  } catch (error) {
+    console.error("Error creating driver record:", error);
+    throw error;
+  }
+};
+
+export const checkDriverExists = async (email: string) => {
+  try {
+    // Query drivers collection by email
+    const driversRef = collection(db, "drivers");
+    const q = query(driversRef, where("email", "==", email));
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      return {
+        exists: false,
+        data: null
+      };
+    }
+    
+    // Return driver data if found
+    const driverDoc = querySnapshot.docs[0];
+    return {
+      exists: true,
+      data: {
+        id: driverDoc.id,
+        ...driverDoc.data()
+      }
+    };
+  } catch (error) {
+    console.error("Error checking if driver exists:", error);
+    throw error;
+  }
+};

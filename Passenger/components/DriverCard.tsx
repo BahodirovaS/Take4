@@ -26,32 +26,35 @@ const DriverCard = ({ item, selected, setSelected }: DriverCardProps) => {
   };
 
   const mileageAPI = process.env.EXPO_PUBLIC_DIRECTIONS_API_KEY!;
-    const { user } = useUser();
-    const { userAddress, destinationAddress } = useLocationStore();
+  const { user } = useUser();
+  const { userAddress, destinationAddress } = useLocationStore();
 
-    const { price } = PriceCalculator(
-        userAddress!,
-        destinationAddress!,
-        mileageAPI
-    );
+  const { price } = PriceCalculator(
+    userAddress!,
+    destinationAddress!,
+    mileageAPI
+  );
 
-    const calculatePrice = (carSeats: number) => {
-      const seatCategory = getSeatCategory(carSeats);
-      if (seatCategory === "Comfort") {
-        return price * 1.2;
-      }
-      if (seatCategory === "XL") {
-        return price * 1.5;
-      }
-      return price;
-    };
+  const calculatePrice = (carSeats: number) => {
+    const seatCategory = getSeatCategory(carSeats);
+    if (seatCategory === "Comfort") {
+      return price * 1.2;
+    }
+    if (seatCategory === "XL") {
+      return price * 1.5;
+    }
+    return price;
+  };
 
-    const adjustedPrice = calculatePrice(item.car_seats);
+  const adjustedPrice = calculatePrice(item.car_seats);
 
   return (
     <TouchableOpacity
-      onPress={setSelected}
-      style={[styles.card, selected === item.driver_id && styles.selectedCard]}
+      onPress={() => {
+        console.log("Driver item:", item);
+        console.log("Driver ID:", item.clerk_id);
+        setSelected();
+      }} style={[styles.card, selected === item.clerk_id && styles.selectedCard]}
     >
       <View style={styles.cardContent}>
         <View style={styles.seatCategoryContainer}>

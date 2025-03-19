@@ -13,34 +13,30 @@ import {
     StyleSheet,
     ActivityIndicator,
     Alert,
-    Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import messaging from "@react-native-firebase/messaging";
-import GoogleTextInput from "@/components/GoogleTextInput";
+import { collection, query, where, onSnapshot, doc, updateDoc, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import Map from "@/components/Map";
 import RideCard from "@/components/RideCard";
-import { data, icons, images } from "@/constants";
-import { useFetch } from "@/lib/fetch";
+import { icons, images } from "@/constants";
 import { useLocationStore } from "@/store";
 import { Ride } from "@/types/type";
-import { collection, query, where, onSnapshot, doc, updateDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import RideRequestBottomSheet from "@/components/RideRequest";
 
-
 const Home = () => {
-
     const { user } = useUser();
     const { signOut } = useAuth();
     const { setUserLocation, setDestinationLocation } = useLocationStore();
-    const { data: recentRides, loading, error } = useFetch<Ride[]>(`/(api)/ride/${user?.id}`);
+    const [recentRides, setRecentRides] = useState<Ride[]>([]);
+    const [loading, setLoading] = useState(true);
     const [isOnline, setIsOnline] = useState<boolean>(false);
     const [rideRequests, setRideRequests] = useState<Ride[]>([]);
     const [newRequest, setNewRequest] = useState<Ride | null>(null);
     const [modalVisible, setModalVisible] = useState(false);
+    const [driverDocId, setDriverDocId] = useState<string | null>(null);
 
-
+    // Fetch user location
     useEffect(() => {
         const fetchLocation = async () => {
             let { status } = await Location.requestForegroundPermissionsAsync();
@@ -57,17 +53,125 @@ const Home = () => {
                 longitude: location.coords?.longitude,
                 address: `${address[0].name}, ${address[0].region}`,
             });
-        }
-        fetchLocation()
+        };
+        fetchLocation();
     }, []);
 
+    // Fetch driver status
+    useEffect(() => {
+        if (!user?.id) return;
+
+        const fetchDriverStatus = async () => {
+            try {
+                const driversRef = collection(db, "drivers");
+                const q = query(driversRef, where("clerkId", "==", user.id));
+                
+                const querySnapshot = await getDocs(q);
+                if (!querySnapshot.empty) {
+                    const driverDoc = querySnapshot.docs[0];
+                    const driverData = driverDoc.data();
+                    
+                    setDriverDocId(driverDoc.id);
+                    setIsOnline(driverData.status || false);
+                }
+                
+                // Start listening for status changes
+                const unsubscribe = onSnapshot(q, (snapshot) => {
+                    if (!snapshot.empty) {
+                        const driverDoc = snapshot.docs[0];
+                        const driverData = driverDoc.data();
+                        
+                        setDriverDocId(driverDoc.id);
+                        setIsOnline(driverData.status || false);
+                    }
+                });
+
+                return unsubscribe;
+            } catch (error) {
+                console.error("Error fetching driver status:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchDriverStatus();
+    }, [user?.id]);
+
+    // Fetch ride history
+    useEffect(() => {
+        if (!user?.id) return;
+        
+        const fetchRideHistory = async () => {
+            try {
+                setLoading(true);
+                
+                const ridesRef = collection(db, "rideRequests");
+                const q = query(
+                    ridesRef, 
+                    where("driver_id", "==", user.id),
+                    where("status", "in", ["completed", "accepted"])
+                );
+                
+                const unsubscribe = onSnapshot(q, (snapshot) => {
+                    const rides = snapshot.docs.map((doc) => {
+                        const data = doc.data();
+                        
+                        return {
+                            id: doc.id,
+                            origin_address: data.origin_address,
+                            destination_address: data.destination_address,
+                            origin_latitude: data.origin_latitude,
+                            origin_longitude: data.origin_longitude,
+                            destination_latitude: data.destination_latitude,
+                            destination_longitude: data.destination_longitude,
+                            ride_time: data.ride_time,
+                            fare_price: data.fare_price,
+                            payment_status: data.payment_status,
+                            driver_id: String(data.driver_id),
+                            user_id: data.user_id,
+                            // Convert the Firestore timestamp to an ISO string for the Ride type
+                            created_at: data.created_at && typeof data.created_at.toDate === 'function' 
+                                ? data.created_at.toDate().toISOString() 
+                                : new Date().toISOString(),
+                            driver: {
+                                first_name: data.driver?.first_name || "",
+                                last_name: data.driver?.last_name || "",
+                                car_seats: data.driver?.car_seats || 0,
+                            },
+                            status: data.status
+                        } as Ride;
+                    });
+                    
+                    // Sort by created_at date, most recent first
+                    rides.sort((a, b) => {
+                        // Parse the ISO string dates
+                        const timeA = new Date(a.created_at).getTime();
+                        const timeB = new Date(b.created_at).getTime();
+                        return timeB - timeA;
+                    });
+                    
+                    setRecentRides(rides);
+                    setLoading(false);
+                });
+                
+                return unsubscribe;
+            } catch (error) {
+                console.error("Error fetching ride history:", error);
+                setLoading(false);
+            }
+        };
+        
+        fetchRideHistory();
+    }, [user?.id]);
+
+    // Listen for ride requests
     useEffect(() => {
         if (!user?.id) return;
 
         const q = query(
             collection(db, "rideRequests"),
             where("driver_id", "==", user.id),
-            where("status", "==", "pending")
+            where("status", "==", "requested")
         );
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -114,7 +218,7 @@ const Home = () => {
             });
             setModalVisible(false);
             
-            const rideIdString = String(rideId)
+            const rideIdString = String(rideId);
 
             router.push({
                 pathname: '/(root)/active-ride',
@@ -129,7 +233,6 @@ const Home = () => {
     };
 
     const declineRide = async (rideId: string) => {
-        console.log("Declining ride:", rideId);
         try {
             await updateDoc(doc(db, "rideRequests", rideId), { status: "declined" });
             setModalVisible(false);
@@ -140,20 +243,15 @@ const Home = () => {
         }
     };
 
-
     const handleSignOut = async () => {
         try {
-            const response = await fetch('/(api)/status', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+            if (driverDocId) {
+                await updateDoc(doc(db, "drivers", driverDocId), { 
                     status: false,
-                    clerkId: user?.id,
-                }),
-            });
-            if (!response.ok) {
-                throw new Error('Failed to update status to offline');
+                    last_offline: new Date()
+                });
             }
+            
             await signOut();
             router.replace("/(auth)/sign-in");
         } catch (error) {
@@ -161,30 +259,29 @@ const Home = () => {
         }
     };
 
-    // const handleSignOut = async () => {
-    //     signOut()
-    //     router.replace("/(auth)/sign-in")
-    // }
-
     const toggleOnlineStatus = async () => {
+        if (!driverDocId) {
+            Alert.alert("Error", "Please complete your driver profile first.");
+            return;
+        }
+        
         try {
             const newStatus = !isOnline;
+            
+            // Optimistically update UI
             setIsOnline(newStatus);
-            const response = await fetch('/(api)/status', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    status: newStatus,
-                    clerkId: user?.id,
-                }),
+            
+            // Update Firestore
+            await updateDoc(doc(db, "drivers", driverDocId), { 
+                status: newStatus,
+                [newStatus ? 'last_online' : 'last_offline']: new Date()
             });
-            if (!response.ok) {
-                throw new Error('Failed to update status');
-            }
-            const data = await response.json();
+            
         } catch (error) {
             console.error('Error updating status:', error);
+            // Revert UI on error
             setIsOnline(prevStatus => !prevStatus);
+            Alert.alert("Error", "Failed to update your status. Please try again.");
         }
     };
     
@@ -201,7 +298,7 @@ const Home = () => {
             <FlatList
                 data={recentRides?.slice(0, 5)}
                 renderItem={({ item }) => <RideCard ride={item} />}
-                keyExtractor={(item, index) => index.toString()}
+                keyExtractor={(item, index) => item.id || index.toString()}
                 style={styles.flatList}
                 keyboardShouldPersistTaps="handled"
                 contentContainerStyle={styles.flatListContent}
@@ -264,74 +361,6 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: 'white',
     },
-    modalContainer: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "rgba(0,0,0,0.6)",
-    },
-    modalContent: {
-        width: 320,
-        padding: 25,
-        backgroundColor: "white",
-        borderRadius: 15,
-        alignItems: "center",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 5,
-        elevation: 5,
-    },
-    modalTitle: {
-        fontSize: 20,
-        fontWeight: "bold",
-        color: "#333",
-        marginBottom: 15,
-    },
-    modalDetails: {
-        width: "100%",
-        paddingVertical: 10,
-        paddingHorizontal: 15,
-        backgroundColor: "#F3F4F6",
-        borderRadius: 10,
-        marginBottom: 15,
-    },
-    modalLabel: {
-        fontSize: 14,
-        fontWeight: "bold",
-        color: "#555",
-        marginBottom: 2,
-    },
-    modalText: {
-        fontSize: 18,
-        fontWeight: "600",
-        color: "#222",
-        marginBottom: 10,
-    },
-    modalButtons: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        width: "100%",
-    },
-    button: {
-        flex: 1,
-        paddingVertical: 12,
-        borderRadius: 8,
-        marginHorizontal: 8,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    acceptButton: {
-        backgroundColor: "#34D399",
-    },
-    declineButton: {
-        backgroundColor: "#F87171",
-    },
-    buttonText: {
-        color: "white",
-        fontWeight: "bold",
-        fontSize: 16,
-    },
     flatList: {
         paddingHorizontal: 20,
     },
@@ -393,20 +422,14 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     online: {
-        backgroundColor: "#F87171", // Red for when driver wants to go offline
+        backgroundColor: "#F87171",
     },
     offline: {
-        backgroundColor: "#34D399", // Green for when driver wants to go online
+        backgroundColor: "#34D399", 
     },
     toggleButtonText: {
         color: "#ffff",
         fontWeight: "bold",
-    },
-    searchInput: {
-        backgroundColor: 'white',
-        borderColor: '#dcdcdc',
-        borderWidth: 1,
-        borderRadius: 10,
     },
     sectionTitle: {
         fontSize: 20,
@@ -417,8 +440,8 @@ const styles = StyleSheet.create({
     mapContainer: {
         flexDirection: 'row',
         backgroundColor: 'transparent',
-        height: 450,
+        height: 300,
     },
 });
 
-export default Home
+export default Home;

@@ -12,12 +12,13 @@ import {
     View,
 } from "react-native";
 import { ReactNativeModal } from "react-native-modal";
+import { collection, addDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 import CustomButton from "@/components/CustomButton";
 import InputField from "@/components/InputField";
 import OAuth from "@/components/OAuth";
 import { icons, images } from "@/constants";
-import { fetchAPI } from "@/lib/fetch";
 
 const SignUp = () => {
     const { isLoaded, signUp, setActive } = useSignUp();
@@ -62,20 +63,50 @@ const SignUp = () => {
                 code: verification.code,
             });
             if (completeSignUp.status === "complete") {
-                await fetchAPI("/(api)/driver", {
-                    method: "POST",
-                    body: JSON.stringify({
+                // Create a new driver record in Firestore instead of calling the API
+                try {
+                    await addDoc(collection(db, "drivers"), {
                         firstName: form.firstName,
                         lastName: form.lastName,
                         email: form.email,
                         clerkId: completeSignUp.createdUserId,
-                    }),
-                });
-                await setActive({ session: completeSignUp.createdSessionId });
-                setVerification({
-                    ...verification,
-                    state: "success",
-                });
+                        phoneNumber: "",
+                        address: "",
+                        dob: "",
+                        licence: "",
+                        vMake: "",
+                        vPlate: "",
+                        vInsurance: "",
+                        pets: false,
+                        carSeats: 4,
+                        status: false, // Default to offline
+                        createdAt: new Date()
+                    });
+
+                    // Create a user record in users collection for reference (optional)
+                    await addDoc(collection(db, "users"), {
+                        firstName: form.firstName,
+                        lastName: form.lastName,
+                        email: form.email,
+                        clerkId: completeSignUp.createdUserId,
+                        isDriver: true,
+                        createdAt: new Date()
+                    });
+
+                    await setActive({ session: completeSignUp.createdSessionId });
+                    setVerification({
+                        ...verification,
+                        state: "success",
+                    });
+                } catch (firestoreErr) {
+                    console.error("Firestore error:", firestoreErr);
+                    Alert.alert("Error", "Failed to create driver account. Please try again.");
+                    setVerification({
+                        ...verification,
+                        error: "Failed to create driver account",
+                        state: "failed",
+                    });
+                }
             } else {
                 setVerification({
                     ...verification,

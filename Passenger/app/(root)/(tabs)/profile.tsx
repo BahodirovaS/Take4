@@ -3,7 +3,8 @@ import { Image, ScrollView, Text, View, StyleSheet, Button, KeyboardAvoidingView
 import { SafeAreaView } from "react-native-safe-area-context";
 import InputField from "@/components/InputField";
 import { useEffect, useState } from "react";
-import { fetchAPI } from "@/lib/fetch";
+import { collection, query, where, getDocs, doc, updateDoc, addDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 const Profile = () => {
     const { user } = useUser();
@@ -13,34 +14,54 @@ const Profile = () => {
         email: "",
         phoneNumber: "",
     });
+    
+    const [passengerDocId, setPassengerDocId] = useState<string | null>(null);
 
     useEffect(() => {
-        const fetchUserPhones = async () => {
+        const fetchPassengerInfo = async () => {
             if (user) {
                 try {
+                    // Set initial values from user object
                     setForm((prevForm) => ({
                         ...prevForm,
                         name: `${user?.firstName || ""} ${user?.lastName || ""}`.trim(),
                         email: user?.primaryEmailAddress?.emailAddress || "",
                     }));
 
-                    const response = await fetchAPI(`/(api)/userPhoneGet`, {
-                        method: "GET",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                    });
-                    if (response.data && response.data.length > 0) {
-                        const userPhone = response.data[0];
-                        const { phone_number } = userPhone;
-
+                    // Query Firestore to get user info
+                    const usersRef = collection(db, "passengers");
+                    const q = query(usersRef, where("clerkId", "==", user.id));
+                    const querySnapshot = await getDocs(q);
+                    
+                    if (!querySnapshot.empty) {
+                        // User info found
+                        const userDoc = querySnapshot.docs[0];
+                        const userData = userDoc.data();
+                        
+                        setPassengerDocId(userDoc.id);
+                        
                         setForm({
                             name: `${user?.firstName || ""} ${user?.lastName || ""}`.trim(),
                             email: user?.primaryEmailAddress?.emailAddress || "",
-                            phoneNumber: phone_number,
+                            phoneNumber: userData.phoneNumber || "",
                         });
                     } else {
-                        Alert.alert("Error", "Failed to load passenger information.");
+                        // No user info found - create a new user document
+                        try {
+                            const newUserRef = await addDoc(collection(db, "users"), {
+                                firstName: user?.firstName || "",
+                                lastName: user?.lastName || "",
+                                email: user?.primaryEmailAddress?.emailAddress || "",
+                                clerkId: user.id,
+                                phoneNumber: "",
+                                isDriver: false,
+                                createdAt: new Date()
+                            });
+                            setPassengerDocId(newUserRef.id);
+                        } catch (createError) {
+                            console.error("Error creating new passenger document:", createError);
+                            Alert.alert("Error", "Failed to set up passenger profile.");
+                        }
                     }
                 } catch (error) {
                     console.error("Error fetching passenger info:", error);
@@ -49,7 +70,7 @@ const Profile = () => {
             }
         };
 
-        fetchUserPhones();
+        fetchPassengerInfo();
     }, [user]);
 
     const onSubmit = async () => {
@@ -60,29 +81,26 @@ const Profile = () => {
 
             const { phoneNumber } = form;
 
-            if (
-                !phoneNumber
-            ) {
-                return Alert.alert("Error", "Please fill out all required fields.");
+            if (!phoneNumber) {
+                return Alert.alert("Error", "Please enter your phone number.");
             }
 
-            const response = await fetchAPI("/(api)/userPhone", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Connection: "keep-alive",
-                },
-                body: JSON.stringify({
-                    phoneNumber,
-                    clerkId: user.id,
-                }),
-            });
+            const passengerData = {
+                phoneNumber
+            }
 
-            if (response.data) {
-                Alert.alert("Success", "Information updated successfully.");
+            if (passengerDocId) {
+                // update existing document
+                await updateDoc(doc(db, "passengers", passengerDocId), passengerData);
             } else {
-                Alert.alert("Error", "Failed to update information.");
+                // Create new document
+                const docRef = await addDoc(collection(db, "passengers"), {
+                    ...passengerData,
+                    createdAt: new Date()
+                });
+                setPassengerDocId(docRef.id);
             }
+            Alert.alert("Success", "Information updated successfully.");
         } catch (err) {
             console.error("Submission Error:", err);
             Alert.alert("Error", "An error occurred. Please try again.");
@@ -137,7 +155,7 @@ const Profile = () => {
 
                                 <InputField
                                     label="Phone Number"
-                                    placeholder={form.phoneNumber || "Not Found"}
+                                    placeholder="Format: 123-456-7890"
                                     containerStyle={styles.inputContainer}
                                     inputStyle={styles.input}
                                     editable={true}

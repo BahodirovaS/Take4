@@ -23,12 +23,7 @@ const RideCard: React.FC<{ ride: Ride }> = ({ ride }) => {
             </Text>
           </View>
           <View style={styles.row}>
-            <Image
-              source={{
-                uri: `https://maps.geoapify.com/v1/staticmap?style=osm-bright&width=600&height=400&center=lonlat:${ride.destination_longitude},${ride.destination_latitude}&zoom=14&apiKey=${process.env.EXPO_PUBLIC_GEOAPIFY_API_KEY}`,
-              }}
-              style={styles.mapImage}
-            />
+          <Text style={styles.label}>OD</Text>
             <View style={styles.detailsContainer}>
               <View style={styles.row}>
                 <Image source={icons.to} style={styles.icon} />
@@ -115,12 +110,15 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   label: {
-    fontSize: 14,
+    fontSize: 16,
     color: "gray",
+    marginRight: 10,
   },
   value: {
     fontSize: 14,
     fontWeight: "bold",
+    flex: 1,
+    marginLeft: 10,
   },
   paymentPaid: {
     color: "green",

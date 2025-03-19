@@ -17,16 +17,15 @@ declare interface Driver {
 
 declare interface MarkerData {
   latitude: number;
+  clerk_id: string;
   longitude: number;
-  driver_id: number;
+  id: number;
   title: string;
   profile_image_url: string;
   car_image_url: string;
   car_seats: number;
-  rating: number;
   first_name: string;
   last_name: string;
-  clerk_id: string;
   time: number;
   price: string;
   status: boolean;
@@ -52,6 +51,7 @@ declare interface MapProps {
 }
 
 declare interface Ride {
+  id: string;
   origin_address: string;
   destination_address: string;
   origin_latitude: number;
@@ -64,6 +64,7 @@ declare interface Ride {
   driver_id: number;
   user_id: string;
   created_at: string;
+  status: string;
   driver: {
     first_name: string;
     last_name: string;
@@ -87,6 +88,14 @@ interface RideRequest {
   createdAt: Date;
 }
 
+interface ReservationStore {
+  scheduledDate: string | null;
+  scheduledTime: string | null;
+  reservationId: string | null;
+  setScheduledDateTime: (date: string, time: string) => void;
+  setReservationId: (id: string) => void;
+  clearReservation: () => void;
+}
 
 declare interface ButtonProps extends TouchableOpacityProps {
   title: string;
@@ -164,27 +173,17 @@ declare interface LocationStore {
 
 declare interface DriverStore {
   drivers: MarkerData[];
-  selectedDriver: number | null;
-  setSelectedDriver: (driver_id: number) => void;
+  selectedDriver: string | null;
+  setSelectedDriver: (clerk_id: string) => void;
   setDrivers: (drivers: MarkerData[]) => void;
   clearSelectedDriver: () => void;
   fetchDrivers: () => Promise<void>;
 }
 
 
-interface RideRequest {
-  id: string;
-  scheduled_date: string;
-  scheduled_time: string;
-  origin_address: string;
-  destination_address: string;
-  fare_price: number;
-  status: string;
-}
-
 declare interface DriverCardProps {
   item: MarkerData;
-  selected: number;
+  selected: string;
   setSelected: () => void;
 }
 

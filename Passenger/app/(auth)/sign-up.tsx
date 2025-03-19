@@ -12,12 +12,13 @@ import {
     View,
 } from "react-native";
 import { ReactNativeModal } from "react-native-modal";
+import { collection, addDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 import CustomButton from "@/components/CustomButton";
 import InputField from "@/components/InputField";
 import OAuth from "@/components/OAuth";
 import { icons, images } from "@/constants";
-import { fetchAPI } from "@/lib/fetch";
 
 const SignUp = () => {
     const { isLoaded, signUp, setActive } = useSignUp();
@@ -62,20 +63,40 @@ const SignUp = () => {
                 code: verification.code,
             });
             if (completeSignUp.status === "complete") {
-                await fetchAPI("/(api)/user", {
-                    method: "POST",
-                    body: JSON.stringify({
+                // Create a new user record in Firestore instead of calling the API
+                try {
+                    await addDoc(collection(db, "passengers"), {
                         firstName: form.firstName,
                         lastName: form.lastName,
                         email: form.email,
                         clerkId: completeSignUp.createdUserId,
-                    }),
-                });
-                await setActive({ session: completeSignUp.createdSessionId });
-                setVerification({
-                    ...verification,
-                    state: "success",
-                });
+                        phoneNumber: "",
+                        createdAt: new Date()
+                    });
+
+                    await addDoc(collection(db, "users"), {
+                        firstName: form.firstName,
+                        lastName: form.lastName,
+                        email: form.email,
+                        clerkId: completeSignUp.createdUserId,
+                        isDriver: false, // This is a regular user, not a driver
+                        createdAt: new Date()
+                    });
+
+                    await setActive({ session: completeSignUp.createdSessionId });
+                    setVerification({
+                        ...verification,
+                        state: "success",
+                    });
+                } catch (firestoreErr) {
+                    console.error("Firestore error:", firestoreErr);
+                    Alert.alert("Error", "Failed to create user account. Please try again.");
+                    setVerification({
+                        ...verification,
+                        error: "Failed to create user account",
+                        state: "failed",
+                    });
+                }
             } else {
                 setVerification({
                     ...verification,

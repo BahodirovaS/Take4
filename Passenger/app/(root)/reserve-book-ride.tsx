@@ -2,22 +2,12 @@ import React, { useState } from "react";
 import { Image, StyleSheet, Text, View, Alert } from "react-native";
 import { useUser, useAuth } from "@clerk/clerk-expo";
 import { StripeProvider, useStripe } from "@stripe/stripe-react-native";
-import { router } from "expo-router";
-import { ReactNativeModal } from "react-native-modal";
-import { collection, addDoc } from "firebase/firestore";
-
-import CustomButton from "@/components/CustomButton";
-import { db } from "@/lib/firebase";
-import { fetchAPI } from "@/lib/fetch";
-import { images } from "@/constants";
-
 import Payment from "@/components/Payment";
 import RideLayout from "@/components/RideLayout";
 import { icons } from "@/constants";
 import { formatTime } from "@/lib/utils";
 import { useDriverStore, useLocationStore, useReservationStore } from "@/store";
 import { PriceCalculator } from "@/lib/price";
-import { PaymentProps } from "@/types/type";
 
 const ReserveBookRide: React.FC = () => {
     const mileageAPI = process.env.EXPO_PUBLIC_DIRECTIONS_API_KEY!;
@@ -30,12 +20,10 @@ const ReserveBookRide: React.FC = () => {
     const { scheduledDate, scheduledTime } = useReservationStore();
 
     const driverDetails = drivers?.find(
-        (driver) => +driver.driver_id === selectedDriver
+        (driver) => driver.clerk_id === selectedDriver
     );
 
-    const driverClerkId = drivers?.find(
-        (driver) => +driver.driver_id === selectedDriver
-    )?.clerk_id;
+    const driverClerkId = driverDetails?.clerk_id
 
     const { price, time } = PriceCalculator(
         userAddress!,

@@ -85,14 +85,6 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
           shouldSavePaymentMethod,
           intentCreationCallback
         ) => {
-          console.log('Scheduled Ride Data:', {
-            isScheduled,
-            scheduledDate,
-            scheduledTime,
-            fullName,
-            email
-          });
-
           const { paymentIntent, customer } = await fetchAPI(
             "/(api)/(stripe)/create",
             {
@@ -178,11 +170,6 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
                     scheduled_datetime: scheduledDateTime,
                   });
 
-                  console.log('Parsed Scheduled DateTime:', {
-                    originalDate: scheduledDate,
-                    originalTime: scheduledTime,
-                    parsedDateTime: scheduledDateTime
-                  });
                 } catch (error) {
                   console.error('Error parsing scheduled date/time:', error);
                   return;

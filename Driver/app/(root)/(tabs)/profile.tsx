@@ -7,15 +7,15 @@ import {
     Alert,
     Text,
     SafeAreaView,
-    TouchableWithoutFeedback,
     TouchableOpacity,
     StyleSheet,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { collection, addDoc, doc, updateDoc, setDoc, query, where, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 import CustomButton from "@/components/CustomButton";
 import InputField from "@/components/InputField";
-import { fetchAPI } from "@/lib/fetch";
 import { useUser } from "@clerk/clerk-expo";
 
 const DriverInfo = () => {
@@ -34,49 +34,64 @@ const DriverInfo = () => {
         vInsurance: "",
         pets: false,
         carSeats: 4,
+        status: false,
     });
+
+    const [driverDocId, setDriverDocId] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchDriverInfo = async () => {
             if (user) {
                 try {
+                    // Set initial values from user object
                     setForm((prevForm) => ({
                         ...prevForm,
                         name: `${user?.firstName || ""} ${user?.lastName || ""}`.trim(),
                         email: user?.primaryEmailAddress?.emailAddress || "",
                     }));
 
-                    const response = await fetchAPI(`/(api)/info`, {
-                        method: "GET",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                    });
-                    if (response.data && response.data.length > 0) {
-                        const driverInfo = response.data[0];
-                        const { phone_number, address, dob, licence, v_make, v_plate, v_insurance, pets, car_seats } = driverInfo;
-
+                    // Query Firestore to get driver info
+                    const driversRef = collection(db, "drivers");
+                    const q = query(driversRef, where("clerkId", "==", user.id));
+                    const querySnapshot = await getDocs(q);
+                    
+                    if (!querySnapshot.empty) {
+                        // Driver info found
+                        const driverDoc = querySnapshot.docs[0];
+                        const driverData = driverDoc.data();
+                        
+                        setDriverDocId(driverDoc.id);
+                        
                         setForm({
                             name: `${user?.firstName || ""} ${user?.lastName || ""}`.trim(),
                             email: user?.primaryEmailAddress?.emailAddress || "",
-                            phoneNumber: phone_number,
-                            address,
-                            dob: dob.split('T')[0], // Formatting date to "YYYY-MM-DD"
-                            licence,
-                            vMake: v_make,
-                            vPlate: v_plate,
-                            vInsurance: v_insurance,
-                            pets: pets,
-                            carSeats: car_seats,
+                            phoneNumber: driverData.phoneNumber || "",
+                            address: driverData.address || "",
+                            dob: driverData.dob || "",
+                            licence: driverData.licence || "",
+                            vMake: driverData.vMake || "",
+                            vPlate: driverData.vPlate || "",
+                            vInsurance: driverData.vInsurance || "",
+                            pets: driverData.pets || false,
+                            carSeats: driverData.carSeats || 4,
+                            status: driverData.status || false,
                         });
-                    } else {
-                        if (!form.name || !form.email) {
-                            Alert.alert("Error", "Failed to load driver information.");
-                        }
                     }
+                    // If no document found, no alert needed - this is normal for new drivers
                 } catch (error) {
                     console.error("Error fetching driver info:", error);
-                    Alert.alert("Error", "An error occurred while loading driver information.");
+                    // Only show alert if we attempted to load an existing document but failed
+                    const driversRef = collection(db, "drivers");
+                    const q = query(driversRef, where("clerkId", "==", user.id));
+                    try {
+                        const countSnapshot = await getDocs(q);
+                        if (!countSnapshot.empty) {
+                            Alert.alert("Error", "Failed to load driver information.");
+                        }
+                    } catch (countError) {
+                        console.error("Error checking if driver exists:", countError);
+                        Alert.alert("Error", "Failed to load driver information.");
+                    }
                 }
             }
         };
@@ -106,31 +121,34 @@ const DriverInfo = () => {
                 return Alert.alert("Error", "Please fill out all required fields.");
             }
 
-            const response = await fetchAPI("/(api)/driverInfo", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Connection: "keep-alive",
-                },
-                body: JSON.stringify({
-                    phoneNumber,
-                    address,
-                    dob,
-                    licence,
-                    vMake,
-                    vPlate,
-                    vInsurance,
-                    pets,
-                    carSeats,
-                    clerkId: user.id,
-                }),
-            });
+            const driverData = {
+                phoneNumber,
+                address,
+                dob,
+                licence,
+                vMake,
+                vPlate,
+                vInsurance,
+                pets,
+                carSeats,
+                clerkId: user.id,
+                status: false, // Default to offline when creating
+                updatedAt: new Date(),
+            };
 
-            if (response.data) {
-                Alert.alert("Success", "Information updated successfully.");
+            if (driverDocId) {
+                // Update existing document
+                await updateDoc(doc(db, "drivers", driverDocId), driverData);
             } else {
-                Alert.alert("Error", "Failed to update information.");
+                // Create new document
+                const docRef = await addDoc(collection(db, "drivers"), {
+                    ...driverData,
+                    createdAt: new Date()
+                });
+                setDriverDocId(docRef.id);
             }
+
+            Alert.alert("Success", "Information updated successfully.");
         } catch (err) {
             console.error("Submission Error:", err);
             Alert.alert("Error", "An error occurred. Please try again.");

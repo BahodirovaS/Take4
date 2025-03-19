@@ -4,7 +4,6 @@ import { router, useLocalSearchParams } from "expo-router";
 import { db } from "@/lib/firebase";
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { useUser } from "@clerk/clerk-expo";
-import { useLocationStore, useDriverStore } from "@/store";
 import CustomButton from "@/components/CustomButton";
 
 const RideRequest: React.FC = () => {

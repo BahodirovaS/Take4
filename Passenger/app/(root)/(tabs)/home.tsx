@@ -14,32 +14,26 @@ import {
     ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
+import { collection, query, where, onSnapshot, doc, updateDoc, getDocs } from "firebase/firestore";
 import GoogleTextInput from "@/components/GoogleTextInput";
 import Map from "@/components/Map";
 import RideCard from "@/components/RideCard";
 import { data, icons, images } from "@/constants";
-import { useFetch } from "@/lib/fetch";
 import { useLocationStore } from "@/store";
 import { Ride } from "@/types/type";
+import { db } from "@/lib/firebase";
 
 const Home = () => {
     const { user } = useUser();
     const { signOut } = useAuth();
-
     const { setUserLocation, setDestinationLocation } = useLocationStore();
-
+    const [recentRides, setRecentRides] = useState<Ride[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [hasPermission, setHasPermission] = useState<boolean>(false);
     const handleSignOut = () => {
         signOut();
         router.replace("/(auth)/sign-up");
     };
-    const [hasPermission, setHasPermission] = useState<boolean>(false);
-
-    const {
-        data: recentRides,
-        loading,
-        error
-    } = useFetch<Ride[]>(`/(api)/ride/${user?.id}`);
 
 
     useEffect(() => {
@@ -64,6 +58,71 @@ const Home = () => {
             });
         })();
     }, []);
+
+    useEffect(() => {
+        if (!user?.id) return;
+        
+        const fetchRideHistory = async () => {
+            try {
+                setLoading(true);
+                
+                const ridesRef = collection(db, "rideRequests");
+                const q = query(
+                    ridesRef, 
+                    where("user_id", "==", user.id),
+                    where("status", "in", ["completed", "accepted"])
+                );
+                
+                const unsubscribe = onSnapshot(q, (snapshot) => {
+                    const rides = snapshot.docs.map((doc) => {
+                        const data = doc.data();
+                        
+                        return {
+                            id: doc.id,
+                            origin_address: data.origin_address,
+                            destination_address: data.destination_address,
+                            origin_latitude: data.origin_latitude,
+                            origin_longitude: data.origin_longitude,
+                            destination_latitude: data.destination_latitude,
+                            destination_longitude: data.destination_longitude,
+                            ride_time: data.ride_time,
+                            fare_price: data.fare_price,
+                            payment_status: data.payment_status,
+                            driver_id: data.driver_id,
+                            user_id: data.user_id,
+                            created_at: data.created_at && typeof data.created_at.toDate === 'function' 
+                                ? data.created_at.toDate().toISOString() 
+                                : new Date().toISOString(),
+                            driver: {
+                                first_name: data.driver?.first_name || "",
+                                last_name: data.driver?.last_name || "",
+                                car_seats: data.driver?.car_seats || 0,
+                            },
+                            status: data.status
+                        } as Ride;
+                    });
+                    
+                    // Sort by created_at date, most recent first
+                    rides.sort((a, b) => {
+                        // Parse the ISO string dates
+                        const timeA = new Date(a.created_at).getTime();
+                        const timeB = new Date(b.created_at).getTime();
+                        return timeB - timeA;
+                    });
+                    
+                    setRecentRides(rides);
+                    setLoading(false);
+                });
+                
+                return unsubscribe;
+            } catch (error) {
+                console.error("Error fetching ride history:", error);
+                setLoading(false);
+            }
+        };
+        
+        fetchRideHistory();
+    }, [user?.id]);
 
     const handleDestinationPress = (location: {
         latitude: number;

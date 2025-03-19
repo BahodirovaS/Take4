@@ -3,6 +3,8 @@ import * as SecureStore from "expo-secure-store";
 
 import { fetchAPI } from "@/lib/fetch";
 import { router } from "expo-router";
+import { addDoc, collection, doc, getDocs, query, updateDoc, where } from "firebase/firestore";
+import { db } from "./firebase";
 
 export const tokenCache = {
   async getToken(key: string) {
@@ -39,18 +41,45 @@ export const googleOAuth = async (startOAuthFlow: any) => {
       if (setActive) {
         await setActive({ session: createdSessionId });
 
+        const userEmail = signUp.emailAddress;
+
+        const passengerRef = collection(db, "passengers");
+        const q = query(passengerRef, where("email", "==", userEmail));
+        const querySnapshot = await getDocs(q);
+
+        const passengerExists = !querySnapshot.empty;
+        const isNewPassenger = !passengerExists;
         if (signUp.createdUserId) {
-          await fetchAPI("/(api)/user", {
-            method: "POST",
-            body: JSON.stringify({
-              firstName: signUp.firstName,
-              lastName: signUp.lastName,
+          if (querySnapshot.docs.length > 0) {
+            const passengerDocId = querySnapshot.docs[0].id;
+            await updateDoc(doc(db, "passengers", passengerDocId), {
+              clerkId: signUp.createdUserId,
+              firstName: signUp.firstName || "",
+              lastName: signUp.lastName || "",
+              updatedAt: new Date()
+            });
+          } else {
+            // Create a new driver record in the drivers collection
+            await addDoc(collection(db, "passengers"), {
+              firstName: signUp.firstName || "",
+              lastName: signUp.lastName || "",
               email: signUp.emailAddress,
               clerkId: signUp.createdUserId,
-            }),
-          });
+              phoneNumber: "",
+              createdAt: new Date()
+            });
+
+            await addDoc(collection(db, "users"), {
+              firstName: signUp.firstName || "",
+              lastName: signUp.lastName || "",
+              email: signUp.emailAddress,
+              clerkId: signUp.createdUserId,
+              isDriver: false,
+              createdAt: new Date()
+            });
+          }
         }
-        router.push('/(root)/(tabs)/home')
+        router.push("/(root)/(tabs)/home");
 
         return {
           success: true,
@@ -59,7 +88,6 @@ export const googleOAuth = async (startOAuthFlow: any) => {
         };
       }
     }
-
     return {
       success: false,
       message: "An error occurred while signing in with Google",
@@ -69,7 +97,7 @@ export const googleOAuth = async (startOAuthFlow: any) => {
     return {
       success: false,
       code: err.code,
-      message: err?.errors[0]?.longMessage,
-    };
+      message: err?.errors?.[0]?.longMessage || "An unknown error occurred",
+    }
   }
 };

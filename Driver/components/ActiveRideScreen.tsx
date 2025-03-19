@@ -9,7 +9,7 @@ import {
     Platform,
     ScrollView,
 } from 'react-native';
-import { doc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { doc, updateDoc, onSnapshot, collection, addDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase'
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
@@ -18,8 +18,6 @@ import Map from "@/components/Map";
 import { useLocationStore } from '@/store';
 import { ActiveRideProps } from '@/types/type';
 import { router } from 'expo-router';
-import { fetchAPI } from '@/lib/fetch';
-
 
 const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCancel }) => {
     const [ride, setRide] = useState<Ride | null>(null);
@@ -33,7 +31,7 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
     useEffect(() => {
         if (!rideId) {
             console.error("Error: rideId is undefined or null");
-            setIsLoading(false);
+            setIsLoading(false);    
             Alert.alert("Error", "No ride ID provided");
             return () => { };
         }
@@ -67,7 +65,6 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
                             status: data.status,
                         });
 
-                        // Always set destination based on current ride stage to ensure route is drawn
                         setDestinationLocation({
                             latitude: rideStage === 'to_pickup' 
                                 ? data.origin_latitude 
@@ -227,30 +224,32 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
                 destinationAddress 
             } = locationStore;
 
+            // Update current ride request status to completed
             await updateDoc(doc(db, "rideRequests", rideId), {
                 status: 'completed',
                 ride_end_time: new Date()
             });
 
-            await fetchAPI("/(api)/ride/create", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    origin_address: userAddress,
-                    destination_address: destinationAddress,
-                    origin_latitude: userLatitude,
-                    origin_longitude: userLongitude,
-                    destination_latitude: destinationLatitude,
-                    destination_longitude: destinationLongitude,
-                    ride_time: Math.round(Date.now() / 1000), 
-                    fare_price: ride?.fare_price || 0,
-                    payment_status: "paid",
-                    driver_id: ride?.driver_id,
-                    user_id: ride?.user_id,
-                }),
-            });
+            // Add completed ride to Firestore 'completedRides' collection
+            const completedRideData = {
+                origin_address: userAddress,
+                destination_address: destinationAddress,
+                origin_latitude: userLatitude,
+                origin_longitude: userLongitude,
+                destination_latitude: destinationLatitude,
+                destination_longitude: destinationLongitude,
+                ride_time: Math.round(Date.now() / 1000),
+                fare_price: ride?.fare_price || 0,
+                payment_status: "paid",
+                driver_id: ride?.driver_id,
+                user_id: ride?.user_id,
+                rideRequestId: rideId, // Reference to original ride request
+                created_at: new Date(),
+                completed_at: new Date()
+            };
+
+            // Add to completedRides collection
+            await addDoc(collection(db, "completedRides"), completedRideData);
 
             Alert.alert(
                 "Ride Completed",
@@ -268,7 +267,6 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
         }
     };
 
-
     const openGoogleMapsNavigation = () => {
         if (!ride) return;
 
@@ -279,7 +277,6 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
             ios: `comgooglemaps://?daddr=${lat},${lng}&dirflg=d`,
             android: `google.navigation:q=${lat},${lng}`,
         });
-
 
         const webUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
 
