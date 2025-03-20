@@ -95,6 +95,12 @@ const ActiveRide = () => {
                     });
                 }    
                 setRideStatus(data.status);
+                if (data.status === "completed") {
+                    router.replace({
+                        pathname: "/(root)/ride-completed",
+                        params: { rideId: rideId }
+                    });
+                }    
                 if (data.driver_id && 
                     (data.status === "accepted" || 
                      data.status === "arrived_at_pickup" || 

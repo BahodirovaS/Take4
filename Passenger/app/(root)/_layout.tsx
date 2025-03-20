@@ -45,7 +45,12 @@ const Layout = () => {
                     headerShown: false,
                 }}
             />
-
+            <Stack.Screen
+                name="ride-completed"
+                options={{
+                    headerShown: false,
+                }}
+            />
         </Stack>
     );
 };

@@ -1,10 +1,43 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Image, Text, View, StyleSheet } from "react-native";
 import { icons } from "@/constants";
 import { formatDate, formatTime } from "@/lib/utils";
 import { Ride } from "@/types/type";
+import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 const RideCard: React.FC<{ ride: Ride }> = ({ ride }) => {
+
+  const [driverName, setDriverName] = useState<string>("Unknown Driver");
+
+  useEffect(() => {
+    const fetchDriver = async () => {
+      try {
+        const driversCollection = collection(db, "drivers");
+        const q = query(
+          driversCollection, 
+          where("clerkId", "==", ride.driver_id)
+        );
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+          const driverDoc = querySnapshot.docs[0];
+          const driverData = driverDoc.data();
+          
+          setDriverName(
+            driverData.firstName && driverData.lastName
+              ? `${driverData.firstName} ${driverData.lastName}`
+              : "Unknown Driver"
+          );
+        }
+      } catch (error) {
+        console.error("Error fetching driver:", error);
+        setDriverName("Unknown Driver");
+      }
+    };
+
+    fetchDriver();
+  }, [ride.driver_id]);
 
   return (
     <View style={styles.cardContainer}>
@@ -19,7 +52,7 @@ const RideCard: React.FC<{ ride: Ride }> = ({ ride }) => {
           <View style={styles.infoRow}>
             <Text style={styles.label}>Driver</Text>
             <Text style={styles.value}>
-              {ride.driver.first_name} {ride.driver.last_name}
+              {driverName}
             </Text>
           </View>
           <View style={styles.row}>
@@ -90,7 +123,6 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     marginRight: 5,
-    marginLeft: 5,
   },
   text: {
     fontSize: 14,
@@ -105,7 +137,6 @@ const styles = StyleSheet.create({
   },
   infoRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 10,
   },
@@ -113,6 +144,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "gray",
     marginRight: 10,
+    width: 60,
   },
   value: {
     fontSize: 14,
