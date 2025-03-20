@@ -40,6 +40,12 @@ const Layout = () => {
                 }}
             />
             <Stack.Screen
+                name="active-ride"
+                options={{
+                    headerShown: false,
+                }}
+            />
+            <Stack.Screen
                 name="chat"
                 options={{
                     headerShown: false,
