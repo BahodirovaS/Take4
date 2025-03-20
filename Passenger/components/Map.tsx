@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, View, StyleSheet, TouchableOpacity, Text, Image } from "react-native";
+import { ActivityIndicator, View, StyleSheet, TouchableOpacity, Image } from "react-native";
 import MapView, { Marker, PROVIDER_DEFAULT, LatLng } from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
 import { icons } from "@/constants";
@@ -7,7 +7,15 @@ import { useLocationStore } from "@/store";
 
 const directionsAPI = process.env.EXPO_PUBLIC_DIRECTIONS_API_KEY;
 
-const Map = ({ showLocationButton }: { showLocationButton?: boolean }) => {
+const Map = ({ 
+  showLocationButton,
+  rideStatus,
+  driverLocation
+}: { 
+  showLocationButton?: boolean,
+  rideStatus?: string,
+  driverLocation?: {latitude: number, longitude: number}
+}) => {
   const {
     userLongitude,
     userLatitude,
@@ -18,17 +26,29 @@ const Map = ({ showLocationButton }: { showLocationButton?: boolean }) => {
   const mapRef = useRef<MapView>(null);
   const [mapCentered, setMapCentered] = useState(false);
 
-  const coordinates: LatLng[] = [
-    {
-      latitude: userLatitude!,
-      longitude: userLongitude!,
-    },
-  ];
+  const coordinates: LatLng[] = [];
+  
+  // Add user location to coordinates
+  if (userLatitude && userLongitude) {
+    coordinates.push({
+      latitude: userLatitude,
+      longitude: userLongitude,
+    });
+  }
 
+  // Add destination to coordinates
   if (destinationLatitude && destinationLongitude) {
     coordinates.push({
       latitude: destinationLatitude,
       longitude: destinationLongitude,
+    });
+  }
+
+  // Add driver location to coordinates if in accepted state
+  if (rideStatus === "accepted" && driverLocation && driverLocation.latitude && driverLocation.longitude) {
+    coordinates.push({
+      latitude: driverLocation.latitude,
+      longitude: driverLocation.longitude,
     });
   }
 
@@ -42,7 +62,7 @@ const Map = ({ showLocationButton }: { showLocationButton?: boolean }) => {
         setMapCentered(true);
       }, 500);
     }
-  }, [userLatitude, userLongitude, destinationLatitude, destinationLongitude]);
+  }, [userLatitude, userLongitude, destinationLatitude, destinationLongitude, driverLocation]);
 
   const goToUserLocation = () => {
     if (userLatitude && userLongitude && mapRef.current) {
@@ -84,41 +104,82 @@ const Map = ({ showLocationButton }: { showLocationButton?: boolean }) => {
         showsUserLocation={true}
         userInterfaceStyle="light"
       >
+        {/* User location marker */}
         <Marker
-          key="driver"
+          key="user"
           coordinate={{
-            latitude: userLatitude!,
-            longitude: userLongitude!,
+            latitude: userLatitude,
+            longitude: userLongitude,
           }}
           title="Your location"
           image={icons.marker}
         />
 
+        {/* Destination marker */}
         {destinationLatitude && destinationLongitude && (
-          <>
-            <Marker
-              key="destination"
-              coordinate={{
-                latitude: destinationLatitude,
-                longitude: destinationLongitude,
-              }}
-              title="Destination"
-              image={icons.pin}
+          <Marker
+            key="destination"
+            coordinate={{
+              latitude: destinationLatitude,
+              longitude: destinationLongitude,
+            }}
+            title="Destination"
+            image={icons.pin}
+          />
+        )}
+
+        {/* Driver marker - only shown when ride is accepted */}
+        {rideStatus === "accepted" && driverLocation && driverLocation.latitude && driverLocation.longitude && (
+          <Marker
+            key="driver"
+            coordinate={{
+              latitude: driverLocation.latitude,
+              longitude: driverLocation.longitude,
+            }}
+            title="Driver"
+            >
+            <View style={styles.driverMarkerContainer}>
+            <Image 
+              source={icons.car} 
+              style={styles.driverMarkerImage}
             />
-            <MapViewDirections
-              origin={{
-                latitude: userLatitude!,
-                longitude: userLongitude!,
-              }}
-              destination={{
-                latitude: destinationLatitude,
-                longitude: destinationLongitude!,
-              }}
-              apikey={directionsAPI!}
-              strokeColor="#0286FF"
-              strokeWidth={2}
-            />
-          </>
+            </View>            
+          </Marker>
+        )}
+
+        {/* When ride is accepted, show route from driver to user location */}
+        {rideStatus === "accepted" && driverLocation && driverLocation.latitude && driverLocation.longitude && (
+          <MapViewDirections
+            origin={{
+              latitude: driverLocation.latitude,
+              longitude: driverLocation.longitude,
+            }}
+            destination={{
+              latitude: userLatitude,
+              longitude: userLongitude,
+            }}
+            apikey={directionsAPI!}
+            strokeColor="#0286FF"
+            strokeWidth={2}
+            lineDashPattern={[5, 4]} // Dashed line for driver route
+          />
+        )}
+
+        {/* When ride is arrived_at_pickup or in normal state, show route from user to destination */}
+        {(rideStatus === "arrived_at_pickup" || !rideStatus) && destinationLatitude && destinationLongitude && (
+          <MapViewDirections
+            origin={{
+              latitude: userLatitude,
+              longitude: userLongitude,
+            }}
+            destination={{
+              latitude: destinationLatitude,
+              longitude: destinationLongitude,
+            }}
+            apikey={directionsAPI!}
+            strokeColor="#0286FF"
+            strokeWidth={3}
+          />
         )}
       </MapView>
 
@@ -146,6 +207,15 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     borderRadius: 16,
+  },
+  driverMarkerContainer: {
+    width: 30,
+    height: 24,
+  },
+  driverMarkerImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'contain',
   },
   button: {
     position: "absolute",

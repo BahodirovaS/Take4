@@ -123,7 +123,6 @@ const styles = StyleSheet.create({
   },
   contactContainer: {
     marginTop: 16,
-    marginBottom: 16,
     borderTopWidth: 1,
     borderTopColor: "#E6E6E6",
     paddingTop: 16,

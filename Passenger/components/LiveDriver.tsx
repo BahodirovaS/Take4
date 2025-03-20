@@ -182,96 +182,9 @@ const styles = StyleSheet.create({
     retryButton: {
         backgroundColor: "#000",
     },
-    card: {
-        backgroundColor: "white",
-        borderRadius: 12,
-        padding: 16,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-        elevation: 2,
-    },
-    driverRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginBottom: 16,
-    },
-    driverImage: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        marginRight: 12,
-    },
-    driverDetails: {
-        flex: 1,
-    },
-    driverName: {
-        fontSize: 16,
-        fontFamily: "JakartaSemiBold",
-        marginBottom: 4,
-    },
-    carInfo: {
-        fontSize: 14,
-        fontFamily: "JakartaRegular",
-        color: "#666",
-    },
-    etaContainer: {
-        alignItems: "center",
-        backgroundColor: "#f0f0f0",
-        borderRadius: 8,
-        padding: 8,
-    },
-    etaLabel: {
-        fontSize: 12,
-        fontFamily: "JakartaRegular",
-        color: "#666",
-        marginBottom: 2,
-    },
-    etaValue: {
-        fontSize: 16,
-        fontFamily: "JakartaBold",
-    },
-    viewButton: {
-        marginTop: 8,
-    },
-    contactContainer: {
-        marginTop: 16,
-        marginBottom: 16,
-        borderTopWidth: 1,
-        borderTopColor: "#E6E6E6",
-        paddingTop: 16,
-    },
-    contactHeader: {
-        fontSize: 14,
-        fontFamily: "JakartaSemiBold",
-        marginBottom: 12,
-        color: "#333",
-    },
-    contactOptions: {
-        flexDirection: "row",
-        justifyContent: "space-around",
-    },
-    contactOption: {
-        alignItems: "center",
-        padding: 10,
-    },
-    contactIconContainer: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: "#F0F0F0",
-        alignItems: "center",
-        justifyContent: "center",
-        marginBottom: 6,
-    },
-    contactLabel: {
-        fontSize: 12,
-        fontFamily: "JakartaRegular",
-        color: "#333",
-    },
     cancelButton: {
-        backgroundColor: "#FF3B30", // Red color for cancel button
+        backgroundColor: "#FF3B30",
+        marginTop: 20,
     },
 });
 

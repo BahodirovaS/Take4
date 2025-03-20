@@ -14,9 +14,17 @@ interface RideLayoutProps {
   title: string;
   snapPoints?: string[];
   children: React.ReactNode;
+  rideStatus?: string;
+  driverLocation?: {latitude: number, longitude: number};
 }
 
-const RideLayout: React.FC<RideLayoutProps> = ({ title, snapPoints, children }) => {
+const RideLayout: React.FC<RideLayoutProps> = ({ 
+  title, 
+  snapPoints, 
+  children, 
+  rideStatus, 
+  driverLocation 
+}) => {
   const bottomSheetRef = useRef<BottomSheet>(null);
 
   return (
@@ -25,7 +33,11 @@ const RideLayout: React.FC<RideLayoutProps> = ({ title, snapPoints, children }) 
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Image source={icons.backArrow} resizeMode="contain" style={styles.backArrow} />
         </TouchableOpacity>
-        <Map />
+        <Map 
+          showLocationButton={true}
+          rideStatus={rideStatus}
+          driverLocation={driverLocation}
+        />
       </View>
       <BottomSheet
         ref={bottomSheetRef}
@@ -68,8 +80,7 @@ const styles = StyleSheet.create({
   bottomSheetView: {
     flex: 1,
     padding: 20,
-    paddingTop: 10,
-    paddingBottom: 10,
+    paddingTop: 20,
   },
   bottomSheetTitle: {
     fontSize: 20,

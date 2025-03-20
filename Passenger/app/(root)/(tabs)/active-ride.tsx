@@ -23,73 +23,50 @@ const ActiveRide = () => {
     const [isLoading, setIsLoading] = useState(true);
     const { userAddress, destinationAddress } = useLocationStore();
 
-    // First, check if we need to find an active ride
     useEffect(() => {
         const findActiveRide = async () => {
             if (paramRideId) {
-                // If we already have a rideId from params, use that
                 setRideId(paramRideId as string);
                 setIsLoading(false);
                 return;
             }
-
             if (!user?.id) {
                 setIsLoading(false);
                 return;
             }
-
             try {
-                // Query for active rides for this user
                 const ridesRef = collection(db, "rideRequests");
                 const activeRidesQuery = query(
                     ridesRef,
                     where("user_id", "==", user.id),
                     where("status", "in", ["requested", "accepted"])
                 );
-
                 const querySnapshot = await getDocs(activeRidesQuery);
-
                 if (!querySnapshot.empty) {
-                    // Get the most recent active ride
                     const rides = querySnapshot.docs.map(doc => ({
                         id: doc.id,
                         ...doc.data()
                     }));
-
-                    // Sort by createdAt timestamp descending to get most recent ride
-                    // Using camelCase as per your actual database structure
                     rides.sort((a, b) => {
-                        // Handle Firestore timestamps or dates properly
                         const getTimestamp = (item: any) => {
                             if (!item.createdAt) return 0;
-
-                            // Handle Firestore Timestamp objects
                             if (item.createdAt.toDate) {
                                 return item.createdAt.toDate().getTime();
                             }
-
-                            // Handle Date objects directly
                             if (item.createdAt instanceof Date) {
                                 return item.createdAt.getTime();
                             }
-
-                            // Handle string dates
                             if (typeof item.createdAt === 'string') {
                                 return new Date(item.createdAt).getTime();
                             }
-
                             return 0;
                         };
-
                         return getTimestamp(b) - getTimestamp(a);
                     });
 
                     const activeRide = rides[0];
-
-                    // Set the ride ID and update router
                     setRideId(activeRide.id);
 
-                    // Update the URL without triggering a new navigation
                     router.setParams({ rideId: activeRide.id });
                 } else {
                     console.log("No active rides found");
@@ -104,19 +81,16 @@ const ActiveRide = () => {
         findActiveRide();
     }, [user?.id, paramRideId]);
 
+
     useEffect(() => {
         if (!rideId) return;
-
         const rideRef = doc(db, "rideRequests", rideId);
-
         const unsubscribe = onSnapshot(rideRef, (snapshot) => {
             const data = snapshot.data();
             if (data) {
                 setRideStatus(data.status);
-
                 if (data.driver_id && data.status === "accepted") {
                     setDriverId(data.driver_id);
-
                     setDriverLocation({
                         latitude: data.driver_current_latitude || 0,
                         longitude: data.driver_current_longitude || 0
@@ -124,19 +98,17 @@ const ActiveRide = () => {
                 }
             }
         });
-
         return () => unsubscribe();
     }, [rideId]);
 
+
     useEffect(() => {
         if (!driverId) return;
-    
         const fetchDriverDetails = async () => {
             try {
                 const driversRef = collection(db, "drivers");
                 const driverQuery = query(driversRef, where("clerkId", "==", driverId));
                 const querySnapshot = await getDocs(driverQuery);
-    
                 if (!querySnapshot.empty) {
                     const driverData = querySnapshot.docs[0].data();
                     setDriverName(`${driverData.firstName}`);
@@ -147,10 +119,9 @@ const ActiveRide = () => {
                 console.error("Error fetching driver details:", error);
             }
         };
-    
         fetchDriverDetails();
     }, [driverId]);
-    
+
 
     if (isLoading) {
         return (
@@ -176,22 +147,30 @@ const ActiveRide = () => {
     }
 
     return (
-        <RideLayout title={driverName ? `${driverName} is on the way!` : "Your Ride"}>
-            {rideStatus === "requested" ? (
-                <RequestLoading rideId={rideId} />
-            ) : rideStatus === "accepted" && driverId ? (
-                <DriverInfo
-                    driverId={driverId}
-                    rideId={rideId}
-                    driverLocation={driverLocation}
-                />
-            ) : (
-                <View style={styles.errorContainer}>
-                    <Text style={styles.errorText}>
-                        Your ride was {rideStatus}. Please try requesting again.
-                    </Text>
-                </View>
-            )}
+        <RideLayout
+            title={
+                rideStatus === "accepted" && driverName ? `${driverName} is on the way!` :
+                    rideStatus === "arrived_at_pickup" && driverName ? `${driverName} is here!` :
+                        rideStatus === "in_progress" ? "Going to destination" :
+                            rideStatus === "completed" ? "Your ride is complete" :
+                                ""
+            } rideStatus={rideStatus}
+            driverLocation={driverLocation}
+        >            {rideStatus === "requested" ? (
+            <RequestLoading rideId={rideId} />
+        ) : rideStatus === "accepted" && driverId ? (
+            <DriverInfo
+                driverId={driverId}
+                rideId={rideId}
+                driverLocation={driverLocation}
+            />
+        ) : (
+            <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>
+                    Your ride was {rideStatus}. Please try requesting again.
+                </Text>
+            </View>
+        )}
         </RideLayout>
     );
 };

@@ -13,6 +13,8 @@ declare interface Driver {
   clerk_id:string;
   time: number;
   price: string;
+  v_make: string;
+  v_plate: string
 }
 
 declare interface MarkerData {
