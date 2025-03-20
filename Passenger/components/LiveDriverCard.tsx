@@ -7,15 +7,17 @@ import { MarkerData } from "@/types/type";
 interface DriverCardProps {
   driver: MarkerData;
   eta: string;
+  rideStatus?: string;
   onMessagePress: () => void;
   onCallPress: () => void;
 }
 
-const LiveDriverCard: React.FC<DriverCardProps> = ({ 
-  driver, 
-  eta, 
-  onMessagePress, 
-  onCallPress 
+const LiveDriverCard: React.FC<DriverCardProps> = ({
+  driver,
+  eta,
+  rideStatus,
+  onMessagePress,
+  onCallPress
 }) => {
   return (
     <View style={styles.card}>
@@ -36,36 +38,39 @@ const LiveDriverCard: React.FC<DriverCardProps> = ({
             {driver.v_make} • {driver.v_plate}
           </Text>
         </View>
-        <View style={styles.etaContainer}>
-          <Text style={styles.etaLabel}>ETA</Text>
-          <Text style={styles.etaValue}>{eta}</Text>
-        </View>
+        {rideStatus !== "arrived_at_pickup" && (
+          <View style={styles.etaContainer}>
+            <Text style={styles.etaLabel}>ETA</Text>
+            <Text style={styles.etaValue}>{eta}</Text>
+          </View>
+        )}
       </View>
+      {rideStatus !== "in_progress" && (
+        <View style={styles.contactContainer}>
+          <Text style={styles.contactHeader}>Contact Driver</Text>
+          <View style={styles.contactOptions}>
+            <TouchableOpacity
+              style={styles.contactOption}
+              onPress={onMessagePress}
+            >
+              <View style={styles.contactIconContainer}>
+                <Ionicons name="chatbubble" size={20} color="#0286FF" />
+              </View>
+              <Text style={styles.contactLabel}>Message</Text>
+            </TouchableOpacity>
 
-      <View style={styles.contactContainer}>
-        <Text style={styles.contactHeader}>Contact Driver</Text>
-        <View style={styles.contactOptions}>
-          <TouchableOpacity
-            style={styles.contactOption}
-            onPress={onMessagePress}
-          >
-            <View style={styles.contactIconContainer}>
-              <Ionicons name="chatbubble" size={20} color="#0286FF" />
-            </View>
-            <Text style={styles.contactLabel}>Message</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.contactOption}
-            onPress={onCallPress}
-          >
-            <View style={styles.contactIconContainer}>
-              <Ionicons name="call" size={20} color="#0286FF" />
-            </View>
-            <Text style={styles.contactLabel}>Call</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.contactOption}
+              onPress={onCallPress}
+            >
+              <View style={styles.contactIconContainer}>
+                <Ionicons name="call" size={20} color="#0286FF" />
+              </View>
+              <Text style={styles.contactLabel}>Call</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      )}
     </View>
   );
 };

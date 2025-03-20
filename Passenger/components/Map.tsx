@@ -7,14 +7,14 @@ import { useLocationStore } from "@/store";
 
 const directionsAPI = process.env.EXPO_PUBLIC_DIRECTIONS_API_KEY;
 
-const Map = ({ 
+const Map = ({
   showLocationButton,
   rideStatus,
   driverLocation
-}: { 
+}: {
   showLocationButton?: boolean,
   rideStatus?: string,
-  driverLocation?: {latitude: number, longitude: number}
+  driverLocation?: { latitude: number, longitude: number }
 }) => {
   const {
     userLongitude,
@@ -27,8 +27,7 @@ const Map = ({
   const [mapCentered, setMapCentered] = useState(false);
 
   const coordinates: LatLng[] = [];
-  
-  // Add user location to coordinates
+
   if (userLatitude && userLongitude) {
     coordinates.push({
       latitude: userLatitude,
@@ -36,7 +35,6 @@ const Map = ({
     });
   }
 
-  // Add destination to coordinates
   if (destinationLatitude && destinationLongitude) {
     coordinates.push({
       latitude: destinationLatitude,
@@ -44,7 +42,6 @@ const Map = ({
     });
   }
 
-  // Add driver location to coordinates if in accepted state
   if (rideStatus === "accepted" && driverLocation && driverLocation.latitude && driverLocation.longitude) {
     coordinates.push({
       latitude: driverLocation.latitude,
@@ -56,7 +53,7 @@ const Map = ({
     if (coordinates.length > 1 && mapRef.current) {
       setTimeout(() => {
         mapRef.current?.fitToCoordinates(coordinates, {
-          edgePadding: { top: 20, right: 50, bottom: 300, left: 50 },
+          edgePadding: { top: 50, right: 50, bottom: 350, left: 50 },
           animated: true,
         });
         setMapCentered(true);
@@ -137,13 +134,13 @@ const Map = ({
               longitude: driverLocation.longitude,
             }}
             title="Driver"
-            >
+          >
             <View style={styles.driverMarkerContainer}>
-            <Image 
-              source={icons.car} 
-              style={styles.driverMarkerImage}
-            />
-            </View>            
+              <Image
+                source={icons.marker}
+                style={styles.driverMarkerImage}
+              />
+            </View>
           </Marker>
         )}
 
@@ -166,7 +163,7 @@ const Map = ({
         )}
 
         {/* When ride is arrived_at_pickup or in normal state, show route from user to destination */}
-        {(rideStatus === "arrived_at_pickup" || !rideStatus) && destinationLatitude && destinationLongitude && (
+        {(rideStatus === "arrived_at_pickup" || rideStatus === "in_progress" || !rideStatus) && destinationLatitude && destinationLongitude && (
           <MapViewDirections
             origin={{
               latitude: userLatitude,
@@ -178,7 +175,7 @@ const Map = ({
             }}
             apikey={directionsAPI!}
             strokeColor="#0286FF"
-            strokeWidth={3}
+            strokeWidth={2}
           />
         )}
       </MapView>
@@ -209,7 +206,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   driverMarkerContainer: {
-    width: 30,
+    width: 50,
     height: 24,
   },
   driverMarkerImage: {

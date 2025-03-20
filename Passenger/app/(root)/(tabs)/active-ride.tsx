@@ -8,6 +8,7 @@ import RideLayout from "@/components/RideLayout";
 import RequestLoading from "@/components/RequestLoading";
 import DriverInfo from "@/components/LiveDriver";
 import { useLocationStore } from "@/store";
+import LiveDriver from "@/components/LiveDriver";
 
 const ActiveRide = () => {
     const { user } = useUser();
@@ -39,7 +40,7 @@ const ActiveRide = () => {
                 const activeRidesQuery = query(
                     ridesRef,
                     where("user_id", "==", user.id),
-                    where("status", "in", ["requested", "accepted"])
+                    where("status", "in", ["requested", "accepted", "arrived_at_pickup", "in_progress"])
                 );
                 const querySnapshot = await getDocs(activeRidesQuery);
                 if (!querySnapshot.empty) {
@@ -63,10 +64,8 @@ const ActiveRide = () => {
                         };
                         return getTimestamp(b) - getTimestamp(a);
                     });
-
                     const activeRide = rides[0];
                     setRideId(activeRide.id);
-
                     router.setParams({ rideId: activeRide.id });
                 } else {
                     console.log("No active rides found");
@@ -77,7 +76,6 @@ const ActiveRide = () => {
                 setIsLoading(false);
             }
         };
-
         findActiveRide();
     }, [user?.id, paramRideId]);
 
@@ -88,8 +86,19 @@ const ActiveRide = () => {
         const unsubscribe = onSnapshot(rideRef, (snapshot) => {
             const data = snapshot.data();
             if (data) {
+                const { setDestinationLocation } = useLocationStore.getState();
+                if (data.destination_latitude && data.destination_longitude && data.destination_address) {
+                    setDestinationLocation({
+                        latitude: data.destination_latitude,
+                        longitude: data.destination_longitude,
+                        address: data.destination_address
+                    });
+                }    
                 setRideStatus(data.status);
-                if (data.driver_id && data.status === "accepted") {
+                if (data.driver_id && 
+                    (data.status === "accepted" || 
+                     data.status === "arrived_at_pickup" || 
+                     data.status === "in_progress")) {
                     setDriverId(data.driver_id);
                     setDriverLocation({
                         latitude: data.driver_current_latitude || 0,
@@ -151,26 +160,29 @@ const ActiveRide = () => {
             title={
                 rideStatus === "accepted" && driverName ? `${driverName} is on the way!` :
                     rideStatus === "arrived_at_pickup" && driverName ? `${driverName} is here!` :
-                        rideStatus === "in_progress" ? "Going to destination" :
+                        rideStatus === "in_progress" ? `Headed to ${destinationAddress}` :
                             rideStatus === "completed" ? "Your ride is complete" :
                                 ""
-            } rideStatus={rideStatus}
+            }
+            rideStatus={rideStatus}
             driverLocation={driverLocation}
-        >            {rideStatus === "requested" ? (
-            <RequestLoading rideId={rideId} />
-        ) : rideStatus === "accepted" && driverId ? (
-            <DriverInfo
-                driverId={driverId}
-                rideId={rideId}
-                driverLocation={driverLocation}
-            />
-        ) : (
-            <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>
-                    Your ride was {rideStatus}. Please try requesting again.
-                </Text>
-            </View>
-        )}
+        >
+            {["accepted", "arrived_at_pickup", "in_progress"].includes(rideStatus) && driverId ? (
+                <LiveDriver
+                    driverId={driverId}
+                    rideId={rideId}
+                    driverLocation={driverLocation}
+                    rideStatus={rideStatus}
+                />
+            ) : rideStatus === "requested" ? (
+                <RequestLoading rideId={rideId} />
+            ) : (
+                <View style={styles.errorContainer}>
+                    <Text style={styles.errorText}>
+                        Your ride was {rideStatus}. Please try requesting again.
+                    </Text>
+                </View>
+            )}
         </RideLayout>
     );
 };

@@ -11,7 +11,10 @@ import { DriverInfoProps } from "@/types/type";
 import { Ionicons } from "@expo/vector-icons";
 import LiveDriverCard from "./LiveDriverCard";
 
-const LiveDriver: React.FC<DriverInfoProps> = ({ driverId, rideId, driverLocation }) => {
+interface ExtendedDriverInfoProps extends DriverInfoProps {
+    rideStatus?: string;
+}
+const LiveDriver: React.FC<ExtendedDriverInfoProps> = ({ driverId, rideId, driverLocation, rideStatus="" }) => {
     const [driver, setDriver] = useState<MarkerData | null>(null);
     const [loading, setLoading] = useState(true);
     const [eta, setEta] = useState("Calculating...");
@@ -25,7 +28,6 @@ const LiveDriver: React.FC<DriverInfoProps> = ({ driverId, rideId, driverLocatio
                 setLoading(false);
                 return;
             }
-
             try {
                 const driversCollection = collection(db, "drivers");
                 const q = query(driversCollection, where("clerkId", "==", driverId));
@@ -56,26 +58,24 @@ const LiveDriver: React.FC<DriverInfoProps> = ({ driverId, rideId, driverLocatio
                         pets: driverData.pets
                     });
 
-                    // Calculate estimated arrival time
+                    
                     const randomMinutes = Math.floor(Math.random() * 10) + 5;
                     setEta(`${randomMinutes} min`);
                 } else {
                     console.error("Driver not found with clerkId:", driverId);
                 }
-
                 setLoading(false);
             } catch (error) {
                 console.error("Error fetching driver:", error);
                 setLoading(false);
             }
         };
-
         fetchDriver();
     }, [driverId, driverLocation]);
 
+
     const cancelRideRequest = async () => {
         if (!rideId) return;
-
         try {
             const rideIdString = Array.isArray(rideId) ? rideId[0] : rideId as string;
             const rideRef = doc(db, "rideRequests", rideIdString);
@@ -83,7 +83,6 @@ const LiveDriver: React.FC<DriverInfoProps> = ({ driverId, rideId, driverLocatio
                 status: "cancelled_by_user",
                 cancelledAt: new Date()
             });
-
             Alert.alert(
                 "Ride Canceled",
                 "Your ride has been canceled successfully.",
@@ -95,9 +94,9 @@ const LiveDriver: React.FC<DriverInfoProps> = ({ driverId, rideId, driverLocatio
         }
     };
 
+
     const contactDriverMessage = () => {
         if (!driver) return;
-
         router.push({
             pathname: "/(root)/chat",
             params: {
@@ -107,18 +106,19 @@ const LiveDriver: React.FC<DriverInfoProps> = ({ driverId, rideId, driverLocatio
         });
     };
 
+
     const contactDriverPhone = () => {
         if (!phoneNumber) {
             Alert.alert("Contact Info", "Phone number is not available");
             return;
         }
-
         Linking.openURL(`tel:${phoneNumber}`)
             .catch(err => {
                 Alert.alert("Error", "Could not open phone dialer");
                 console.error('An error occurred', err);
             });
     };
+
 
     if (loading) {
         return (
@@ -128,6 +128,7 @@ const LiveDriver: React.FC<DriverInfoProps> = ({ driverId, rideId, driverLocatio
             </View>
         );
     }
+
 
     if (!driver) {
         return (
@@ -142,19 +143,23 @@ const LiveDriver: React.FC<DriverInfoProps> = ({ driverId, rideId, driverLocatio
         );
     }
 
+
     return (
         <View style={styles.container}>
             <LiveDriverCard 
                 driver={driver}
                 eta={eta}
+                rideStatus={rideStatus}
                 onMessagePress={contactDriverMessage}
                 onCallPress={contactDriverPhone}
             />
+            {rideStatus !== "arrived_at_pickup" && rideStatus !== "in_progress" && (
             <CustomButton
                 title="Cancel Ride"
                 onPress={cancelRideRequest}
                 style={styles.cancelButton}
             />
+            )}
         </View>
     );
 };

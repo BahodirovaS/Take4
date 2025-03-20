@@ -27,6 +27,10 @@ const RideLayout: React.FC<RideLayoutProps> = ({
 }) => {
   const bottomSheetRef = useRef<BottomSheet>(null);
 
+  const defaultSnapPoints = rideStatus === "in_progress" 
+  ? ["35%"]
+  : ["50%", "80%"]
+
   return (
     <GestureHandlerRootView style={styles.container}>
       <View style={styles.mainContainer}>
@@ -41,7 +45,7 @@ const RideLayout: React.FC<RideLayoutProps> = ({
       </View>
       <BottomSheet
         ref={bottomSheetRef}
-        snapPoints={snapPoints || ["60%", "80%"]}
+        snapPoints={snapPoints || defaultSnapPoints}
         index={1}
       >
         <BottomSheetView style={styles.bottomSheetView}>
