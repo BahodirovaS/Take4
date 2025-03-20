@@ -29,8 +29,8 @@ const RideLayout: React.FC<RideLayoutProps> = ({ title, snapPoints, children }) 
       </View>
       <BottomSheet
         ref={bottomSheetRef}
-        snapPoints={snapPoints || ["65%", "85%"]}
-        index={0}
+        snapPoints={snapPoints || ["60%", "80%"]}
+        index={1}
       >
         <BottomSheetView style={styles.bottomSheetView}>
           <Text style={styles.bottomSheetTitle}>{title}</Text>

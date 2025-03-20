@@ -19,6 +19,7 @@ const RideConfirmed = () => {
         latitude: 0,
         longitude: 0
     });
+    const [driverName, setDriverName] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const { userAddress, destinationAddress } = useLocationStore();
 
@@ -103,7 +104,6 @@ const RideConfirmed = () => {
         findActiveRide();
     }, [user?.id, paramRideId]);
 
-    // Now, watch for changes on the ride document
     useEffect(() => {
         if (!rideId) return;
 
@@ -127,6 +127,30 @@ const RideConfirmed = () => {
 
         return () => unsubscribe();
     }, [rideId]);
+
+    useEffect(() => {
+        if (!driverId) return;
+    
+        const fetchDriverDetails = async () => {
+            try {
+                const driversRef = collection(db, "drivers");
+                const driverQuery = query(driversRef, where("clerkId", "==", driverId));
+                const querySnapshot = await getDocs(driverQuery);
+    
+                if (!querySnapshot.empty) {
+                    const driverData = querySnapshot.docs[0].data();
+                    setDriverName(`${driverData.firstName}`);
+                } else {
+                    console.log("Driver not found");
+                }
+            } catch (error) {
+                console.error("Error fetching driver details:", error);
+            }
+        };
+    
+        fetchDriverDetails();
+    }, [driverId]);
+    
 
     if (isLoading) {
         return (
@@ -152,7 +176,7 @@ const RideConfirmed = () => {
     }
 
     return (
-        <RideLayout title="Your driver is on the way!" snapPoints={["40%", "80%"]}>
+        <RideLayout title={driverName ? `${driverName} is on the way!` : "Your Ride"}>
             {rideStatus === "requested" ? (
                 <RequestLoading rideId={rideId} />
             ) : rideStatus === "accepted" && driverId ? (

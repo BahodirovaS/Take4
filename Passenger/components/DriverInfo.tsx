@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Image, StyleSheet, ActivityIndicator, Alert } from "react-native";
+import { View, Text, Image, StyleSheet, ActivityIndicator, Alert, Linking, TouchableOpacity } from "react-native";
 import { router } from "expo-router";
 import { collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -8,12 +8,15 @@ import CustomButton from "@/components/CustomButton";
 import { icons, images } from "@/constants";
 import { MarkerData } from "@/types/type";
 import { DriverInfoProps } from "@/types/type";
+import { Ionicons } from "@expo/vector-icons";
 
 const DriverInfo: React.FC<DriverInfoProps> = ({ driverId, rideId, driverLocation }) => {
     const [driver, setDriver] = useState<MarkerData | null>(null);
     const [loading, setLoading] = useState(true);
     const [eta, setEta] = useState("Calculating...");
-    
+    const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
+
+
     useEffect(() => {
         const fetchDriver = async () => {
             if (!driverId) {
@@ -21,16 +24,18 @@ const DriverInfo: React.FC<DriverInfoProps> = ({ driverId, rideId, driverLocatio
                 setLoading(false);
                 return;
             }
-            
+
             try {
                 const driversCollection = collection(db, "drivers");
                 const q = query(driversCollection, where("clerkId", "==", driverId));
                 const querySnapshot = await getDocs(q);
-                
+
                 if (!querySnapshot.empty) {
                     const driverDoc = querySnapshot.docs[0];
                     const driverData = driverDoc.data();
-                    
+                    if (driverData.phoneNumber) {
+                        setPhoneNumber(driverData.phoneNumber);
+                    }
                     setDriver({
                         id: parseInt(driverDoc.id) || 0,
                         clerk_id: driverId,
@@ -49,27 +54,27 @@ const DriverInfo: React.FC<DriverInfoProps> = ({ driverId, rideId, driverLocatio
                         v_plate: driverData.vPlate || '',
                         pets: driverData.pets
                     });
-                    
+
                     // Calculate estimated arrival time
                     const randomMinutes = Math.floor(Math.random() * 10) + 5;
                     setEta(`${randomMinutes} min`);
                 } else {
                     console.error("Driver not found with clerkId:", driverId);
                 }
-                
+
                 setLoading(false);
             } catch (error) {
                 console.error("Error fetching driver:", error);
                 setLoading(false);
             }
         };
-        
+
         fetchDriver();
     }, [driverId, driverLocation]);
-    
+
     const cancelRideRequest = async () => {
         if (!rideId) return;
-        
+
         try {
             const rideIdString = Array.isArray(rideId) ? rideId[0] : rideId as string;
             const rideRef = doc(db, "rideRequests", rideIdString);
@@ -77,14 +82,43 @@ const DriverInfo: React.FC<DriverInfoProps> = ({ driverId, rideId, driverLocatio
                 status: "cancelled_by_user",
                 cancelledAt: new Date()
             });
-            
-            router.back();
+
+            Alert.alert(
+                "Ride Canceled",
+                "Your ride has been canceled successfully.",
+                [{ text: "OK", onPress: () => router.back() }]
+            );
         } catch (error) {
             console.error("Error cancelling ride:", error);
             Alert.alert("Error", "Failed to cancel ride. Please try again.");
         }
     };
-    
+
+    const contactDriverMessage = () => {
+        if (!driver) return;
+
+        router.push({
+            pathname: "/(root)/chat",
+            params: {
+                otherPersonId: driverId,
+                otherPersonName: `${driver.first_name} ${driver.last_name}`
+            }
+        });
+    };
+
+    const contactDriverPhone = () => {
+        if (!phoneNumber) {
+            Alert.alert("Contact Info", "Phone number is not available");
+            return;
+        }
+
+        Linking.openURL(`tel:${phoneNumber}`)
+            .catch(err => {
+                Alert.alert("Error", "Could not open phone dialer");
+                console.error('An error occurred', err);
+            });
+    };
+
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
@@ -93,12 +127,12 @@ const DriverInfo: React.FC<DriverInfoProps> = ({ driverId, rideId, driverLocatio
             </View>
         );
     }
-    
+
     if (!driver) {
         return (
             <View style={styles.loadingContainer}>
                 <Text style={styles.errorText}>Couldn't load driver information</Text>
-                <CustomButton 
+                <CustomButton
                     title="Try Again"
                     onPress={() => router.back()}
                     style={styles.retryButton}
@@ -106,20 +140,20 @@ const DriverInfo: React.FC<DriverInfoProps> = ({ driverId, rideId, driverLocatio
             </View>
         );
     }
-    
+
     return (
         <View style={styles.container}>
             {/* Simple Driver Card */}
             <View style={styles.card}>
                 {/* Driver Info Row */}
                 <View style={styles.driverRow}>
-                    <Image 
+                    <Image
                         source={
-                            driver.profile_image_url 
-                            ? { uri: driver.profile_image_url } 
-                            : icons.person
-                        } 
-                        style={styles.driverImage} 
+                            driver.profile_image_url
+                                ? { uri: driver.profile_image_url }
+                                : icons.person
+                        }
+                        style={styles.driverImage}
                     />
                     <View style={styles.driverDetails}>
                         <Text style={styles.driverName}>
@@ -134,12 +168,35 @@ const DriverInfo: React.FC<DriverInfoProps> = ({ driverId, rideId, driverLocatio
                         <Text style={styles.etaValue}>{eta}</Text>
                     </View>
                 </View>
-                
-                {/* Button */}
-                <CustomButton 
+
+                <View style={styles.contactContainer}>
+                    <Text style={styles.contactHeader}>Contact Driver</Text>
+                    <View style={styles.contactOptions}>
+                        <TouchableOpacity
+                            style={styles.contactOption}
+                            onPress={contactDriverMessage}
+                        >
+                            <View style={styles.contactIconContainer}>
+                                <Ionicons name="chatbubble" size={20} color="#0286FF" />
+                            </View>
+                            <Text style={styles.contactLabel}>Message</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={styles.contactOption}
+                            onPress={contactDriverPhone}
+                        >
+                            <View style={styles.contactIconContainer}>
+                                <Ionicons name="call" size={20} color="#0286FF" />
+                            </View>
+                            <Text style={styles.contactLabel}>Call</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+                <CustomButton
                     title="Cancel Ride"
                     onPress={cancelRideRequest}
-                    style={styles.viewButton}
+                    style={styles.cancelButton}
                 />
             </View>
         </View>
@@ -221,6 +278,44 @@ const styles = StyleSheet.create({
     },
     viewButton: {
         marginTop: 8,
+    },
+    contactContainer: {
+        marginTop: 16,
+        marginBottom: 16,
+        borderTopWidth: 1,
+        borderTopColor: "#E6E6E6",
+        paddingTop: 16,
+    },
+    contactHeader: {
+        fontSize: 14,
+        fontFamily: "JakartaSemiBold",
+        marginBottom: 12,
+        color: "#333",
+    },
+    contactOptions: {
+        flexDirection: "row",
+        justifyContent: "space-around",
+    },
+    contactOption: {
+        alignItems: "center",
+        padding: 10,
+    },
+    contactIconContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: "#F0F0F0",
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: 6,
+    },
+    contactLabel: {
+        fontSize: 12,
+        fontFamily: "JakartaRegular",
+        color: "#333",
+    },
+    cancelButton: {
+        backgroundColor: "#FF3B30", // Red color for cancel button
     },
 });
 
