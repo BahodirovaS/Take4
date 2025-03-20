@@ -64,9 +64,9 @@ export default function Layout() {
                 }}
             />
             <Tabs.Screen
-                name="ride-confirmed"
+                name="active-ride"
                 options={{
-                    title: "RideConfirmed",
+                    title: "ActiveRide",
                     headerShown: false,
                     tabBarIcon: ({ focused }) => (
                         <TabIcon source={icons.clock} focused={focused} />

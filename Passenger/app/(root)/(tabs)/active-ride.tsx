@@ -6,10 +6,10 @@ import { db } from "@/lib/firebase";
 import { useUser } from "@clerk/clerk-expo";
 import RideLayout from "@/components/RideLayout";
 import RequestLoading from "@/components/RequestLoading";
-import DriverInfo from "@/components/DriverInfo";
+import DriverInfo from "@/components/LiveDriver";
 import { useLocationStore } from "@/store";
 
-const RideConfirmed = () => {
+const ActiveRide = () => {
     const { user } = useUser();
     const { rideId: paramRideId } = useLocalSearchParams();
     const [rideId, setRideId] = useState<string | null>(paramRideId as string || null);
@@ -222,4 +222,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default RideConfirmed;
+export default ActiveRide;

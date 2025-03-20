@@ -9,8 +9,9 @@ import { icons, images } from "@/constants";
 import { MarkerData } from "@/types/type";
 import { DriverInfoProps } from "@/types/type";
 import { Ionicons } from "@expo/vector-icons";
+import LiveDriverCard from "./LiveDriverCard";
 
-const DriverInfo: React.FC<DriverInfoProps> = ({ driverId, rideId, driverLocation }) => {
+const LiveDriver: React.FC<DriverInfoProps> = ({ driverId, rideId, driverLocation }) => {
     const [driver, setDriver] = useState<MarkerData | null>(null);
     const [loading, setLoading] = useState(true);
     const [eta, setEta] = useState("Calculating...");
@@ -143,62 +144,17 @@ const DriverInfo: React.FC<DriverInfoProps> = ({ driverId, rideId, driverLocatio
 
     return (
         <View style={styles.container}>
-            {/* Simple Driver Card */}
-            <View style={styles.card}>
-                {/* Driver Info Row */}
-                <View style={styles.driverRow}>
-                    <Image
-                        source={
-                            driver.profile_image_url
-                                ? { uri: driver.profile_image_url }
-                                : icons.person
-                        }
-                        style={styles.driverImage}
-                    />
-                    <View style={styles.driverDetails}>
-                        <Text style={styles.driverName}>
-                            {driver.first_name} {driver.last_name}
-                        </Text>
-                        <Text style={styles.carInfo}>
-                            {driver.v_make} • {driver.v_plate}
-                        </Text>
-                    </View>
-                    <View style={styles.etaContainer}>
-                        <Text style={styles.etaLabel}>ETA</Text>
-                        <Text style={styles.etaValue}>{eta}</Text>
-                    </View>
-                </View>
-
-                <View style={styles.contactContainer}>
-                    <Text style={styles.contactHeader}>Contact Driver</Text>
-                    <View style={styles.contactOptions}>
-                        <TouchableOpacity
-                            style={styles.contactOption}
-                            onPress={contactDriverMessage}
-                        >
-                            <View style={styles.contactIconContainer}>
-                                <Ionicons name="chatbubble" size={20} color="#0286FF" />
-                            </View>
-                            <Text style={styles.contactLabel}>Message</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={styles.contactOption}
-                            onPress={contactDriverPhone}
-                        >
-                            <View style={styles.contactIconContainer}>
-                                <Ionicons name="call" size={20} color="#0286FF" />
-                            </View>
-                            <Text style={styles.contactLabel}>Call</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-                <CustomButton
-                    title="Cancel Ride"
-                    onPress={cancelRideRequest}
-                    style={styles.cancelButton}
-                />
-            </View>
+            <LiveDriverCard 
+                driver={driver}
+                eta={eta}
+                onMessagePress={contactDriverMessage}
+                onCallPress={contactDriverPhone}
+            />
+            <CustomButton
+                title="Cancel Ride"
+                onPress={cancelRideRequest}
+                style={styles.cancelButton}
+            />
         </View>
     );
 };
@@ -319,4 +275,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default DriverInfo;
+export default LiveDriver;
