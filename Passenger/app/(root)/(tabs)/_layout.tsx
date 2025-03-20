@@ -64,6 +64,16 @@ export default function Layout() {
                 }}
             />
             <Tabs.Screen
+                name="ride-confirmed"
+                options={{
+                    title: "RideConfirmed",
+                    headerShown: false,
+                    tabBarIcon: ({ focused }) => (
+                        <TabIcon source={icons.clock} focused={focused} />
+                    ),
+                }}
+            />
+            <Tabs.Screen
                 name="profile"
                 options={{
                     title: "Profile",
@@ -87,7 +97,7 @@ const styles = StyleSheet.create({
         marginBottom: 20,
         height: 70,
         display: "flex",
-        justifyContent: "space-between",
+        justifyContent: "center",
         alignItems: "center",
         flexDirection: "row",
         position: "absolute",

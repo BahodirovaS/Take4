@@ -207,7 +207,7 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
       router.replace("/(root)/(tabs)/resos");
     } else {
       router.push({
-        pathname: "/(root)/ride-requested",
+        pathname: "/(root)/(tabs)/ride-confirmed",
         params: { rideId: rideId || undefined }
       });
     }

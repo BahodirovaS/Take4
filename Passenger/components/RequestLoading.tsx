@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, ActivityIndicator, StyleSheet, TouchableOpacity, Alert } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { View, Text, ActivityIndicator, StyleSheet, Alert } from "react-native";
+import { router } from "expo-router";
+import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { doc, onSnapshot, updateDoc } from "firebase/firestore";
-import { useUser } from "@clerk/clerk-expo";
+
 import CustomButton from "@/components/CustomButton";
 
-const RideRequest: React.FC = () => {
-    const { user } = useUser();
-    const { rideId } = useLocalSearchParams();
-    const [status, setStatus] = useState<string>("requested");
+interface RequestLoadingProps {
+    rideId: string;
+}
+
+const RequestLoading: React.FC<RequestLoadingProps> = ({ rideId }) => {
     const [elapsedTime, setElapsedTime] = useState<number>(0);
     
     useEffect(() => {
@@ -26,45 +27,11 @@ const RideRequest: React.FC = () => {
         return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
     };
 
-    useEffect(() => {
-        if (!rideId) return;
-        
-        const rideRef = doc(db, "rideRequests", rideId as string);
-        
-        const unsubscribe = onSnapshot(rideRef, (snapshot) => {
-            const data = snapshot.data();
-            if (data) {
-                setStatus(data.status);
-                
-                if (data.status === "accepted") {
-                    router.replace({
-                        pathname: "/ride-confirmed",
-                        params: { rideId },
-                    });
-                } else if (data.status === "rejected") {
-                    // Handle rejection - could show alert or search for another driver
-                    Alert.alert(
-                        "Ride Rejected",
-                        "Driver has rejected your ride request. You can try another driver.",
-                        [
-                            {
-                                text: "OK",
-                                onPress: () => router.back()
-                            }
-                        ]
-                    );
-                }
-            }
-        });
-
-        return () => unsubscribe();
-    }, [rideId]);
-
     const cancelRideRequest = async () => {
         if (!rideId) return;
         
         try {
-            const rideRef = doc(db, "rideRequests", rideId as string);
+            const rideRef = doc(db, "rideRequests", rideId);
             await updateDoc(rideRef, {
                 status: "cancelled_by_user",
                 cancelledAt: new Date()
@@ -83,8 +50,7 @@ const RideRequest: React.FC = () => {
             <ActivityIndicator size="large" color="#000" />
             
             <Text style={styles.statusText}>
-                {status === "requested" && "Waiting for a driver to accept your ride..."}
-                {status === "requested" && "Processing your ride request..."}
+                Waiting for a driver to accept your ride...
             </Text>
             
             <Text style={styles.timeText}>
@@ -103,7 +69,6 @@ const RideRequest: React.FC = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        justifyContent: "center",
         alignItems: "center",
         padding: 20,
     },
@@ -132,4 +97,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default RideRequest;
+export default RequestLoading;

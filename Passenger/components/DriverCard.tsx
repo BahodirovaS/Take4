@@ -51,8 +51,6 @@ const DriverCard = ({ item, selected, setSelected }: DriverCardProps) => {
   return (
     <TouchableOpacity
       onPress={() => {
-        console.log("Driver item:", item);
-        console.log("Driver ID:", item.clerk_id);
         setSelected();
       }} style={[styles.card, selected === item.clerk_id && styles.selectedCard]}
     >

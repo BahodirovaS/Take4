@@ -16,19 +16,22 @@ declare interface Driver {
 }
 
 declare interface MarkerData {
-  latitude: number;
-  clerk_id: string;
-  longitude: number;
   id: number;
-  title: string;
+  clerk_id: string;
+  first_name: string;
+  last_name: string;
   profile_image_url: string;
   car_image_url: string;
   car_seats: number;
-  first_name: string;
-  last_name: string;
+  latitude: number;
+  longitude: number;
+  title: string;
   time: number;
   price: string;
   status: boolean;
+  v_make: string;
+  v_plate: string;
+  pets: boolean;
 }
 
 declare interface Message {
@@ -180,7 +183,6 @@ declare interface DriverStore {
   fetchDrivers: () => Promise<void>;
 }
 
-
 declare interface DriverCardProps {
   item: MarkerData;
   selected: string;
@@ -193,4 +195,13 @@ declare interface ChatMessage {
   messagePreview: string;
   avatar: string;
   timestamp: string;
+}
+
+declare interface DriverInfoProps {
+  driverId: string;
+  rideId: string | string[];
+  driverLocation: {
+      latitude: number;
+      longitude: number;
+  };
 }

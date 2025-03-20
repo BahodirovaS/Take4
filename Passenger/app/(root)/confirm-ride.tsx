@@ -36,7 +36,7 @@ const ConfirmRide = () => {
 
 
     return (
-        <RideLayout title={"Choose a Ride"} snapPoints={["65%", "85%"]}>
+        <RideLayout title={"Choose a Ride"}>
 
             {reserved === "true" && scheduledDate && scheduledTime && (
                 <View style={styles.reservationInfo}>

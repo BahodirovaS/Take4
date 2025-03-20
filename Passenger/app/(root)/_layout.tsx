@@ -28,25 +28,7 @@ const Layout = () => {
                 }}
             />
             <Stack.Screen
-                name="chat"
-                options={{
-                    headerShown: false,
-                }}
-            />
-            <Stack.Screen
-                name="ride-requested"
-                options={{
-                    headerShown: false,
-                }}
-            />
-            <Stack.Screen
-                name="ride-confirmed"
-                options={{
-                    headerShown: false,
-                }}
-            />
-            <Stack.Screen
-                name="reserve-ride"
+                name="reserve-confirm-ride"
                 options={{
                     headerShown: false,
                 }}
@@ -57,7 +39,13 @@ const Layout = () => {
                     headerShown: false,
                 }}
             />
-            
+            <Stack.Screen
+                name="chat"
+                options={{
+                    headerShown: false,
+                }}
+            />
+
         </Stack>
     );
 };

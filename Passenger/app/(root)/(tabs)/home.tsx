@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
     mapContainer: {
         flexDirection: 'row',
         backgroundColor: 'transparent',
-        height: 300,
+        height: 450,
     },
 });
 
