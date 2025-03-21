@@ -14,7 +14,7 @@ import { db } from '@/lib/firebase'
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { Ride } from '@/types/type'
-import Map from "@/components/Map";
+import DriverMap from "@/components/DriverMap";
 import { useLocationStore } from '@/store';
 import { ActiveRideProps } from '@/types/type';
 import { router } from 'expo-router';
@@ -305,7 +305,7 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
     return (
         <View style={styles.container}>
             <View style={styles.mapContainer}>
-                <Map showLocationButton={true}/>
+                <DriverMap showLocationButton={true}/>
             </View>
 
             <View style={styles.rideInfoContainer}>

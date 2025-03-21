@@ -17,7 +17,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { collection, query, where, onSnapshot, doc, updateDoc, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import Map from "@/components/Map";
+import DriverMap from "@/components/DriverMap";
 import RideCard from "@/components/RideCard";
 import { icons, images } from "@/constants";
 import { useLocationStore } from "@/store";
@@ -346,7 +346,7 @@ const Home = () => {
                         </View>
                         <Text style={styles.sectionTitle}>Your current location</Text>
                         <View style={styles.mapContainer}>
-                            <Map showLocationButton={true} />
+                            <DriverMap showLocationButton={true} />
                         </View>
                         <Text style={styles.sectionTitle}>Ride History</Text>
                     </>
