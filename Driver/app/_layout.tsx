@@ -5,7 +5,6 @@ import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import "react-native-reanimated";
 import { LogBox } from "react-native";
-// import { initializeApp } from "firebase/app";
 import { tokenCache } from "@/lib/auth";
 
 
@@ -19,15 +18,6 @@ if (!publishableKey) {
     "Missing Publishable Key. Please set EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in your .env",
   );
 }
-
-// const firebaseConfig = {
-//   apiKey: "AIzaSyDR_DB1QClsS3XeQpfIJtDTtU1Q_G3q7Q4",
-//   authDomain: "rideshare-96aad.firebaseapp.com",
-//   projectId: "rideshare-96aad",
-//   storageBucket: "rideshare-96aad.firebasestorage.app",
-//   messagingSenderId: "526273475573",
-//   appId: "1:526273475573:web:5a142e62180b451e1ae6bc"
-// };
 
 LogBox.ignoreLogs(["Clerk:"]);
 

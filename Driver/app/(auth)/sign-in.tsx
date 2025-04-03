@@ -7,6 +7,8 @@ import CustomButton from "@/components/CustomButton";
 import InputField from "@/components/InputField";
 import OAuth from "@/components/OAuth";
 import { icons, images } from "@/constants";
+import { SafeAreaView } from "react-native-safe-area-context";
+
 
 const SignIn = () => {
     const { signIn, setActive, isLoaded } = useSignIn();
@@ -43,10 +45,14 @@ const SignIn = () => {
     }, [isLoaded, form]);
 
     return (
+        <SafeAreaView style={styles.safeArea}>
         <ScrollView style={styles.container}>
             <View style={styles.container}>
-                <View style={styles.imageContainer}>
-                    <Image source={images.signUpCar} style={styles.image} />
+                <View style={styles.header}>
+                    <Image source={images.icon} style={styles.carIcon} />
+                    <Text style={styles.headerTitle}>RidePal</Text>
+                </View>
+                <View style={styles.welcomeContainer}>
                     <Text style={styles.welcomeText}>Welcome Back 👋</Text>
                 </View>
 
@@ -80,18 +86,40 @@ const SignIn = () => {
                 </View>
             </View>
         </ScrollView>
+        </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
+    safeArea: {
+        flex: 1,
+        backgroundColor: "white",
+    },
     container: {
         flex: 1,
         backgroundColor: "white",
     },
-    imageContainer: {
+    header: {
+        flexDirection: "row",
+        justifyContent: "flex-start",
+        paddingVertical: 10,
+        paddingLeft: 20,
+        width: "100%",
+    },
+    carIcon: {
+        width: 30,
+        height: 30,
+        marginRight: 10,
+    },
+    headerTitle: {
+        fontSize: 24,
+        fontFamily: "JakartaSemiBold",
+        color: "black",
+    },
+    welcomeContainer: {
         position: "relative",
         width: "100%",
-        height: 250,
+        height: 150,
     },
     image: {
         width: "100%",
@@ -100,10 +128,13 @@ const styles = StyleSheet.create({
     welcomeText: {
         position: "absolute",
         bottom: 20,
-        left: 20,
-        fontSize: 24,
+        left: 0,
+        right: 0,
+        fontSize: 40,
         color: "black",
-        fontFamily: "JakartaSemiBold",
+        fontWeight: "bold",
+        fontFamily: "Jakarta-Medium",
+        textAlign: "center"
     },
     formContainer: {
         padding: 20,
@@ -118,7 +149,7 @@ const styles = StyleSheet.create({
         marginTop: 40,
     },
     linkText: {
-        color: "#3B82F6", // Tailwind text-blue-500 equivalent
+        color: "#289dd2", // Tailwind text-blue-500 equivalent
     },
 });
 
