@@ -16,6 +16,7 @@ import { useUser } from "@clerk/clerk-expo";
 import { Message, Ride } from "@/types/type";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import CustomButton from "@/components/CustomButton";
 
 
 const Chat = () => {
@@ -119,9 +120,12 @@ const Chat = () => {
                             placeholder="Type a message..."
                             style={styles.input}
                         />
-                        <TouchableOpacity onPress={sendMessage} style={styles.sendButton}>
-                            <Text style={styles.sendButtonText}>Send</Text>
-                        </TouchableOpacity>
+                        <CustomButton
+                            title={"Send"}
+                            bgVariant={"primary"}
+                            onPress={sendMessage}
+                            style={styles.sendButton}
+                        />
                     </View>
                 </View>
             </KeyboardAvoidingView>
@@ -157,7 +161,7 @@ const styles = StyleSheet.create({
     myMessage: {
         alignSelf: "flex-end",
         marginRight: 10,
-        backgroundColor: "#3b82f6",
+        backgroundColor: "#289dd2",
         borderBottomLeftRadius: 20,
         borderBottomRightRadius: 20,
         borderTopLeftRadius: 20,
@@ -201,6 +205,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         padding: 10,
+        paddingTop: 20,
         backgroundColor: "#fff",
         borderTopWidth: 1,
         borderTopColor: "#ddd",
@@ -208,16 +213,18 @@ const styles = StyleSheet.create({
     input: {
         flex: 1,
         borderWidth: 1,
-        padding: 12,
+        paddingVertical: 10,
+        paddingHorizontal: 18,
         marginRight: 10,
         borderRadius: 25,
         borderColor: "#ddd",
         backgroundColor: "#f4f4f4",
+        fontSize: 18,
     },
     sendButton: {
-        backgroundColor: "#3b82f6",
         paddingVertical: 12,
         paddingHorizontal: 18,
+        width: "auto",
         borderRadius: 25,
         justifyContent: "center",
         alignItems: "center",

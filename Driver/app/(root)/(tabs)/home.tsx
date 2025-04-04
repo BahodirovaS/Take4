@@ -23,6 +23,7 @@ import { icons, images } from "@/constants";
 import { useLocationStore } from "@/store";
 import { Ride } from "@/types/type";
 import RideRequestBottomSheet from "@/components/RideRequest";
+import CustomButton from "@/components/CustomButton";
 
 const Home = () => {
     const { user } = useUser();
@@ -65,22 +66,22 @@ const Home = () => {
             try {
                 const driversRef = collection(db, "drivers");
                 const q = query(driversRef, where("clerkId", "==", user.id));
-                
+
                 const querySnapshot = await getDocs(q);
                 if (!querySnapshot.empty) {
                     const driverDoc = querySnapshot.docs[0];
                     const driverData = driverDoc.data();
-                    
+
                     setDriverDocId(driverDoc.id);
                     setIsOnline(driverData.status || false);
                 }
-                
+
                 // Start listening for status changes
                 const unsubscribe = onSnapshot(q, (snapshot) => {
                     if (!snapshot.empty) {
                         const driverDoc = snapshot.docs[0];
                         const driverData = driverDoc.data();
-                        
+
                         setDriverDocId(driverDoc.id);
                         setIsOnline(driverData.status || false);
                     }
@@ -100,22 +101,22 @@ const Home = () => {
     // Fetch ride history
     useEffect(() => {
         if (!user?.id) return;
-        
+
         const fetchRideHistory = async () => {
             try {
                 setLoading(true);
-                
+
                 const ridesRef = collection(db, "rideRequests");
                 const q = query(
-                    ridesRef, 
+                    ridesRef,
                     where("driver_id", "==", user.id),
                     where("status", "in", ["completed", "accepted"])
                 );
-                
+
                 const unsubscribe = onSnapshot(q, (snapshot) => {
                     const rides = snapshot.docs.map((doc) => {
                         const data = doc.data();
-                        
+
                         return {
                             id: doc.id,
                             origin_address: data.origin_address,
@@ -130,8 +131,8 @@ const Home = () => {
                             driver_id: String(data.driver_id),
                             user_id: data.user_id,
                             // Convert the Firestore timestamp to an ISO string for the Ride type
-                            created_at: data.created_at && typeof data.created_at.toDate === 'function' 
-                                ? data.created_at.toDate().toISOString() 
+                            created_at: data.created_at && typeof data.created_at.toDate === 'function'
+                                ? data.created_at.toDate().toISOString()
                                 : new Date().toISOString(),
                             driver: {
                                 first_name: data.driver?.first_name || "",
@@ -141,7 +142,7 @@ const Home = () => {
                             status: data.status
                         } as Ride;
                     });
-                    
+
                     // Sort by created_at date, most recent first
                     rides.sort((a, b) => {
                         // Parse the ISO string dates
@@ -149,18 +150,18 @@ const Home = () => {
                         const timeB = new Date(b.created_at).getTime();
                         return timeB - timeA;
                     });
-                    
+
                     setRecentRides(rides);
                     setLoading(false);
                 });
-                
+
                 return unsubscribe;
             } catch (error) {
                 console.error("Error fetching ride history:", error);
                 setLoading(false);
             }
         };
-        
+
         fetchRideHistory();
     }, [user?.id]);
 
@@ -212,17 +213,17 @@ const Home = () => {
 
     const acceptRide = async (rideId: string) => {
         try {
-            await updateDoc(doc(db, "rideRequests", rideId), { 
+            await updateDoc(doc(db, "rideRequests", rideId), {
                 status: "accepted",
                 accepted_at: new Date()
             });
             setModalVisible(false);
-            
+
             const rideIdString = String(rideId);
 
             router.push({
                 pathname: '/(root)/active-ride',
-                params: { 
+                params: {
                     rideId: rideIdString
                 }
             });
@@ -246,12 +247,12 @@ const Home = () => {
     const handleSignOut = async () => {
         try {
             if (driverDocId) {
-                await updateDoc(doc(db, "drivers", driverDocId), { 
+                await updateDoc(doc(db, "drivers", driverDocId), {
                     status: false,
                     last_offline: new Date()
                 });
             }
-            
+
             await signOut();
             router.replace("/(auth)/sign-in");
         } catch (error) {
@@ -264,19 +265,19 @@ const Home = () => {
             Alert.alert("Error", "Please complete your driver profile first.");
             return;
         }
-        
+
         try {
             const newStatus = !isOnline;
-            
+
             // Optimistically update UI
             setIsOnline(newStatus);
-            
+
             // Update Firestore
-            await updateDoc(doc(db, "drivers", driverDocId), { 
+            await updateDoc(doc(db, "drivers", driverDocId), {
                 status: newStatus,
                 [newStatus ? 'last_online' : 'last_offline']: new Date()
             });
-            
+
         } catch (error) {
             console.error('Error updating status:', error);
             // Revert UI on error
@@ -284,7 +285,7 @@ const Home = () => {
             Alert.alert("Error", "Failed to update your status. Please try again.");
         }
     };
-    
+
 
     return (
         <SafeAreaView style={styles.container}>
@@ -333,16 +334,14 @@ const Home = () => {
                         </View>
                         <View style={styles.statusContainer}>
                             <Text style={styles.statusText}>
-                                Status: {isOnline ? "Online" : "Offline"}
+                                You are {isOnline ? "Online" : "Offline"}
                             </Text>
-                            <TouchableOpacity
+                            <CustomButton
+                                title={isOnline ? "Go Offline" : "Go Online"}
                                 onPress={toggleOnlineStatus}
-                                style={[styles.toggleButton, isOnline ? styles.online : styles.offline]}
-                            >
-                                <Text style={styles.toggleButtonText}>
-                                    {isOnline ? "Go Offline" : "Go Online"}
-                                </Text>
-                            </TouchableOpacity>
+                                bgVariant={isOnline ? "danger" : "success"}
+                                style={styles.statusButton}
+                            />
                         </View>
                         <Text style={styles.sectionTitle}>Your current location</Text>
                         <View style={styles.mapContainer}>
@@ -415,9 +414,10 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
         paddingVertical: 8,
     },
-    toggleButton: {
+    statusButton: {
         paddingVertical: 8,
         paddingHorizontal: 20,
+        width: "auto",
         borderRadius: 20,
         justifyContent: "center",
     },
@@ -425,7 +425,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#F87171",
     },
     offline: {
-        backgroundColor: "#34D399", 
+        backgroundColor: "#34D399",
     },
     toggleButtonText: {
         color: "#ffff",

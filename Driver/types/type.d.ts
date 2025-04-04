@@ -1,4 +1,4 @@
-import { TextInputProps, TouchableOpacityProps } from "react-native";
+import { TextInputProps, TextStyle, TouchableOpacityProps } from "react-native";
 
 declare interface Driver {
   id: number;
@@ -114,6 +114,7 @@ declare interface InputFieldProps extends TextInputProps {
   inputStyle?: TextStyle | ViewStyle | object;
   iconStyle?: TextStyle | ViewStyle | object;
   className?: string;
+  inputWrapperStyle?: TextStyle | ViewStyle | object;
 }
 
 declare interface PaymentProps {

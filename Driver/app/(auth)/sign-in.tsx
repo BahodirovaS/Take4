@@ -145,11 +145,11 @@ const styles = StyleSheet.create({
     link: {
         fontSize: 18,
         textAlign: "center",
-        color: "#6B7280", // Tailwind text-gray-500 equivalent
+        color: "#6B7280",
         marginTop: 40,
     },
     linkText: {
-        color: "#289dd2", // Tailwind text-blue-500 equivalent
+        color: "#289dd2",
     },
 });
 

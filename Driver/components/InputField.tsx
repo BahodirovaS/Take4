@@ -17,6 +17,7 @@ const InputField = ({
   containerStyle,
   inputStyle,
   iconStyle,
+  inputWrapperStyle,
   ...props
 }: InputFieldProps) => {
   return (
