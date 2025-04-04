@@ -253,12 +253,12 @@ const DriverInfo = () => {
                     </View>
                     <View style={styles.petsContainer}>
                         <Text style={styles.petsLabel}>Will you allow pets?</Text>
-                        <TouchableOpacity
-                            onPress={() => setForm({ ...form, pets: !form.pets })}
-                            style={[styles.petsButton, form.pets ? styles.petsButtonSelected : styles.petsButtonUnselected]}
-                        >
-                            <Text style={styles.petsButtonText}>{form.pets ? 'Yes' : 'No'}</Text>
-                        </TouchableOpacity>
+                        <CustomButton
+                                title={form.pets ? 'Yes' : 'No'}
+                                onPress={() => setForm({ ...form, pets: !form.pets })}
+                                bgVariant={form.pets ? "success" : "danger"}
+                                style={styles.petsButton}
+                            />
                     </View>
                     <CustomButton title="Update" onPress={onSubmit} style={styles.updateButton} />
                 </ScrollView>
@@ -289,6 +289,7 @@ const styles = StyleSheet.create({
         fontSize: 32,
         fontFamily: "JakartaBold",
         marginBottom: 20,
+        alignSelf: "center",
     },
     carSeatsTitle: {
         marginTop: 16,
@@ -312,7 +313,7 @@ const styles = StyleSheet.create({
         fontFamily: "JakartaSemiBold",
     },
     carSeatSelected: {
-        backgroundColor: "#3b82f6",
+        backgroundColor: "#289dd2",
     },
     carSeatUnselected: {
         backgroundColor: "#f3f4f6",
@@ -334,15 +335,16 @@ const styles = StyleSheet.create({
         marginRight: 12,
     },
     petsButton: {
+        width: "auto",
         paddingVertical: 10,
         paddingHorizontal: 20,
         borderRadius: 9999,
     },
     petsButtonSelected: {
-        backgroundColor: "#34D399", //Green for yes
+        backgroundColor: "#2E7D32", //Green for yes
     },
     petsButtonUnselected: {
-        backgroundColor: "#F87171", //Red for no
+        backgroundColor: "#E53935", //Red for no
     },
     petsButtonText: {
         fontSize: 16,

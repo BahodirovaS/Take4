@@ -117,14 +117,14 @@ const Chatroom = () => {
                                     alt="No chats found"
                                     resizeMode="contain"
                                 />
-                                <Text style={styles.emptyText}>No chats found</Text>
+                                <Text style={styles.emptyText}>No messages found</Text>
                             </>
                         ) : (
                             <ActivityIndicator size="small" color="#000" />
                         )}
                     </View>
                 )}
-                ListHeaderComponent={<Text style={styles.headerText}>All Chats</Text>}
+                ListHeaderComponent={<Text style={styles.headerText}>Messages</Text>}
             />
         </SafeAreaView>
     );
@@ -152,6 +152,7 @@ const styles = StyleSheet.create({
     },
     headerText: {
         fontSize: 24,
+        alignSelf: "center",
         fontFamily: "JakartaBold",
         marginVertical: 20,
         paddingHorizontal: 20,
