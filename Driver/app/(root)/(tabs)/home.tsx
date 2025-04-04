@@ -387,7 +387,7 @@ const styles = StyleSheet.create({
         borderRadius: 15,
     },
     welcomeText: {
-        fontSize: 24,
+        fontSize: 30,
         fontFamily: 'JakartaExtraBold',
     },
     signOutButton: {

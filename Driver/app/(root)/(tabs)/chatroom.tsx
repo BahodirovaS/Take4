@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
     },
     headerText: {
-        fontSize: 24,
+        fontSize: 30,
         alignSelf: "center",
         fontFamily: "JakartaBold",
         marginVertical: 20,
