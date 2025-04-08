@@ -30,13 +30,15 @@ import message from "@/assets/images/message.png";
 import noResult from "@/assets/images/no-result.png";
 import resos from "@/assets/images/resos.png"
 import icon from "@/assets/images/icon.png"
+import calendar from "@/assets/images/calendar.png"
 
 export const images = {
   check,
   noResult,
   message,
   resos,
-  icon
+  icon,
+  calendar,
 };
 
 export const icons = {

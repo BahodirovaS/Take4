@@ -1,8 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert, Image, SafeAreaView } from 'react-native';
+import { 
+    View, 
+    Text, 
+    FlatList, 
+    StyleSheet, 
+    TouchableOpacity, 
+    Alert, 
+    Image, 
+    SafeAreaView,
+    ActivityIndicator
+} from 'react-native';
 import { useAuth, useUser } from "@clerk/clerk-expo";
 import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, deleteDoc, doc, getDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { useReservationStore } from "@/store";
 import { RideRequest } from '@/types/type';
 import { icons, images } from "@/constants";
@@ -12,6 +22,7 @@ import ReservationCard from '@/components/ReservationCard';
 const Reservations = () => {
   const [rides, setRides] = useState<RideRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchComplete, setFetchComplete] = useState(false);
   const { user } = useUser();
   const { clearReservation, setReservationId } = useReservationStore();
 
@@ -20,10 +31,16 @@ const Reservations = () => {
   }, [user]);
 
   const fetchScheduledRides = async () => {
+    if (!user?.id) {
+      setIsLoading(false);
+      setFetchComplete(true);
+      return;
+    }
+
     try {
       const q = query(
         collection(db, "rideRequests"),
-        where("user_id", "==", user?.id),
+        where("user_id", "==", user.id),
         where("status", "==", "scheduled")
       );
 
@@ -35,10 +52,12 @@ const Reservations = () => {
 
       setRides(scheduledRides);
       setIsLoading(false);
+      setFetchComplete(true);
     } catch (error) {
       console.error("Error fetching scheduled rides:", error);
       Alert.alert('Error', 'Failed to fetch scheduled rides');
       setIsLoading(false);
+      setFetchComplete(true);
     }
   };
 
@@ -56,12 +75,8 @@ const Reservations = () => {
   };
 
   const rescheduleRide = (ride: RideRequest) => {
-    // Set the reservation details in the store for re-booking
     setReservationId(ride.id);
-
-    // Navigate to the booking/scheduling screen
-    // You might want to adjust the navigation based on your app's routing
-    // router.push('/(root)/(tabs)/schedule-ride');
+    // Navigation logic would go here
   };
 
   const renderRideItem = ({ item }: { item: RideRequest }) => {
@@ -89,67 +104,66 @@ const Reservations = () => {
     );
   };
 
-  if (isLoading) {
-    return (
-      <View style={styles.container}>
-        <Text>Loading scheduled rides...</Text>
-      </View>
-    );
-  }
-
   return (
-    <SafeAreaView style={styles.safeView}>
-      <View style={styles.container}>
-        <Text style={styles.screenTitle}>Scheduled Rides</Text>
-        {rides.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Image source={images.noResult} style={styles.image} />
-            <Text style={styles.emptyStateText}>No scheduled rides</Text>
+    <SafeAreaView style={styles.container}>
+      <FlatList
+        data={rides}
+        renderItem={renderRideItem}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContent}
+        ListEmptyComponent={() => (
+          <View style={styles.emptyContainer}>
+            {fetchComplete && rides.length === 0 ? (
+              <>
+                <Image
+                  source={images.calendar}
+                  style={styles.image}
+                  alt="No scheduled rides"
+                  resizeMode="contain"
+                />
+                <Text style={styles.emptyText}>No scheduled rides</Text>
+              </>
+            ) : isLoading ? (
+              <ActivityIndicator size="small" color="#000" />
+            ) : null}
           </View>
-        ) : (
-          <FlatList
-            data={rides}
-            renderItem={renderRideItem}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContainer}
-          />
         )}
-      </View>
+        ListHeaderComponent={<Text style={styles.headerText}>Scheduled Rides</Text>}
+      />
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  safeView: {
-    flex: 1,
-    backgroundColor: 'white',
-  },
   container: {
     flex: 1,
-    backgroundColor: 'white',
-    paddingTop: 20,
+    backgroundColor: "white",
   },
-  screenTitle: {
-    fontSize: 30,
-    textAlign: 'center',
-    fontFamily: 'JakartaBold',
+  listContent: {
+    paddingBottom: 100,
   },
-  listContainer: {
-    paddingHorizontal: 20,
-  },
-  emptyState: {
+  emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
-  emptyStateText: {
+  emptyText: {
     fontSize: 18,
     color: '#666',
     fontFamily: 'JakartaRegular',
+    marginTop: 10,
   },
   image: {
+    marginTop: 150,
     width: 160,
     height: 160,
+  },
+  headerText: {
+    fontSize: 30,
+    alignSelf: "center",
+    fontFamily: "JakartaBold",
+    marginVertical: 20,
+    paddingHorizontal: 20,
   },
 });
 
