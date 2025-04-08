@@ -8,8 +8,11 @@ import {
     Linking,
     Platform,
     ScrollView,
+    ActivityIndicator,
+    SafeAreaView,
+    StatusBar,
 } from 'react-native';
-import { doc, updateDoc, onSnapshot, collection, addDoc } from 'firebase/firestore';
+import { doc, updateDoc, onSnapshot, collection, addDoc, query, where, getDocs, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase'
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
@@ -18,15 +21,70 @@ import DriverMap from "@/components/DriverMap";
 import { useLocationStore } from '@/store';
 import { ActiveRideProps } from '@/types/type';
 import { router } from 'expo-router';
+import CustomButton from './CustomButton';
+
+interface PassengerInfo {
+    id: string;
+    firstName: string;
+    lastName: string;
+    photoUrl?: string;
+}
 
 const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCancel }) => {
     const [ride, setRide] = useState<Ride | null>(null);
     const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number } | null>(null);
     const [rideStage, setRideStage] = useState<'to_pickup' | 'to_destination'>('to_pickup');
     const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [passengerInfo, setPassengerInfo] = useState<PassengerInfo | null>(null);
+    const [loadingPassenger, setLoadingPassenger] = useState<boolean>(false);
+
 
     const locationStore = useLocationStore();
     const { setUserLocation, setDestinationLocation } = locationStore;
+
+    // Fetch passenger info from the database
+    const fetchPassengerInfo = async (userId: string) => {
+        if (!userId) return;
+        
+        setLoadingPassenger(true);
+        try {
+            // Query passengers collection where clerkId matches the ride.user_id
+            const passengersQuery = query(
+                collection(db, "passengers"),
+                where("clerkId", "==", userId),
+                limit(1)
+            );
+            
+            const passengersSnapshot = await getDocs(passengersQuery);
+            
+            if (!passengersSnapshot.empty) {
+                const passengerDoc = passengersSnapshot.docs[0];
+                const data = passengerDoc.data();
+                setPassengerInfo({
+                    id: userId,
+                    firstName: data.firstName || "Unknown",
+                    lastName: data.lastName || "",
+                    photoUrl: data.photoUrl
+                });
+            } else {
+                console.log("No passenger found with clerkId:", userId);
+                setPassengerInfo({
+                    id: userId,
+                    firstName: "Passenger",
+                    lastName: "",
+                });
+            }
+        } catch (error) {
+            console.error("Error fetching passenger info:", error);
+            setPassengerInfo({
+                id: userId,
+                firstName: "Passenger",
+                lastName: "",
+            });
+        } finally {
+            setLoadingPassenger(false);
+        }
+    };
 
     useEffect(() => {
         if (!rideId) {
@@ -64,6 +122,19 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
                             },
                             status: data.status,
                         });
+
+                        // Determine initial ride stage based on ride status
+                        const initialRideStage = 
+                            data.status === 'accepted' ? 'to_pickup' :
+                            data.status === 'arrived_at_pickup' ? 'to_destination' :
+                            data.status === 'in_progress' ? 'to_destination' :
+                            'to_pickup';
+    
+                        setRideStage(initialRideStage);
+
+                        if (data.user_id) {
+                            fetchPassengerInfo(data.user_id);
+                        }
 
                         setDestinationLocation({
                             latitude: rideStage === 'to_pickup' 
@@ -294,6 +365,30 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
         });
     };
 
+    const handleMessagePassenger = () => {
+        if (!passengerInfo || !passengerInfo.id) {
+            Alert.alert("Error", "Cannot find passenger information");
+            return;
+        }
+        
+        // Navigate to chat screen with passenger info and ride context
+        router.push({
+            pathname: "/chat",
+            params: {
+                otherPersonId: passengerInfo.id,
+                otherPersonName: passengerInfo.firstName,
+                rideId: rideId,
+                context: "active_ride"
+            }
+        });
+    };
+
+    const handleGoToHome = () => {
+        router.push({
+            pathname: '/(root)/(tabs)/home',
+        });
+    };
+
     if (isLoading || !ride) {
         return (
             <View style={styles.loadingContainer}>
@@ -303,73 +398,120 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
     }
 
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container}>
+            <View style={styles.topBar}>
+            <TouchableOpacity 
+                    style={styles.backButton} 
+                    onPress={handleGoToHome}
+                >
+                    <Ionicons name="arrow-back" size={24} color="#333" />
+                </TouchableOpacity>
+                <Text style={styles.topBarText}>Active Ride</Text>
+            </View>
+            
             <View style={styles.mapContainer}>
                 <DriverMap showLocationButton={true}/>
             </View>
 
             <View style={styles.rideInfoContainer}>
                 <ScrollView style={styles.infoScroll}>
-                    <Text style={styles.stageText}>
-                        {rideStage === 'to_pickup' ? 'Heading to pickup passenger' : 'Taking passenger to destination'}
-                    </Text>
-
+                    <View style={styles.headerContainer}>
+                        <Text style={styles.stageText}>
+                            {rideStage === 'to_pickup' 
+                                ? `Heading to pickup ${passengerInfo?.firstName || 'passenger'}` 
+                                : `Taking ${passengerInfo?.firstName || 'passenger'} to destination`}
+                        </Text>
+                    </View>
+                    
                     <Text style={styles.addressText}>
                         {rideStage === 'to_pickup' ? ride.origin_address : ride.destination_address}
                     </Text>
                 </ScrollView>
 
                 <View style={styles.buttonContainer}>
-                    <TouchableOpacity
-                        style={styles.navigationButton}
+                    <CustomButton
+                        title="Navigate"
+                        bgVariant="primary"
                         onPress={openGoogleMapsNavigation}
-                    >
-                        <Ionicons name="navigate" size={20} color="white" />
-                        <Text style={styles.buttonText}>Navigate</Text>
-                    </TouchableOpacity>
+                        IconLeft={() => <Ionicons name="navigate" size={20} color="white" />}
+                        style={styles.navigationButton}
+                    />
 
+                    <CustomButton
+                        title="Message"
+                        bgVariant="secondary"
+                        onPress={handleMessagePassenger}
+                        IconLeft={() => <Ionicons name="chatbubble-ellipses-outline" size={20} color="white" />}
+                        style={styles.messageButton}
+                    />
+                </View>
+
+                <View style={styles.actionButtonContainer}>
                     {rideStage === 'to_pickup' && ride.status !== 'arrived_at_pickup' ? (
-                        <TouchableOpacity
-                            style={styles.actionButton}
+                        <CustomButton
+                            title="Arrived at Pickup"
+                            bgVariant="success"
                             onPress={handleArriveAtPickup}
-                        >
-                            <Text style={styles.buttonText}>Arrived at Pickup</Text>
-                        </TouchableOpacity>
+                            style={styles.customActionButton}
+                        />
                     ) : rideStage === 'to_pickup' && ride.status === 'arrived_at_pickup' ? (
-                        <TouchableOpacity
-                            style={styles.actionButton}
+                        <CustomButton
+                            title="Start Ride"
+                            bgVariant="success"
                             onPress={handleStartRide}
-                        >
-                            <Text style={styles.buttonText}>Start Ride</Text>
-                        </TouchableOpacity>
+                            style={styles.customActionButton}
+                        />
                     ) : (
-                        <TouchableOpacity
-                            style={styles.actionButton}
+                        <CustomButton
+                            title="Complete Ride"
+                            bgVariant="success"
                             onPress={handleCompleteRide}
-                        >
-                            <Text style={styles.buttonText}>Complete Ride</Text>
-                        </TouchableOpacity>
+                            style={styles.customActionButton}
+                        />
                     )}
                 </View>
             </View>
-        </View>
+        </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: 'white',
     },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
     },
+    backButton: {
+        padding: 8,
+    },
+    topBar: {
+        height: 36,
+        backgroundColor: 'white',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderBottomWidth: 1,
+        borderBottomColor: '#e0e0e0',
+        paddingHorizontal: 16,
+        zIndex: 10,
+    },
+    topBarText: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#333',
+    },
     mapContainer: {
         flex: 1,
     },
     infoScroll: {
         maxHeight: 100,
+    },
+    headerContainer: {
+        marginBottom: 8,
     },
     rideInfoContainer: {
         position: 'absolute',
@@ -390,7 +532,7 @@ const styles = StyleSheet.create({
         elevation: 6,
     },
     stageText: {
-        fontSize: 16,
+        fontSize: 20,
         fontWeight: 'bold',
         marginBottom: 4,
     },
@@ -402,29 +544,22 @@ const styles = StyleSheet.create({
     buttonContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingBottom: 40,
         paddingTop: 20,
     },
-    navigationButton: {
-        backgroundColor: '#4285F4',
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-        borderRadius: 8,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flex: 1,
-        marginRight: 8,
+    actionButtonContainer: {
+        marginTop: 15,
+        marginBottom: 40,
     },
-    actionButton: {
-        backgroundColor: '#34A853',
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-        borderRadius: 8,
-        alignItems: 'center',
-        justifyContent: 'center',
+    navigationButton: {
         flex: 1,
-        marginLeft: 8,
+        marginRight: 10,
+    },
+    messageButton: {
+        flex: 1,
+        marginLeft: 10,
+    },
+    customActionButton: {
+        width: '100%',
     },
     startRideButton: {
         backgroundColor: '#EA4335',

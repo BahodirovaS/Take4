@@ -85,6 +85,12 @@ interface ActiveRideProps {
   onCancel: () => void;
 }
 
+interface ActiveRideData {
+  rideId: string;
+  status: 'accepted' | 'arrived_at_pickup' | 'in_progress';
+  destination: string;
+}
+
 interface ReservationStore {
   scheduledDate: string | null;
   scheduledTime: string | null;

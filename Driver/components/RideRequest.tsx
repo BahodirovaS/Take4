@@ -1,21 +1,25 @@
-import React, { useEffect } from "react";
-import { 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  StyleSheet, 
-  Modal
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Modal,
+  ActivityIndicator
 } from "react-native";
 import { Ride } from "@/types/type";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
-import Reanimated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withTiming, 
+import Reanimated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
   withSpring,
   runOnJS
 } from 'react-native-reanimated';
+import { collection, query, where, getDocs, limit } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import CustomButton from "@/components/CustomButton";
 
 interface RideRequestProps {
   visible: boolean;
@@ -23,6 +27,12 @@ interface RideRequestProps {
   onAccept: (rideId: string) => void;
   onDecline: (rideId: string) => void;
   onClose: () => void;
+}
+
+interface PassengerInfo {
+  first_name: string;
+  last_name: string;
+  photo_url?: string;
 }
 
 const AnimatedView = Reanimated.createAnimatedComponent(View);
@@ -34,13 +44,63 @@ const RideRequestBottomSheet: React.FC<RideRequestProps> = ({
   onDecline,
   onClose,
 }) => {
+  const [passengerInfo, setPassengerInfo] = useState<PassengerInfo | null>(null);
+  const [loading, setLoading] = useState(false);
+  
   const insets = useSafeAreaInsets();
   const sheetHeight = 280;
-  
+
   const translateY = useSharedValue(sheetHeight);
   const backdropOpacity = useSharedValue(0);
   const isSnappedToTop = useSharedValue(false);
-  
+
+  // Fetch passenger information when ride changes
+  useEffect(() => {
+    const fetchPassengerInfo = async () => {
+      if (!ride || !ride.user_id) return;
+      
+      setLoading(true);
+      try {
+        // Query passengers collection where clerk_id matches the ride.user_id
+        const passengersQuery = query(
+          collection(db, "passengers"),
+          where("clerkId", "==", ride.user_id),
+          limit(1)
+        );
+        
+        const passengersSnapshot = await getDocs(passengersQuery);
+        
+        if (!passengersSnapshot.empty) {
+          const passengerDoc = passengersSnapshot.docs[0];
+          const data = passengerDoc.data();
+          setPassengerInfo({
+            first_name: data.firstName || "Unknown",
+            last_name: data.lastName || "",
+            photo_url: data.photo_url
+          });
+        } else {
+          console.log("No passenger found with clerk_id:", ride.user_id);
+          setPassengerInfo({
+            first_name: "Passenger",
+            last_name: "",
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching passenger info:", error);
+        setPassengerInfo({
+          first_name: "Passenger",
+          last_name: "",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (visible && ride) {
+      fetchPassengerInfo();
+    }
+  }, [ride, visible]);
+
   useEffect(() => {
     if (visible) {
       translateY.value = withTiming(0, { duration: 300 });
@@ -63,7 +123,7 @@ const RideRequestBottomSheet: React.FC<RideRequestProps> = ({
           sheetHeight,
           context.value.y + event.translationY
         );
-        
+
         backdropOpacity.value = 0.5 * (1 - Math.min(1, translateY.value / sheetHeight));
       }
     })
@@ -111,29 +171,40 @@ const RideRequestBottomSheet: React.FC<RideRequestProps> = ({
     >
       <GestureHandlerRootView style={{ flex: 1 }}>
         <View style={styles.container}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={StyleSheet.absoluteFill}
             activeOpacity={1}
             onPress={handleBackdropPress}
           >
-            <AnimatedView 
-              style={[styles.backdrop, backdropStyle]} 
+            <AnimatedView
+              style={[styles.backdrop, backdropStyle]}
             />
           </TouchableOpacity>
 
           <GestureDetector gesture={panGesture}>
-            <AnimatedView 
+            <AnimatedView
               style={[
-                styles.bottomSheet, 
-                sheetStyle, 
+                styles.bottomSheet,
+                sheetStyle,
                 { paddingBottom: insets.bottom > 0 ? insets.bottom : 20 }
               ]}
             >
               <View style={styles.handle} />
-              
+
               <Text style={styles.title}>New Ride Request!</Text>
-              
+
               <View style={styles.infoContainer}>
+                <Text style={styles.label}>Name:</Text>
+                {loading ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="small" color="#0000ff" />
+                  </View>
+                ) : (
+                  <Text style={styles.value}>
+                    {passengerInfo ? passengerInfo.first_name : "Unknown passenger"}
+                  </Text>
+                )}
+
                 <Text style={styles.label}>Pickup:</Text>
                 <Text style={styles.value}>{ride.origin_address}</Text>
 
@@ -148,18 +219,18 @@ const RideRequestBottomSheet: React.FC<RideRequestProps> = ({
               </View>
 
               <View style={styles.buttonContainer}>
-                <TouchableOpacity 
-                  onPress={() => ride.id && onAccept(ride.id)} 
-                  style={styles.acceptButton}
-                >
-                  <Text style={styles.buttonText}>Accept</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  onPress={() => ride.id && onDecline(ride.id)} 
-                  style={styles.declineButton}
-                >
-                  <Text style={styles.buttonText}>Decline</Text>
-                </TouchableOpacity>
+                <CustomButton
+                  title="Accept"
+                  bgVariant="success"
+                  onPress={() => ride.id && onAccept(ride.id)}
+                  style={styles.actionButton}
+                />
+                <CustomButton
+                  title="Decline"
+                  bgVariant="danger"
+                  onPress={() => ride.id && onDecline(ride.id)}
+                  style={styles.actionButton}
+                />
               </View>
             </AnimatedView>
           </GestureDetector>
@@ -204,47 +275,34 @@ const styles = StyleSheet.create({
   infoContainer: {
     marginVertical: 10,
   },
-  title: { 
-    fontSize: 18, 
-    fontWeight: "bold", 
-    textAlign: "center", 
+  title: {
+    fontSize: 18,
+    fontWeight: "bold",
+    textAlign: "center",
     marginVertical: 10,
   },
-  label: { 
-    fontSize: 14, 
-    fontWeight: "600", 
-    marginTop: 10, 
+  label: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginTop: 10,
     color: '#666',
   },
-  value: { 
-    fontSize: 16, 
+  value: {
+    fontSize: 16,
     marginBottom: 5,
     fontWeight: '500',
   },
-  buttonContainer: { 
-    flexDirection: "row", 
-    justifyContent: "space-around", 
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
     marginTop: 20,
     marginBottom: 10,
   },
-  acceptButton: { 
-    backgroundColor: "#22c55e", 
-    padding: 15, 
-    borderRadius: 8,
+  actionButton: {
     width: 140,
-    alignItems: "center",
   },
-  declineButton: { 
-    backgroundColor: "#ef4444", 
-    padding: 15, 
-    borderRadius: 8,
-    width: 140, 
-    alignItems: "center",
-  },
-  buttonText: { 
-    color: "white", 
-    fontWeight: "bold",
-    fontSize: 16,
+  loadingContainer: {
+    paddingVertical: 8,
   },
 });
 

@@ -7,6 +7,7 @@ import {
     Text,
     View,
     StyleSheet,
+    TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -156,7 +157,7 @@ const styles = StyleSheet.create({
         fontFamily: "JakartaBold",
         marginVertical: 20,
         paddingHorizontal: 20,
-    },
+    },   
 });
 
 export default Chatroom;

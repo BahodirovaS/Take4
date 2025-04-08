@@ -3,7 +3,7 @@ import React, { useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import ActiveRideScreen from '@/components/ActiveRideScreen';
 
-export default function ActiveRidePage() {
+ const ActiveRidePage = () => {
     const params = useLocalSearchParams();
     const rideId = params.rideId as string;
 
@@ -30,6 +30,7 @@ export default function ActiveRidePage() {
     }
 
     return (
+        
         <ActiveRideScreen
             rideId={rideId}
             onComplete={handleComplete}
@@ -46,3 +47,5 @@ const styles = StyleSheet.create({
         padding: 20,
     },
 });
+
+export default ActiveRidePage
