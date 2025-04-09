@@ -100,7 +100,7 @@ const LiveDriver: React.FC<ExtendedDriverInfoProps> = ({ driverId, rideId, drive
         router.push({
             pathname: "/(root)/chat",
             params: {
-                otherPersonId: driver.id,
+                otherPersonId: driver.clerk_id,
                 otherPersonName: driver.first_name,
                 rideId: rideId,
                 context: "active_ride"
