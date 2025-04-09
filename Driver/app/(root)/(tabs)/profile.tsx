@@ -38,7 +38,7 @@ const DriverInfo = () => {
         pets: false,
         carSeats: 4,
         status: false,
-        profilePhotoBase64: "", // Store base64 image directly
+        profilePhotoBase64: "", 
     });
 
     const [driverDocId, setDriverDocId] = useState<string | null>(null);
@@ -48,20 +48,20 @@ const DriverInfo = () => {
         const fetchDriverInfo = async () => {
             if (user) {
                 try {
-                    // Set initial values from user object
+                    
                     setForm((prevForm) => ({
                         ...prevForm,
                         name: `${user?.firstName || ""} ${user?.lastName || ""}`.trim(),
                         email: user?.primaryEmailAddress?.emailAddress || "",
                     }));
 
-                    // Query Firestore to get driver info
+                    
                     const driversRef = collection(db, "drivers");
                     const q = query(driversRef, where("clerkId", "==", user.id));
                     const querySnapshot = await getDocs(q);
                     
                     if (!querySnapshot.empty) {
-                        // Driver info found
+                        
                         const driverDoc = querySnapshot.docs[0];
                         const driverData = driverDoc.data();
                         
@@ -83,10 +83,10 @@ const DriverInfo = () => {
                             profilePhotoBase64: driverData.profilePhotoBase64 || "",
                         });
                     }
-                    // If no document found, no alert needed - this is normal for new drivers
+                    
                 } catch (error) {
                     console.error("Error fetching driver info:", error);
-                    // Only show alert if we attempted to load an existing document but failed
+                    
                     const driversRef = collection(db, "drivers");
                     const q = query(driversRef, where("clerkId", "==", user.id));
                     try {
@@ -107,7 +107,7 @@ const DriverInfo = () => {
 
     const pickImage = async () => {
         try {
-            // Request permission
+            
             const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
             
             if (status !== 'granted') {
@@ -115,13 +115,13 @@ const DriverInfo = () => {
                 return;
             }
             
-            // Launch image picker
+            
             const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ['images'],
                 allowsEditing: true,
                 aspect: [1, 1],
-                quality: 0.5, // Reduced quality for smaller size
-                base64: true, // Request base64 data directly
+                quality: 0.5, 
+                base64: true, 
             });
             
             if (!result.canceled) {
@@ -130,12 +130,12 @@ const DriverInfo = () => {
                 try {
                     let base64Image;
                     
-                    // Check if base64 is available directly
+                    
                     if (result.assets[0].base64) {
                         base64Image = result.assets[0].base64;
                     } else {
-                        // If not available (older versions of expo-image-picker),
-                        // read the file and convert to base64
+                        
+                        
                         const fileUri = result.assets[0].uri;
                         const fileContent = await FileSystem.readAsStringAsync(fileUri, {
                             encoding: FileSystem.EncodingType.Base64,
@@ -143,8 +143,8 @@ const DriverInfo = () => {
                         base64Image = fileContent;
                     }
                     
-                    // Optional: Validate image size
-                    const imageSizeInBytes = base64Image.length * 0.75; // Approximate size calculation
+                    
+                    const imageSizeInBytes = base64Image.length * 0.75; 
                     const imageSizeInMB = imageSizeInBytes / (1024 * 1024);
                     
                     if (imageSizeInMB > 1) {
@@ -157,7 +157,7 @@ const DriverInfo = () => {
                         return;
                     }
                     
-                    // Update form state with the base64 image data
+                    
                     setForm(prevForm => ({
                         ...prevForm,
                         profilePhotoBase64: base64Image
@@ -213,16 +213,16 @@ const DriverInfo = () => {
                 pets,
                 carSeats,
                 clerkId: user.id,
-                status: false, // Default to offline when creating
+                status: false, 
                 updatedAt: new Date(),
-                profilePhotoBase64, // Store base64 image directly in Firestore
+                profilePhotoBase64, 
             };
 
             if (driverDocId) {
-                // Update existing document
+                
                 await updateDoc(doc(db, "drivers", driverDocId), driverData);
             } else {
-                // Create new document
+                
                 const docRef = await addDoc(collection(db, "drivers"), {
                     ...driverData,
                     createdAt: new Date()
@@ -243,7 +243,7 @@ const DriverInfo = () => {
         { label: "XL - 7 seats", value: 7 }
     ];
 
-    // Determine which profile image to use
+    
     const profileImageSource = form.profilePhotoBase64 
         ? { uri: `data:image/jpeg;base64,${form.profilePhotoBase64}` } 
         : { uri: user?.externalAccounts[0]?.imageUrl ?? user?.imageUrl };
@@ -503,10 +503,10 @@ const styles = StyleSheet.create({
         borderRadius: 9999,
     },
     petsButtonSelected: {
-        backgroundColor: "#2E7D32", //Green for yes
+        backgroundColor: "#2E7D32", 
     },
     petsButtonUnselected: {
-        backgroundColor: "#E53935", //Red for no
+        backgroundColor: "#E53935", 
     },
     petsButtonText: {
         fontSize: 16,
