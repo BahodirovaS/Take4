@@ -9,6 +9,7 @@ import {
     SafeAreaView,
     TouchableOpacity,
     StyleSheet,
+    Image,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { collection, addDoc, doc, updateDoc, setDoc, query, where, getDocs } from "firebase/firestore";
@@ -173,8 +174,16 @@ const DriverInfo = () => {
                 >
                     <Text
                         style={styles.title}>
-                        Driver Information
+                        My Profile
                     </Text>
+                    <View style={styles.profileImageContainer}>
+                            <Image
+                                source={{
+                                    uri: user?.externalAccounts[0]?.imageUrl ?? user?.imageUrl,
+                                }}
+                                style={styles.profileImage}
+                            />
+                        </View>
                     <InputField
                         label="Name"
                         value={form.name}
@@ -280,16 +289,32 @@ const styles = StyleSheet.create({
     scrollView: {
         flex: 1,
         backgroundColor: "white",
-        padding: 20,
     },
     scrollViewContent: {
         paddingBottom: 150,
+        paddingHorizontal: 20,
     },
     title: {
         fontSize: 30,
         fontFamily: "JakartaBold",
         marginBottom: 20,
         alignSelf: "center",
+    },
+    profileImageContainer: {
+        alignItems: "center",
+        justifyContent: "center",
+        marginVertical: 20,
+    },
+    profileImage: {
+        width: 110,
+        height: 110,
+        borderRadius: 55,
+        borderWidth: 3,
+        borderColor: "white",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 5,
     },
     carSeatsTitle: {
         marginTop: 16,

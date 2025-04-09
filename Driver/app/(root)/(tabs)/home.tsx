@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
         marginTop: 2,
       },
     welcomeText: {
-        fontSize: 30,
+        fontSize: 24,
         fontFamily: 'JakartaExtraBold',
     },
     signOutButton: {
