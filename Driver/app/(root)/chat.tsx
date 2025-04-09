@@ -36,7 +36,7 @@ const Chat = () => {
         context?: string;
     }>();
 
-    // Fetch ride details if this chat is ride-related
+    
     useEffect(() => {
         if (rideId) {
             const fetchRideDetails = async () => {
@@ -86,11 +86,11 @@ const Chat = () => {
             await addDoc(collection(db, "messages"), {
                 text: input,
                 senderId: user?.id || "guest",
-                senderName: `${user?.firstName} ${user?.lastName}` || "Guest",
+                senderName: user?.firstName || "Guest",
                 recipientId: otherPersonId,
                 recipientName: otherPersonName,
                 timestamp: new Date(),
-                rideId: rideId || null, // Associate message with ride if exists
+                rideId: rideId || null, 
                 context: context || "general"
             });
             setInput("");
@@ -100,11 +100,9 @@ const Chat = () => {
     };
 
     const handleGoBack = () => {
-        // If this chat was opened from an active ride, go back to the ride screen
+        
         if (context === "active_ride" && rideId) {
             router.back();
-        } else {
-            router.replace("/chatroom");
         }
     };
 
@@ -130,7 +128,6 @@ const Chat = () => {
                     </View>
                 </View>
                 
-                {/* Ride context banner if applicable */}
                 {rideDetails && (
                     <View style={styles.rideBanner}>
                         <Ionicons name="car-outline" size={20} color="#333" />

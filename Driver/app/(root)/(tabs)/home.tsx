@@ -221,7 +221,6 @@ const Home = () => {
             if (!snapshot.empty) {
                 const rideDoc = snapshot.docs[0];
                 const rideData = rideDoc.data();
-                console.log("Active ride found:", rideDoc.id, rideData.status);
 
                 setHasActiveRide(true);
                 setActiveRideData({
@@ -230,7 +229,6 @@ const Home = () => {
                     destination: rideData.destination_address
                 });
             } else {
-                console.log("No active rides found");
                 setHasActiveRide(false);
                 setActiveRideData(null);
             }
@@ -238,6 +236,8 @@ const Home = () => {
 
         return unsubscribe;
     }, [user?.id]);
+
+    
 
     return (
         <SafeAreaView style={styles.container}>

@@ -74,14 +74,12 @@ const RideRequestBottomSheet: React.FC = () => {
             photo_url: data.photo_url
           });
         } else {
-          console.log("No passenger found with clerk_id:", ride.user_id);
           setPassengerInfo({
             first_name: "Passenger",
             last_name: "",
           });
         }
       } catch (error) {
-        console.error("Error fetching passenger info:", error);
         setPassengerInfo({
           first_name: "Passenger",
           last_name: "",

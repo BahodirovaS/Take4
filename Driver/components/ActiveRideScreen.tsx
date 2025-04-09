@@ -67,7 +67,6 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
                     photoUrl: data.photoUrl
                 });
             } else {
-                console.log("No passenger found with clerkId:", userId);
                 setPassengerInfo({
                     id: userId,
                     firstName: "Passenger",
@@ -75,7 +74,6 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
                 });
             }
         } catch (error) {
-            console.error("Error fetching passenger info:", error);
             setPassengerInfo({
                 id: userId,
                 firstName: "Passenger",
@@ -353,10 +351,8 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
 
         Linking.canOpenURL(url as string).then(supported => {
             if (supported) {
-                console.log("Opening native maps app:", url);
                 Linking.openURL(url as string);
             } else {
-                console.log("Opening web URL:", webUrl);
                 Linking.openURL(webUrl);
             }
         }).catch(err => {
@@ -371,7 +367,6 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
             return;
         }
         
-        // Navigate to chat screen with passenger info and ride context
         router.push({
             pathname: "/chat",
             params: {
