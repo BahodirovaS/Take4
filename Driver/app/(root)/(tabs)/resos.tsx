@@ -12,19 +12,20 @@ import {
 } from 'react-native';
 import { useAuth, useUser } from "@clerk/clerk-expo";
 import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, deleteDoc, doc } from "firebase/firestore";
+import { collection, query, where, getDocs, deleteDoc, doc, updateDoc } from "firebase/firestore";
 import { useReservationStore } from "@/store";
 import { RideRequest } from '@/types/type';
 import { icons, images } from "@/constants";
 import { formatDate } from "@/lib/utils";
 import ReservationCard from '@/components/ReservationCard';
+import { router } from 'expo-router';
 
 const Reservations = () => {
   const [rides, setRides] = useState<RideRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchComplete, setFetchComplete] = useState(false);
   const { user } = useUser();
-  const { clearReservation, setReservationId } = useReservationStore();
+  const { clearReservation } = useReservationStore();
 
   useEffect(() => {
     fetchScheduledRides();
@@ -40,7 +41,7 @@ const Reservations = () => {
     try {
       const q = query(
         collection(db, "rideRequests"),
-        where("user_id", "==", user.id),
+        where("driver_id", "==", user.id),
         where("status", "==", "scheduled")
       );
 
@@ -61,6 +62,26 @@ const Reservations = () => {
     }
   };
 
+  const startRide = async (rideId: string) => {
+      try {
+        await updateDoc(doc(db, "rideRequests", rideId), {
+          status: "accepted",
+          accepted_at: new Date()
+        });
+        const rideIdString = String(rideId);
+        router.push({
+          pathname: '/(root)/active-ride',
+          params: {
+            rideId: rideIdString
+          }
+        });
+      } catch (error) {
+        console.error("Error accepting ride:", error);
+        Alert.alert("Error", "Failed to accept the ride. Please try again.");
+      }
+    };
+
+
   const cancelRide = async (rideId: string) => {
     try {
       await deleteDoc(doc(db, "rideRequests", rideId));
@@ -74,15 +95,11 @@ const Reservations = () => {
     }
   };
 
-  const rescheduleRide = (ride: RideRequest) => {
-    setReservationId(ride.id);
-    // Navigation logic would go here
-  };
-
   const renderRideItem = ({ item }: { item: RideRequest }) => {
     return (
       <ReservationCard
         ride={item}
+        onStart={() => startRide(item.id)}
         onCancel={() => {
           Alert.alert(
             'Cancel Ride',
@@ -99,7 +116,6 @@ const Reservations = () => {
             ]
           );
         }}
-        onReschedule={() => rescheduleRide(item)}
       />
     );
   };

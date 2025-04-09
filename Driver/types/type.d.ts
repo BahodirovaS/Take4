@@ -75,7 +75,7 @@ interface RideRequest {
   destination_latitude: number;
   fare_price: number;
   status: string;
-  driver_id: string;
+  user_id: string;
   createdAt: Date;
 }
 
