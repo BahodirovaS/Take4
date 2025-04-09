@@ -12,8 +12,10 @@ import {
     Image,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { collection, addDoc, doc, updateDoc, setDoc, query, where, getDocs } from "firebase/firestore";
+import { collection, addDoc, doc, updateDoc, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system";
 
 import CustomButton from "@/components/CustomButton";
 import InputField from "@/components/InputField";
@@ -36,9 +38,11 @@ const DriverInfo = () => {
         pets: false,
         carSeats: 4,
         status: false,
+        profilePhotoBase64: "", // Store base64 image directly
     });
 
     const [driverDocId, setDriverDocId] = useState<string | null>(null);
+    const [uploading, setUploading] = useState(false);
 
     useEffect(() => {
         const fetchDriverInfo = async () => {
@@ -76,6 +80,7 @@ const DriverInfo = () => {
                             pets: driverData.pets || false,
                             carSeats: driverData.carSeats || 4,
                             status: driverData.status || false,
+                            profilePhotoBase64: driverData.profilePhotoBase64 || "",
                         });
                     }
                     // If no document found, no alert needed - this is normal for new drivers
@@ -100,13 +105,88 @@ const DriverInfo = () => {
         fetchDriverInfo();
     }, [user]);
 
+    const pickImage = async () => {
+        try {
+            // Request permission
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            
+            if (status !== 'granted') {
+                Alert.alert('Permission Required', 'We need permission to access your photos');
+                return;
+            }
+            
+            // Launch image picker
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ['images'],
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.5, // Reduced quality for smaller size
+                base64: true, // Request base64 data directly
+            });
+            
+            if (!result.canceled) {
+                setUploading(true);
+                
+                try {
+                    let base64Image;
+                    
+                    // Check if base64 is available directly
+                    if (result.assets[0].base64) {
+                        base64Image = result.assets[0].base64;
+                    } else {
+                        // If not available (older versions of expo-image-picker),
+                        // read the file and convert to base64
+                        const fileUri = result.assets[0].uri;
+                        const fileContent = await FileSystem.readAsStringAsync(fileUri, {
+                            encoding: FileSystem.EncodingType.Base64,
+                        });
+                        base64Image = fileContent;
+                    }
+                    
+                    // Optional: Validate image size
+                    const imageSizeInBytes = base64Image.length * 0.75; // Approximate size calculation
+                    const imageSizeInMB = imageSizeInBytes / (1024 * 1024);
+                    
+                    if (imageSizeInMB > 1) {
+                        Alert.alert(
+                            "Image Too Large", 
+                            "Please select a smaller image (under 1MB)",
+                            [{ text: "OK" }]
+                        );
+                        setUploading(false);
+                        return;
+                    }
+                    
+                    // Update form state with the base64 image data
+                    setForm(prevForm => ({
+                        ...prevForm,
+                        profilePhotoBase64: base64Image
+                    }));
+                    
+                } catch (error) {
+                    console.error("Error processing image:", error);
+                    Alert.alert("Error", "Failed to process image");
+                } finally {
+                    setUploading(false);
+                }
+            }
+        } catch (error) {
+            console.error("Error picking image:", error);
+            Alert.alert("Error", "Failed to select image");
+            setUploading(false);
+        }
+    };
+
     const onSubmit = async () => {
         try {
             if (!user) {
                 return Alert.alert("Error", "User not found. Please log in again.");
             }
 
-            const { phoneNumber, address, dob, licence, vMake, vPlate, vInsurance, pets, carSeats } = form;
+            const { 
+                phoneNumber, address, dob, licence, vMake, vPlate, 
+                vInsurance, pets, carSeats, profilePhotoBase64 
+            } = form;
 
             if (
                 !phoneNumber ||
@@ -135,6 +215,7 @@ const DriverInfo = () => {
                 clerkId: user.id,
                 status: false, // Default to offline when creating
                 updatedAt: new Date(),
+                profilePhotoBase64, // Store base64 image directly in Firestore
             };
 
             if (driverDocId) {
@@ -162,6 +243,11 @@ const DriverInfo = () => {
         { label: "XL - 7 seats", value: 7 }
     ];
 
+    // Determine which profile image to use
+    const profileImageSource = form.profilePhotoBase64 
+        ? { uri: `data:image/jpeg;base64,${form.profilePhotoBase64}` } 
+        : { uri: user?.externalAccounts[0]?.imageUrl ?? user?.imageUrl };
+
     return (
         <SafeAreaView style={styles.safeArea}>
             <KeyboardAvoidingView
@@ -177,13 +263,23 @@ const DriverInfo = () => {
                         My Profile
                     </Text>
                     <View style={styles.profileImageContainer}>
+                        <TouchableOpacity onPress={pickImage} disabled={uploading}>
                             <Image
-                                source={{
-                                    uri: user?.externalAccounts[0]?.imageUrl ?? user?.imageUrl,
-                                }}
+                                source={profileImageSource}
                                 style={styles.profileImage}
                             />
-                        </View>
+                            <View style={styles.editIconContainer}>
+                                <Text style={styles.editIcon}>📷</Text>
+                            </View>
+                            {uploading && (
+                                <View style={styles.uploadingOverlay}>
+                                    <Text style={styles.uploadingText}>Processing...</Text>
+                                </View>
+                            )}
+                        </TouchableOpacity>
+                        <Text style={styles.tapToChangeText}>Tap to change photo</Text>
+                    </View>
+
                     <InputField
                         label="Name"
                         value={form.name}
@@ -315,6 +411,47 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.1,
         shadowRadius: 5,
+    },
+    editIconContainer: {
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        backgroundColor: '#FFFFFF',
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 3,
+        elevation: 2,
+    },
+    editIcon: {
+        fontSize: 16,
+    },
+    uploadingOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        borderRadius: 55,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    uploadingText: {
+        color: 'white',
+        fontFamily: 'JakartaMedium',
+        fontSize: 14,
+    },
+    tapToChangeText: {
+        marginTop: 8,
+        fontSize: 14,
+        color: '#666',
+        fontFamily: 'JakartaRegular',
     },
     carSeatsTitle: {
         marginTop: 16,
