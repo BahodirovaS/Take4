@@ -36,8 +36,6 @@ const Chat = () => {
         context?: string;
     }>();
 
-    console.log("rideId", rideId)
-
 
     useEffect(() => {
         if (rideId) {

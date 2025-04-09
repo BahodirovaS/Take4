@@ -38,6 +38,8 @@ declare interface MarkerData {
 
 declare interface Message {
   id: string;
+  rideId?: string; 
+  context?: string;
   text: string;
   senderName: string;
   senderId: string;
