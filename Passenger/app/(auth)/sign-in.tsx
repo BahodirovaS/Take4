@@ -29,12 +29,10 @@ const SignIn = () => {
                 await setActive({ session: signInAttempt.createdSessionId });
                 router.replace("/(root)/(tabs)/home");
             } else {
-                console.log(JSON.stringify(signInAttempt, null, 2));
                 Alert.alert("Error", "Log in failed. Please try again.");
             }
         } catch (error) {
             if (error instanceof Error) {
-                console.log(JSON.stringify(error, null, 2));
                 Alert.alert("Error", error.message);
             } else {
                 Alert.alert("Error", "An unknown error occurred.");

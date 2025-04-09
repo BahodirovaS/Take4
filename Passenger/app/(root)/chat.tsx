@@ -86,7 +86,7 @@ const Chat = () => {
             await addDoc(collection(db, "messages"), {
                 text: input,
                 senderId: user?.id || "guest",
-                senderName: `${user?.firstName} ${user?.lastName}` || "Guest",
+                senderName: user?.firstName || "Guest",
                 recipientId: otherPersonId,
                 recipientName: otherPersonName,
                 timestamp: new Date(),
@@ -103,8 +103,6 @@ const Chat = () => {
         
         if (context === "active_ride" && rideId) {
             router.back();
-        } else {
-            router.replace("/chatroom");
         }
     };
 

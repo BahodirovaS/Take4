@@ -69,7 +69,6 @@ const ActiveRide = () => {
                     setRideId(activeRide.id);
                     router.setParams({ rideId: activeRide.id });
                 } else {
-                    console.log("No active rides found");
                 }
             } catch (error) {
                 console.error("Error finding active rides:", error);
@@ -129,7 +128,6 @@ const ActiveRide = () => {
                     const driverData = querySnapshot.docs[0].data();
                     setDriverName(`${driverData.firstName}`);
                 } else {
-                    console.log("Driver not found");
                 }
             } catch (error) {
                 console.error("Error fetching driver details:", error);

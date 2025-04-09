@@ -95,25 +95,15 @@ const styles = StyleSheet.create({
   cardContainer: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
     backgroundColor: "white",
-    borderRadius: 10,
-    marginBottom: 10,
   },
   cardContent: {
     flex: 1,
-    // padding: 10,
   },
   row: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-start",
-    paddingTop: 10,
-  },
-  mapImage: {
-    width: 80,
-    height: 90,
-    borderRadius: 10,
   },
   detailsContainer: {
     flex: 1,
@@ -130,10 +120,10 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   infoContainer: {
-    marginTop: 10,
     backgroundColor: "#f0f0f0",
-    borderRadius: 10,
+    borderRadius: 0,
     padding: 10,
+    marginBottom: 10,
   },
   infoRow: {
     flexDirection: "row",

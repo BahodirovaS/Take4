@@ -12,6 +12,8 @@ import {
     FlatList,
     StyleSheet,
     ActivityIndicator,
+    Dimensions,
+    ScrollView
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { collection, query, where, onSnapshot, doc, updateDoc, getDocs } from "firebase/firestore";
@@ -39,7 +41,6 @@ const Home = () => {
         router.replace("/(auth)/sign-up");
     };
 
-
     useEffect(() => {
         (async () => {
             let { status } = await Location.requestForegroundPermissionsAsync();
@@ -63,25 +64,24 @@ const Home = () => {
         })();
     }, []);
 
-
     useEffect(() => {
         if (!user?.id) return;
-        
+
         const fetchRideHistory = async () => {
             try {
                 setLoading(true);
-                
+
                 const ridesRef = collection(db, "rideRequests");
                 const q = query(
-                    ridesRef, 
+                    ridesRef,
                     where("user_id", "==", user.id),
                     where("status", "in", ["completed"])
                 );
-                
+
                 const unsubscribe = onSnapshot(q, (snapshot) => {
                     const rides = snapshot.docs.map((doc) => {
                         const data = doc.data();
-                        
+
                         return {
                             id: doc.id,
                             origin_address: data.origin_address,
@@ -95,8 +95,8 @@ const Home = () => {
                             payment_status: data.payment_status,
                             driver_id: data.driver_id,
                             user_id: data.user_id,
-                            created_at: data.created_at && typeof data.created_at.toDate === 'function' 
-                                ? data.created_at.toDate().toISOString() 
+                            created_at: data.created_at && typeof data.created_at.toDate === 'function'
+                                ? data.created_at.toDate().toISOString()
                                 : new Date().toISOString(),
                             driver: {
                                 first_name: data.driver?.firstName || "",
@@ -106,7 +106,7 @@ const Home = () => {
                             status: data.status
                         } as Ride;
                     });
-                    
+
                     // Sort by created_at date, most recent first
                     rides.sort((a, b) => {
                         // Parse the ISO string dates
@@ -114,18 +114,18 @@ const Home = () => {
                         const timeB = new Date(b.created_at).getTime();
                         return timeB - timeA;
                     });
-                    
+
                     setRecentRides(rides);
                     setLoading(false);
                 });
-                
+
                 return unsubscribe;
             } catch (error) {
                 console.error("Error fetching ride history:", error);
                 setLoading(false);
             }
         };
-        
+
         fetchRideHistory();
     }, [user?.id]);
 
@@ -167,32 +167,45 @@ const Home = () => {
         return unsubscribe;
     }, [user?.id]);
 
+    const renderRideHistory = () => {
+        if (loading) {
+            return <ActivityIndicator size="small" color="#000" />;
+        }
+
+        if (recentRides.length === 0) {
+            return (
+                <View style={styles.emptyComponent}>
+                    <Image
+                        source={images.noRides}
+                        style={styles.noResultImage}
+                        resizeMode="contain"
+                    />
+                    <Text style={styles.noResultText}>No recent rides found</Text>
+                </View>
+            );
+        }
+
+        return (
+            <View style={styles.rideHistoryContainer}>
+                <ScrollView
+                    contentContainerStyle={styles.rideHistoryScrollContent}
+                    showsVerticalScrollIndicator={false}
+                >
+                    {recentRides.map((ride) => (
+                        <View key={ride.id} style={styles.rideCardContainer}>
+                            <RideCard ride={ride} />
+                        </View>
+                    ))}
+                </ScrollView>
+            </View>
+        );
+    };
+
     return (
         <SafeAreaView style={styles.container}>
             <FlatList
-                data={recentRides?.slice(0, 5)}
-                renderItem={({ item }) => <RideCard ride={item} />}
-                keyExtractor={(item, index) => index.toString()}
-                style={styles.flatList}
-                keyboardShouldPersistTaps="handled"
-                contentContainerStyle={styles.flatListContent}
-                ListEmptyComponent={() => (
-                    <View style={styles.emptyComponent}>
-                        {!loading ? (
-                            <>
-                                <Image
-                                    source={images.noRides}
-                                    style={styles.noResultImage}
-                                    resizeMode="contain"
-                                />
-                                <Text style={styles.noResultText}>No recent rides found</Text>
-                            </>
-                        ) : (
-                            <ActivityIndicator size="small" color="#000" />
-                        )}
-                    </View>
-                )}
-                ListHeaderComponent={
+                data={[{}]}
+                renderItem={() => (
                     <>
                         <View style={styles.header}>
                             <Text style={styles.welcomeText}>
@@ -205,6 +218,7 @@ const Home = () => {
                                 <Image source={icons.out} style={styles.signOutIcon} />
                             </TouchableOpacity>
                         </View>
+
                         {hasActiveRide && activeRideData && (
                             <TouchableOpacity
                                 style={styles.activeRideBanner}
@@ -213,10 +227,10 @@ const Home = () => {
                                         pathname: '/(root)/active-ride',
                                         params: {
                                             rideId: activeRideData.rideId,
-                                            rideStage: activeRideData.status === 'accepted' 
-                                                ? 'to_pickup' 
-                                                : (activeRideData.status === 'arrived_at_pickup' 
-                                                    ? 'to_destination' 
+                                            rideStage: activeRideData.status === 'accepted'
+                                                ? 'to_pickup'
+                                                : (activeRideData.status === 'arrived_at_pickup'
+                                                    ? 'to_destination'
                                                     : 'to_destination')
                                         }
                                     });
@@ -251,8 +265,13 @@ const Home = () => {
                         </>
 
                         <Text style={styles.sectionTitle}>Ride History</Text>
+
+                        {renderRideHistory()}
                     </>
-                }
+                )}
+                style={styles.flatList}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={styles.flatListContent}
             />
         </SafeAreaView>
     );
@@ -284,6 +303,21 @@ const styles = StyleSheet.create({
         textAlign: "center",
         margin: 15
     },
+    rideHistoryContainer: {
+        maxHeight: 250,
+        borderWidth: 1,
+        borderColor: '#c0c0c0',
+        borderRadius: 10,
+        overflow: "hidden",
+    },
+    rideHistoryScrollContent: {
+        paddingVertical: 0,
+    },
+    rideCardContainer: {
+        marginVertical: 0,
+        marginBottom: 10,
+        marginTop: 0,
+    },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -300,14 +334,14 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         shadowColor: '#000',
         shadowOffset: {
-          width: 0,
-          height: 2,
+            width: 0,
+            height: 2,
         },
         shadowOpacity: 0.25,
         shadowRadius: 3.84,
         elevation: 5,
-      },
-      bannerIconContainer: {
+    },
+    bannerIconContainer: {
         width: 32,
         height: 32,
         backgroundColor: 'rgba(255, 255, 255, 0.2)',
@@ -315,20 +349,20 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 12,
-      },
-      bannerTextContainer: {
+    },
+    bannerTextContainer: {
         flex: 1,
-      },
-      bannerTitle: {
+    },
+    bannerTitle: {
         color: '#fff',
         fontWeight: 'bold',
         fontSize: 14,
-      },
-      bannerSubtitle: {
+    },
+    bannerSubtitle: {
         color: 'rgba(255, 255, 255, 0.8)',
         fontSize: 12,
         marginTop: 2,
-      },
+    },
     welcomeText: {
         fontSize: 24,
         fontFamily: 'JakartaExtraBold',
@@ -362,6 +396,9 @@ const styles = StyleSheet.create({
         backgroundColor: 'transparent',
         height: 450,
     },
+    rideHistoryList: {
+        paddingBottom: 20,
+    }
 });
 
-export default Home
+export default Home;

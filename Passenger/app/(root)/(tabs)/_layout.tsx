@@ -44,16 +44,6 @@ export default function Layout() {
                 }}
             />
             <Tabs.Screen
-                name="chatroom"
-                options={{
-                    title: "Chatroom",
-                    headerShown: false,
-                    tabBarIcon: ({ focused }) => (
-                        <TabIcon source={icons.chat} focused={focused} />
-                    ),
-                }}
-            />
-            <Tabs.Screen
                 name="resos"
                 options={{
                     title: "Reservations",

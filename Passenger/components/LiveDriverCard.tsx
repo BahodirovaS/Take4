@@ -32,7 +32,7 @@ const LiveDriverCard: React.FC<DriverCardProps> = ({
         />
         <View style={styles.driverDetails}>
           <Text style={styles.driverName}>
-            {driver.first_name} {driver.last_name}
+            {driver.first_name}
           </Text>
           <Text style={styles.carInfo}>
             {driver.v_make} • {driver.v_plate}
