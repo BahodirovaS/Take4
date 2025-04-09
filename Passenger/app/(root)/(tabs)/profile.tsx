@@ -193,9 +193,10 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
     },
     headerText: {
-        fontSize: 24,
+        fontSize: 30,
         fontFamily: "JakartaBold",
-        marginVertical: 20,
+        marginBottom: 20,
+        alignSelf: "center",
     },
     profileImageContainer: {
         alignItems: "center",

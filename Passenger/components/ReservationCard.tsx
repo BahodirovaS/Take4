@@ -4,6 +4,7 @@ import { RideRequest } from "@/types/type";
 import { doc, getDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import CustomButton from "./CustomButton";
 
 const ReservationCard: React.FC<{ 
     ride: RideRequest, 
@@ -53,12 +54,6 @@ const ReservationCard: React.FC<{
               </Text>
             </View>
             <View style={styles.row}>
-              <Image
-                source={{
-                  uri: `https://maps.geoapify.com/v1/staticmap?style=osm-bright&width=600&height=400&center=lonlat:${ride.destination_longitude},${ride.destination_latitude}&zoom=14&apiKey=${process.env.EXPO_PUBLIC_GEOAPIFY_API_KEY}`,
-                }}
-                style={styles.mapImage}
-              />
               <View style={styles.detailsContainer}>
                 <View style={styles.row}>
                   <Image source={icons.to} style={styles.icon} />
@@ -75,18 +70,18 @@ const ReservationCard: React.FC<{
               </View>
             </View>
             <View style={styles.actionButtonsContainer}>
-              <TouchableOpacity 
-                style={styles.rescheduleButton}
+              <CustomButton 
+                title="Reschedule"
                 onPress={onReschedule}
-              >
-                <Text style={styles.actionButtonText}>Reschedule</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.cancelButton}
+                bgVariant="primary"
+                style={styles.rescheduleButton}
+              />
+              <CustomButton 
+                title="Cancel"
                 onPress={onCancel}
-              >
-                <Text style={styles.actionButtonText}>Cancel</Text>
-              </TouchableOpacity>
+                bgVariant="danger"
+                style={styles.rescheduleButton}
+              />
             </View>
           </View>
         </View>
@@ -101,26 +96,31 @@ const ReservationCard: React.FC<{
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: "white",
-        borderRadius: 10,
-        marginBottom: 10,
+        marginBottom: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: "#E0E0E0",
+        borderTopWidth:1,
+        borderTopColor: "#E0E0E0",
+        marginHorizontal: 10,
       },
       cardContent: {
         flex: 1,
       },
       infoContainer: {
         marginTop: 10,
-        backgroundColor: "#f0f0f0",
+        backgroundColor: "white",
         borderRadius: 10,
         padding: 10,
       },
       infoRow: {
         flexDirection: "row",
-        justifyContent: "space-between",
+        justifyContent: "flex-start",
         alignItems: "center",
         marginBottom: 10,
       },
       label: {
-        fontSize: 14,
+        flex: 1,
+        fontSize: 15,
         color: "gray",
       },
       value: {
@@ -134,19 +134,20 @@ const ReservationCard: React.FC<{
         paddingTop: 10,
       },
       mapImage: {
+        flex: 1,
         width: 80,
         height: 90,
         borderRadius: 10,
       },
       detailsContainer: {
         flex: 1,
-        marginLeft: 10,
+        marginRight: 80,
+        marginBottom: 15,
       },
       icon: {
         width: 20,
         height: 20,
         marginRight: 5,
-        marginLeft: 5,
       },
       text: {
         fontSize: 14,
@@ -160,25 +161,10 @@ const ReservationCard: React.FC<{
       },
       rescheduleButton: {
         flex: 1,
-        backgroundColor: '#4CAF50',
         paddingVertical: 10,
         paddingHorizontal: 15,
         borderRadius: 6,
         marginRight: 5,
-      },
-      cancelButton: {
-        flex: 1,
-        backgroundColor: '#FF6B6B',
-        paddingVertical: 10,
-        paddingHorizontal: 15,
-        borderRadius: 6,
-        marginLeft: 5,
-      },
-      actionButtonText: {
-        color: 'white',
-        fontFamily: 'JakartaBold',
-        fontSize: 14,
-        textAlign: 'center',
       },
   })
   export default ReservationCard

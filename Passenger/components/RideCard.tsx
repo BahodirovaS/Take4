@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    color: "gray",
+    color: " ",
     marginRight: 10,
     width: 60,
   },
