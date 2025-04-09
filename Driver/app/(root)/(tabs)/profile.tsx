@@ -12,8 +12,10 @@ import {
     Image,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { collection, addDoc, doc, updateDoc, setDoc, query, where, getDocs } from "firebase/firestore";
+import { collection, addDoc, doc, updateDoc, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system";
 
 import CustomButton from "@/components/CustomButton";
 import InputField from "@/components/InputField";
@@ -36,28 +38,30 @@ const DriverInfo = () => {
         pets: false,
         carSeats: 4,
         status: false,
+        profilePhotoBase64: "", 
     });
 
     const [driverDocId, setDriverDocId] = useState<string | null>(null);
+    const [uploading, setUploading] = useState(false);
 
     useEffect(() => {
         const fetchDriverInfo = async () => {
             if (user) {
                 try {
-                    // Set initial values from user object
+                    
                     setForm((prevForm) => ({
                         ...prevForm,
                         name: `${user?.firstName || ""} ${user?.lastName || ""}`.trim(),
                         email: user?.primaryEmailAddress?.emailAddress || "",
                     }));
 
-                    // Query Firestore to get driver info
+                    
                     const driversRef = collection(db, "drivers");
                     const q = query(driversRef, where("clerkId", "==", user.id));
                     const querySnapshot = await getDocs(q);
                     
                     if (!querySnapshot.empty) {
-                        // Driver info found
+                        
                         const driverDoc = querySnapshot.docs[0];
                         const driverData = driverDoc.data();
                         
@@ -76,12 +80,13 @@ const DriverInfo = () => {
                             pets: driverData.pets || false,
                             carSeats: driverData.carSeats || 4,
                             status: driverData.status || false,
+                            profilePhotoBase64: driverData.profilePhotoBase64 || "",
                         });
                     }
-                    // If no document found, no alert needed - this is normal for new drivers
+                    
                 } catch (error) {
                     console.error("Error fetching driver info:", error);
-                    // Only show alert if we attempted to load an existing document but failed
+                    
                     const driversRef = collection(db, "drivers");
                     const q = query(driversRef, where("clerkId", "==", user.id));
                     try {
@@ -100,13 +105,88 @@ const DriverInfo = () => {
         fetchDriverInfo();
     }, [user]);
 
+    const pickImage = async () => {
+        try {
+            
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            
+            if (status !== 'granted') {
+                Alert.alert('Permission Required', 'We need permission to access your photos');
+                return;
+            }
+            
+            
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ['images'],
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.5, 
+                base64: true, 
+            });
+            
+            if (!result.canceled) {
+                setUploading(true);
+                
+                try {
+                    let base64Image;
+                    
+                    
+                    if (result.assets[0].base64) {
+                        base64Image = result.assets[0].base64;
+                    } else {
+                        
+                        
+                        const fileUri = result.assets[0].uri;
+                        const fileContent = await FileSystem.readAsStringAsync(fileUri, {
+                            encoding: FileSystem.EncodingType.Base64,
+                        });
+                        base64Image = fileContent;
+                    }
+                    
+                    
+                    const imageSizeInBytes = base64Image.length * 0.75; 
+                    const imageSizeInMB = imageSizeInBytes / (1024 * 1024);
+                    
+                    if (imageSizeInMB > 1) {
+                        Alert.alert(
+                            "Image Too Large", 
+                            "Please select a smaller image (under 1MB)",
+                            [{ text: "OK" }]
+                        );
+                        setUploading(false);
+                        return;
+                    }
+                    
+                    
+                    setForm(prevForm => ({
+                        ...prevForm,
+                        profilePhotoBase64: base64Image
+                    }));
+                    
+                } catch (error) {
+                    console.error("Error processing image:", error);
+                    Alert.alert("Error", "Failed to process image");
+                } finally {
+                    setUploading(false);
+                }
+            }
+        } catch (error) {
+            console.error("Error picking image:", error);
+            Alert.alert("Error", "Failed to select image");
+            setUploading(false);
+        }
+    };
+
     const onSubmit = async () => {
         try {
             if (!user) {
                 return Alert.alert("Error", "User not found. Please log in again.");
             }
 
-            const { phoneNumber, address, dob, licence, vMake, vPlate, vInsurance, pets, carSeats } = form;
+            const { 
+                phoneNumber, address, dob, licence, vMake, vPlate, 
+                vInsurance, pets, carSeats, profilePhotoBase64 
+            } = form;
 
             if (
                 !phoneNumber ||
@@ -133,15 +213,16 @@ const DriverInfo = () => {
                 pets,
                 carSeats,
                 clerkId: user.id,
-                status: false, // Default to offline when creating
+                status: false, 
                 updatedAt: new Date(),
+                profilePhotoBase64, 
             };
 
             if (driverDocId) {
-                // Update existing document
+                
                 await updateDoc(doc(db, "drivers", driverDocId), driverData);
             } else {
-                // Create new document
+                
                 const docRef = await addDoc(collection(db, "drivers"), {
                     ...driverData,
                     createdAt: new Date()
@@ -162,6 +243,11 @@ const DriverInfo = () => {
         { label: "XL - 7 seats", value: 7 }
     ];
 
+    
+    const profileImageSource = form.profilePhotoBase64 
+        ? { uri: `data:image/jpeg;base64,${form.profilePhotoBase64}` } 
+        : { uri: user?.externalAccounts[0]?.imageUrl ?? user?.imageUrl };
+
     return (
         <SafeAreaView style={styles.safeArea}>
             <KeyboardAvoidingView
@@ -177,13 +263,23 @@ const DriverInfo = () => {
                         My Profile
                     </Text>
                     <View style={styles.profileImageContainer}>
+                        <TouchableOpacity onPress={pickImage} disabled={uploading}>
                             <Image
-                                source={{
-                                    uri: user?.externalAccounts[0]?.imageUrl ?? user?.imageUrl,
-                                }}
+                                source={profileImageSource}
                                 style={styles.profileImage}
                             />
-                        </View>
+                            <View style={styles.editIconContainer}>
+                                <Text style={styles.editIcon}>📷</Text>
+                            </View>
+                            {uploading && (
+                                <View style={styles.uploadingOverlay}>
+                                    <Text style={styles.uploadingText}>Processing...</Text>
+                                </View>
+                            )}
+                        </TouchableOpacity>
+                        <Text style={styles.tapToChangeText}>Tap to change photo</Text>
+                    </View>
+
                     <InputField
                         label="Name"
                         value={form.name}
@@ -316,6 +412,47 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 5,
     },
+    editIconContainer: {
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        backgroundColor: '#FFFFFF',
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 3,
+        elevation: 2,
+    },
+    editIcon: {
+        fontSize: 16,
+    },
+    uploadingOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        borderRadius: 55,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    uploadingText: {
+        color: 'white',
+        fontFamily: 'JakartaMedium',
+        fontSize: 14,
+    },
+    tapToChangeText: {
+        marginTop: 8,
+        fontSize: 14,
+        color: '#666',
+        fontFamily: 'JakartaRegular',
+    },
     carSeatsTitle: {
         marginTop: 16,
         marginBottom: 8,
@@ -366,10 +503,10 @@ const styles = StyleSheet.create({
         borderRadius: 9999,
     },
     petsButtonSelected: {
-        backgroundColor: "#2E7D32", //Green for yes
+        backgroundColor: "#2E7D32", 
     },
     petsButtonUnselected: {
-        backgroundColor: "#E53935", //Red for no
+        backgroundColor: "#E53935", 
     },
     petsButtonText: {
         fontSize: 16,

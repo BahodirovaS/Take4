@@ -253,7 +253,7 @@ const Home = () => {
                         {!loading ? (
                             <>
                                 <Image
-                                    source={images.noResult}
+                                    source={images.noRides}
                                     style={styles.noResultImage}
                                     resizeMode="contain"
                                 />
@@ -348,12 +348,14 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     noResultImage: {
-        width: 160,
-        height: 160,
+        width: 100,
+        height: 50,
+        margin: 15,
     },
     noResultText: {
-        fontSize: 12,
+        fontSize: 15,
         textAlign: "center",
+        margin: 15
     },
     header: {
         flexDirection: 'row',

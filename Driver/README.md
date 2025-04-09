@@ -3,3 +3,4 @@ Attribute:
 - kemalmoe for messages bubble
 - srip for schedule
 - erix for no result
+- muhammad_usman for no rides

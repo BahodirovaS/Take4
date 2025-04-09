@@ -31,6 +31,7 @@ import noResult from "@/assets/images/no-result.png";
 import resos from "@/assets/images/resos.png"
 import icon from "@/assets/images/icon.png"
 import calendar from "@/assets/images/calendar.png"
+import noRides from "@/assets/images/no-rides.png"
 
 export const images = {
   check,
@@ -39,6 +40,7 @@ export const images = {
   resos,
   icon,
   calendar,
+  noRides
 };
 
 export const icons = {

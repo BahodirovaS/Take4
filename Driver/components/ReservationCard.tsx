@@ -1,6 +1,6 @@
 import { icons } from "@/constants";
 import { db } from "@/lib/firebase";
-import { RideRequest } from "@/types/type";
+import { Ride, RideRequest } from "@/types/type";
 import { doc, getDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -8,29 +8,10 @@ import CustomButton from "./CustomButton";
 
 const ReservationCard: React.FC<{ 
     ride: RideRequest, 
-    onCancel: () => void, 
-    onReschedule: () => void 
-  }> = ({ ride, onCancel, onReschedule }) => {
-    const [driverName, setDriverName] = useState('');
-  
-    useEffect(() => {
-      const fetchDriverName = async () => {
-        if (ride.driver_id) {
-          try {
-            const driverDoc = await getDoc(doc(db, "drivers", ride.driver_id));
-            if (driverDoc.exists()) {
-              const driverData = driverDoc.data();
-              setDriverName(`${driverData.first_name} ${driverData.last_name}`);
-            }
-          } catch (error) {
-            console.error("Error fetching driver name:", error);
-          }
-        }
-      };
-  
-      fetchDriverName();
-    }, [ride.driver_id]);
-  
+    onCancel: () => void,
+    onStart: () => void,
+  }> = ({ ride, onCancel, onStart }) => {
+ 
     return (
       <View style={styles.cardContainer}>
         <View style={styles.cardContent}>
@@ -45,12 +26,6 @@ const ReservationCard: React.FC<{
               <Text style={styles.label}>Time</Text>
               <Text style={styles.value} numberOfLines={1}>
                 {ride.scheduled_time}
-              </Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.label}>Driver</Text>
-              <Text style={styles.value}>
-                {driverName || 'Not assigned'}
               </Text>
             </View>
             <View style={styles.row}>
@@ -70,9 +45,9 @@ const ReservationCard: React.FC<{
               </View>
             </View>
             <View style={styles.actionButtonsContainer}>
-              <CustomButton 
-                title="Reschedule"
-                onPress={onReschedule}
+            <CustomButton 
+                title="Start Ride"
+                onPress={onStart}
                 bgVariant="primary"
                 style={styles.rescheduleButton}
               />
