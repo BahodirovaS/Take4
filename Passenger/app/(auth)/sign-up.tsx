@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
         marginTop: 40,
     },
     linkHighlight: {
-        color: "#00f",
+        color: "#289dd2",
     },
     modalContainer: {
         backgroundColor: "white",
