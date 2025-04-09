@@ -50,7 +50,7 @@ const SignIn = () => {
             <View style={styles.container}>
                 <View style={styles.header}>
                     <Image source={images.icon} style={styles.carIcon} />
-                    <Text style={styles.headerTitle}>RidePal</Text>
+                    <Text style={styles.headerTitle}>RidePal Driver</Text>
                 </View>
                 <View style={styles.welcomeContainer}>
                     <Text style={styles.welcomeText}>Welcome Back 👋</Text>
