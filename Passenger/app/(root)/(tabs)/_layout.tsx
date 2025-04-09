@@ -73,16 +73,6 @@ export default function Layout() {
                     ),
                 }}
             />
-             <Tabs.Screen
-                name="active-ride"
-                options={{
-                    title: "ActiveRide",
-                    headerShown: false,
-                    tabBarIcon: ({ focused }) => (
-                        <TabIcon source={icons.profile} focused={focused} />
-                    ),
-                }}
-            />
         </Tabs>
     );
 }

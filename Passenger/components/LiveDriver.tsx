@@ -100,8 +100,10 @@ const LiveDriver: React.FC<ExtendedDriverInfoProps> = ({ driverId, rideId, drive
         router.push({
             pathname: "/(root)/chat",
             params: {
-                otherPersonId: driverId,
-                otherPersonName: `${driver.first_name} ${driver.last_name}`
+                otherPersonId: driver.id,
+                otherPersonName: driver.first_name,
+                rideId: rideId,
+                context: "active_ride"
             }
         });
     };
@@ -143,7 +145,6 @@ const LiveDriver: React.FC<ExtendedDriverInfoProps> = ({ driverId, rideId, drive
         );
     }
 
-
     return (
         <View style={styles.container}>
             <LiveDriverCard 
@@ -157,6 +158,7 @@ const LiveDriver: React.FC<ExtendedDriverInfoProps> = ({ driverId, rideId, drive
             <CustomButton
                 title="Cancel Ride"
                 onPress={cancelRideRequest}
+                bgVariant="danger"
                 style={styles.cancelButton}
             />
             )}
@@ -188,7 +190,6 @@ const styles = StyleSheet.create({
         backgroundColor: "#000",
     },
     cancelButton: {
-        backgroundColor: "#FF3B30",
         marginTop: 20,
     },
 });

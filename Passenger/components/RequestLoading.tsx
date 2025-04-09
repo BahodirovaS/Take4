@@ -60,6 +60,7 @@ const RequestLoading: React.FC<RequestLoadingProps> = ({ rideId }) => {
             <CustomButton
                 title="Cancel Request"
                 onPress={cancelRideRequest}
+                bgVariant="danger"
                 style={styles.cancelButton}
             />
         </View>
@@ -93,7 +94,6 @@ const styles = StyleSheet.create({
     },
     cancelButton: {
         marginTop: 40,
-        backgroundColor: "#FF3B30",
     },
 });
 

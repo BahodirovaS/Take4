@@ -29,7 +29,7 @@ const RideLayout: React.FC<RideLayoutProps> = ({
 
   const defaultSnapPoints = rideStatus === "in_progress" 
   ? ["35%"]
-  : ["50%", "80%"]
+  : ["55%", "80%"]
 
   return (
     <GestureHandlerRootView style={styles.container}>

@@ -1,7 +1,7 @@
 import { useSignIn } from "@clerk/clerk-expo";
 import { Link, router } from "expo-router";
 import { useCallback, useState } from "react";
-import { Alert, Image, ScrollView, Text, View, StyleSheet } from "react-native";
+import { Alert, Image, ScrollView, Text, View, StyleSheet, SafeAreaView } from "react-native";
 
 import CustomButton from "@/components/CustomButton";
 import InputField from "@/components/InputField";
@@ -43,11 +43,16 @@ const SignIn = () => {
     }, [isLoaded, form]);
 
     return (
+        <SafeAreaView style={styles.safeArea}>
+
         <ScrollView style={styles.container}>
             <View style={styles.container}>
-                <View style={styles.imageContainer}>
-                    <Image source={images.signUpCar} style={styles.image} />
-                    <Text style={styles.welcomeText}>Welcome 👋</Text>
+            <View style={styles.header}>
+                    <Image source={images.icon} style={styles.carIcon} />
+                    <Text style={styles.headerTitle}>RidePal Passenger</Text>
+                </View>
+                <View style={styles.welcomeContainer}>
+                    <Text style={styles.welcomeText}>Welcome Back👋</Text>
                 </View>
 
                 <View style={styles.formContainer}>
@@ -80,18 +85,41 @@ const SignIn = () => {
                 </View>
             </View>
         </ScrollView>
+        </SafeAreaView>
+
     );
 };
 
 const styles = StyleSheet.create({
+    safeArea: {
+        flex: 1,
+        backgroundColor: "white",
+    },
     container: {
         flex: 1,
         backgroundColor: "white",
     },
-    imageContainer: {
+    header: {
+        flexDirection: "row",
+        justifyContent: "flex-start",
+        paddingVertical: 10,
+        paddingLeft: 20,
+        width: "100%",
+    },
+    carIcon: {
+        width: 30,
+        height: 30,
+        marginRight: 10,
+    },
+    headerTitle: {
+        fontSize: 24,
+        fontFamily: "JakartaSemiBold",
+        color: "black",
+    },
+    welcomeContainer: {
         position: "relative",
         width: "100%",
-        height: 250,
+        height: 150,
     },
     image: {
         width: "100%",
@@ -100,10 +128,13 @@ const styles = StyleSheet.create({
     welcomeText: {
         position: "absolute",
         bottom: 20,
-        left: 20,
-        fontSize: 24,
+        left: 0,
+        right: 0,
+        fontSize: 40,
         color: "black",
-        fontFamily: "JakartaSemiBold",
+        fontWeight: "bold",
+        fontFamily: "Jakarta-Medium",
+        textAlign: "center"
     },
     formContainer: {
         padding: 20,

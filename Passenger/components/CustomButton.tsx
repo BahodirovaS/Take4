@@ -70,10 +70,10 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
   },
-  bgPrimary: { backgroundColor: "#0286FF" },
+  bgPrimary: { backgroundColor: "#289dd2" },
   bgSecondary: { backgroundColor: "#6B7280" },
-  bgDanger: { backgroundColor: "#EF4444" },
-  bgSuccess: { backgroundColor: "#10B981" },
+  bgDanger: { backgroundColor: "#E53935" },
+  bgSuccess: { backgroundColor: "#2E7D32" },
   bgOutline: {
     backgroundColor: "transparent",
     borderColor: "#D1D5DB",

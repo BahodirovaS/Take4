@@ -75,7 +75,6 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         padding: 15,
         marginBottom: 15,
-        marginHorizontal: 20,
     },
     reservationTitle: {
         fontSize: 16,

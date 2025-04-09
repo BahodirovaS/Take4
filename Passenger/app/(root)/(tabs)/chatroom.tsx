@@ -7,6 +7,7 @@ import {
     Text,
     View,
     StyleSheet,
+    TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -24,15 +25,18 @@ import { useRouter } from "expo-router";
 
 
 const Chatroom = () => {
-
     const router = useRouter();
     const { user } = useUser();
     const [chats, setChats] = useState<Map<string, Message>>(new Map());
     const [loading, setLoading] = useState(true);
-
+    const [fetchComplete, setFetchComplete] = useState(false);
 
     useEffect(() => {
-        if (!user?.id) return;
+        if (!user?.id) {
+            setLoading(false);
+            setFetchComplete(true);
+            return;
+        }
 
         const senderQuery = query(
             collection(db, "messages"),
@@ -67,6 +71,13 @@ const Chatroom = () => {
                 });
                 return updatedChats;
             });
+
+            setLoading(false);
+            setFetchComplete(true);
+        }, (error) => {
+            console.error("Error fetching sender messages:", error);
+            setLoading(false);
+            setFetchComplete(true);
         });
 
         const unsubscribeRecipient = onSnapshot(recipientQuery, (snapshot) => {
@@ -90,6 +101,13 @@ const Chatroom = () => {
                 });
                 return updatedChats;
             });
+
+            setLoading(false);
+            setFetchComplete(true);
+        }, (error) => {
+            console.error("Error fetching recipient messages:", error);
+            setLoading(false);
+            setFetchComplete(true);
         });
 
         return () => {
@@ -97,7 +115,6 @@ const Chatroom = () => {
             unsubscribeRecipient();
         };
     }, [user?.id]);
-
 
     return (
         <SafeAreaView style={styles.container}>
@@ -109,22 +126,22 @@ const Chatroom = () => {
                 contentContainerStyle={styles.listContent}
                 ListEmptyComponent={() => (
                     <View style={styles.emptyContainer}>
-                        {!loading ? (
+                        {fetchComplete && chats.size === 0 ? (
                             <>
                                 <Image
-                                    source={images.noResult}
+                                    source={images.message}
                                     style={styles.image}
                                     alt="No chats found"
                                     resizeMode="contain"
                                 />
-                                <Text style={styles.emptyText}>No chats found</Text>
+                                <Text style={styles.emptyText}>No messages</Text>
                             </>
-                        ) : (
+                        ) : loading ? (
                             <ActivityIndicator size="small" color="#000" />
-                        )}
+                        ) : null}
                     </View>
                 )}
-                ListHeaderComponent={<Text style={styles.headerText}>All Chats</Text>}
+                ListHeaderComponent={<Text style={styles.headerText}>Messages</Text>}
             />
         </SafeAreaView>
     );
@@ -143,15 +160,20 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
     },
+    emptyText: {
+        fontSize: 18,
+        color: '#666',
+        fontFamily: 'JakartaRegular',
+    },
     image: {
+        marginTop: 150,
         width: 160,
         height: 160,
-    },
-    emptyText: {
-        fontSize: 14,
+        alignItems: "center",
     },
     headerText: {
-        fontSize: 24,
+        fontSize: 30,
+        alignSelf: "center",
         fontFamily: "JakartaBold",
         marginVertical: 20,
         paddingHorizontal: 20,

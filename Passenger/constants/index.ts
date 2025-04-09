@@ -25,27 +25,22 @@ import settings from "@/assets/icons/settings.png"
 import star from "@/assets/icons/star.png";
 import target from "@/assets/icons/target.png";
 import to from "@/assets/icons/to.png";
+import taxi from "@/assets/icons/taxi.png"
 import check from "@/assets/images/check.png";
-import getStarted from "@/assets/images/get-started.png";
 import message from "@/assets/images/message.png";
 import noResult from "@/assets/images/no-result.png";
-import onboarding1 from "@/assets/images/onboarding1.png";
-import onboarding2 from "@/assets/images/onboarding2.png";
-import onboarding3 from "@/assets/images/onboarding3.png";
-import signUpCar from "@/assets/images/signup-car.png";
 import resos from "@/assets/images/resos.png"
 import car from "@/assets/icons/car.png"
+import icon from "@/assets/images/icon.png"
+import calendar from "@/assets/images/calendar.png"
 
 export const images = {
-  onboarding1,
-  onboarding2,
-  onboarding3,
-  getStarted,
-  signUpCar,
   check,
   noResult,
   message,
   resos,
+  icon, 
+  calendar,
 };
 
 export const icons = {
@@ -77,32 +72,6 @@ export const icons = {
   target,
   to,
   car,
+  taxi,
 };
 
-export const onboarding = [
-  {
-    id: 1,
-    title: "The perfect ride is just a tap away!",
-    description:
-      "Your journey begins with Ryde. Find your ideal ride effortlessly.",
-    image: images.onboarding1,
-  },
-  {
-    id: 2,
-    title: "Best car in your hands with Ryde",
-    description:
-      "Discover the convenience of finding your perfect ride with Ryde",
-    image: images.onboarding2,
-  },
-  {
-    id: 3,
-    title: "Your ride, your way. Let's go!",
-    description:
-      "Enter your destination, sit back, and let us take care of the rest.",
-    image: images.onboarding3,
-  },
-];
-
-export const data = {
-  onboarding,
-};

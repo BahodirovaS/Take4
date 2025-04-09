@@ -6,6 +6,7 @@ import {
     Image,
     KeyboardAvoidingView,
     Platform,
+    SafeAreaView,
     ScrollView,
     StyleSheet,
     Text,
@@ -119,131 +120,157 @@ const SignUp = () => {
             style={{ flex: 1 }}
             behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
-            <ScrollView style={styles.container}>
-                <View style={styles.container}>
-                    <View style={styles.headerContainer}>
-                        <Image source={images.signUpCar} style={styles.headerImage} />
-                        <Text style={styles.headerText}>Create Your Account</Text>
-                    </View>
-                    <View style={styles.formContainer}>
-                        <InputField
-                            label="First Name"
-                            placeholder="Enter first name"
-                            icon={icons.person}
-                            value={form.firstName}
-                            onChangeText={(value) => setForm({ ...form, firstName: value })}
-                        />
-                        <InputField
-                            label="Last Name"
-                            placeholder="Enter last name"
-                            icon={icons.person}
-                            value={form.lastName}
-                            onChangeText={(value) => setForm({ ...form, lastName: value })}
-                        />
-                        <InputField
-                            label="Email"
-                            placeholder="Enter email"
-                            icon={icons.email}
-                            textContentType="emailAddress"
-                            value={form.email}
-                            onChangeText={(value) => setForm({ ...form, email: value })}
-                        />
-                        <InputField
-                            label="Password"
-                            placeholder="Enter password"
-                            icon={icons.lock}
-                            secureTextEntry={true}
-                            textContentType="password"
-                            value={form.password}
-                            onChangeText={(value) => setForm({ ...form, password: value })}
-                        />
-                        <CustomButton title="Sign Up" onPress={onSignUpPress} style={styles.signUpButton} />
-                        <OAuth />
-                        <Link href="/sign-in" style={styles.linkText}>
-                            Already have an account? <Text style={styles.linkHighlight}>Log In</Text>
-                        </Link>
-                    </View>
-                    <ReactNativeModal
-                        isVisible={verification.state === "pending"}
-                        onModalHide={() => {
-                            if (verification.state === "success") {
-                                setShowSuccessModal(true);
-                            }
-                        }}
-                    >
-                        <View style={styles.modalContainer}>
-                            <Text style={styles.modalTitle}>Verification</Text>
-                            <Text style={styles.modalDescription}>
-                                We've sent a verification code to {form.email}.
-                            </Text>
+            <SafeAreaView style={styles.safeArea}>
+
+                <ScrollView style={styles.container}>
+                    <View style={styles.container}>
+                        <View style={styles.header}>
+                            <Image source={images.icon} style={styles.carIcon} />
+                            <Text style={styles.headerTitle}>RidePal Passenger</Text>
+                        </View>
+                        <View style={styles.createContainer}>
+                            <Text style={styles.createText}>Create Your Account</Text>
+                        </View>
+                        <View style={styles.formContainer}>
                             <InputField
-                                label={"Code"}
+                                label="First Name"
+                                placeholder="Enter first name"
+                                icon={icons.person}
+                                value={form.firstName}
+                                onChangeText={(value) => setForm({ ...form, firstName: value })}
+                            />
+                            <InputField
+                                label="Last Name"
+                                placeholder="Enter last name"
+                                icon={icons.person}
+                                value={form.lastName}
+                                onChangeText={(value) => setForm({ ...form, lastName: value })}
+                            />
+                            <InputField
+                                label="Email"
+                                placeholder="Enter email"
+                                icon={icons.email}
+                                textContentType="emailAddress"
+                                value={form.email}
+                                onChangeText={(value) => setForm({ ...form, email: value })}
+                            />
+                            <InputField
+                                label="Password"
+                                placeholder="Enter password"
                                 icon={icons.lock}
-                                placeholder={"12345"}
-                                value={verification.code}
-                                keyboardType="numeric"
-                                onChangeText={(code) =>
-                                    setVerification({ ...verification, code })
+                                secureTextEntry={true}
+                                textContentType="password"
+                                value={form.password}
+                                onChangeText={(value) => setForm({ ...form, password: value })}
+                            />
+                            <CustomButton title="Sign Up" onPress={onSignUpPress} style={styles.signUpButton} />
+                            <OAuth />
+                            <Link href="/sign-in" style={styles.linkText}>
+                                Already have an account? <Text style={styles.linkHighlight}>Log In</Text>
+                            </Link>
+                        </View>
+                        <ReactNativeModal
+                            isVisible={verification.state === "pending"}
+                            onModalHide={() => {
+                                if (verification.state === "success") {
+                                    setShowSuccessModal(true);
                                 }
-                            />
-                            {verification.error && (
-                                <Text style={styles.errorText}>{verification.error}</Text>
-                            )}
-                            <CustomButton
-                                title="Verify Email"
-                                onPress={onPressVerify}
-                                style={styles.verifyButton}
-                            />
-                        </View>
-                    </ReactNativeModal>
-                    <ReactNativeModal isVisible={showSuccessModal}>
-                        <View style={styles.modalContainer}>
-                            <Image
-                                source={images.check}
-                                style={styles.successImage}
-                            />
-                            <Text style={styles.successTitle}>Verified</Text>
-                            <Text style={styles.successDescription}>
-                                You have successfully verified your account.
-                            </Text>
-                            <CustomButton
-                                title="Browse Home"
-                                onPress={() => {
-                                    setShowSuccessModal(false);
-                                    router.push(`/(root)/(tabs)/home`);
-                                }}
-                                style={styles.browseButton}
-                            />
-                        </View>
-                    </ReactNativeModal>
-                </View>
-            </ScrollView>
+                            }}
+                        >
+                            <View style={styles.modalContainer}>
+                                <Text style={styles.modalTitle}>Verification</Text>
+                                <Text style={styles.modalDescription}>
+                                    We've sent a verification code to {form.email}.
+                                </Text>
+                                <InputField
+                                    label={"Code"}
+                                    icon={icons.lock}
+                                    placeholder={"12345"}
+                                    value={verification.code}
+                                    keyboardType="numeric"
+                                    onChangeText={(code) =>
+                                        setVerification({ ...verification, code })
+                                    }
+                                />
+                                {verification.error && (
+                                    <Text style={styles.errorText}>{verification.error}</Text>
+                                )}
+                                <CustomButton
+                                    title="Verify Email"
+                                    onPress={onPressVerify}
+                                    style={styles.verifyButton}
+                                />
+                            </View>
+                        </ReactNativeModal>
+                        <ReactNativeModal isVisible={showSuccessModal}>
+                            <View style={styles.modalContainer}>
+                                <Image
+                                    source={images.check}
+                                    style={styles.successImage}
+                                />
+                                <Text style={styles.successTitle}>Verified</Text>
+                                <Text style={styles.successDescription}>
+                                    You have successfully verified your account.
+                                </Text>
+                                <CustomButton
+                                    title="Browse Home"
+                                    onPress={() => {
+                                        setShowSuccessModal(false);
+                                        router.push(`/(root)/(tabs)/home`);
+                                    }}
+                                    style={styles.browseButton}
+                                />
+                            </View>
+                        </ReactNativeModal>
+                    </View>
+                </ScrollView>
+            </SafeAreaView>
+
         </KeyboardAvoidingView>
     );
 };
 
 
 const styles = StyleSheet.create({
+    safeArea: {
+        flex: 1,
+        backgroundColor: "white",
+    },
     container: {
         flex: 1,
         backgroundColor: "white",
     },
-    headerContainer: {
-        position: "relative",
+    header: {
+        flexDirection: "row",
+        justifyContent: "flex-start",
+        paddingVertical: 10,
+        paddingLeft: 20,
         width: "100%",
-        height: 250,
     },
-    headerImage: {
-        width: "100%",
-        height: "100%",
+    carIcon: {
+        width: 30,
+        height: 30,
+        marginRight: 10,
     },
-    headerText: {
-        position: "absolute",
-        bottom: 20,
-        left: 20,
+    headerTitle: {
         fontSize: 24,
         fontFamily: "JakartaSemiBold",
         color: "black",
+    },
+    createContainer: {
+        position: "relative",
+        width: "100%",
+        height: 90,
+    },
+    createText: {
+        position: "absolute",
+        bottom: 20,
+        left: 0,
+        right: 0,
+        fontSize: 35,
+        fontFamily: "JakartaSemiBold",
+        color: "black",
+        textAlign: "center",
     },
     formContainer: {
         padding: 20,

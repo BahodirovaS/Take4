@@ -54,7 +54,7 @@ const LiveDriverCard: React.FC<DriverCardProps> = ({
               onPress={onMessagePress}
             >
               <View style={styles.contactIconContainer}>
-                <Ionicons name="chatbubble" size={20} color="#0286FF" />
+                <Ionicons name="chatbubble" size={20} color="#289dd2" />
               </View>
               <Text style={styles.contactLabel}>Message</Text>
             </TouchableOpacity>
@@ -64,7 +64,7 @@ const LiveDriverCard: React.FC<DriverCardProps> = ({
               onPress={onCallPress}
             >
               <View style={styles.contactIconContainer}>
-                <Ionicons name="call" size={20} color="#0286FF" />
+                <Ionicons name="call" size={20} color="#289dd2" />
               </View>
               <Text style={styles.contactLabel}>Call</Text>
             </TouchableOpacity>

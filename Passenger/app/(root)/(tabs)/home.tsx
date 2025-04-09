@@ -18,10 +18,11 @@ import { collection, query, where, onSnapshot, doc, updateDoc, getDocs } from "f
 import GoogleTextInput from "@/components/GoogleTextInput";
 import Map from "@/components/Map";
 import RideCard from "@/components/RideCard";
-import { data, icons, images } from "@/constants";
+import { icons, images } from "@/constants";
 import { useLocationStore } from "@/store";
-import { Ride } from "@/types/type";
+import { ActiveRideData, Ride } from "@/types/type";
 import { db } from "@/lib/firebase";
+import { Ionicons } from "@expo/vector-icons";
 
 const Home = () => {
     const { user } = useUser();
@@ -30,6 +31,9 @@ const Home = () => {
     const [recentRides, setRecentRides] = useState<Ride[]>([]);
     const [loading, setLoading] = useState(true);
     const [hasPermission, setHasPermission] = useState<boolean>(false);
+    const [hasActiveRide, setHasActiveRide] = useState(false);
+    const [activeRideData, setActiveRideData] = useState<ActiveRideData | null>(null);
+
     const handleSignOut = () => {
         signOut();
         router.replace("/(auth)/sign-up");
@@ -134,6 +138,36 @@ const Home = () => {
         router.push("/(root)/find-ride");
     };
 
+    useEffect(() => {
+        if (!user?.id) return;
+        const activeRidesQuery = query(
+            collection(db, "rideRequests"),
+            where("user_id", "==", user.id),
+            where("status", "in", ["accepted", "arrived_at_pickup", "in_progress"])
+        );
+
+        const unsubscribe = onSnapshot(activeRidesQuery, (snapshot) => {
+            if (!snapshot.empty) {
+                const rideDoc = snapshot.docs[0];
+                const rideData = rideDoc.data();
+                console.log("Active ride found:", rideDoc.id, rideData.status);
+
+                setHasActiveRide(true);
+                setActiveRideData({
+                    rideId: rideDoc.id,
+                    status: rideData.status,
+                    destination: rideData.destination_address
+                });
+            } else {
+                console.log("No active rides found");
+                setHasActiveRide(false);
+                setActiveRideData(null);
+            }
+        });
+
+        return unsubscribe;
+    }, [user?.id]);
+
     return (
         <SafeAreaView style={styles.container}>
             <FlatList
@@ -172,6 +206,37 @@ const Home = () => {
                                 <Image source={icons.out} style={styles.signOutIcon} />
                             </TouchableOpacity>
                         </View>
+                        {hasActiveRide && activeRideData && (
+                            <TouchableOpacity
+                                style={styles.activeRideBanner}
+                                onPress={() => {
+                                    router.push({
+                                        pathname: '/(root)/active-ride',
+                                        params: {
+                                            rideId: activeRideData.rideId,
+                                            rideStage: activeRideData.status === 'accepted' 
+                                                ? 'to_pickup' 
+                                                : (activeRideData.status === 'arrived_at_pickup' 
+                                                    ? 'to_destination' 
+                                                    : 'to_destination')
+                                        }
+                                    });
+                                }}
+                            >
+                                <View style={styles.bannerIconContainer}>
+                                    <Ionicons name="car" size={20} color="#fff" />
+                                </View>
+                                <View style={styles.bannerTextContainer}>
+                                    <Text style={styles.bannerTitle}>
+                                        Active ride in progress
+                                    </Text>
+                                    <Text style={styles.bannerSubtitle}>
+                                        Tap to return to ride
+                                    </Text>
+                                </View>
+                                <Ionicons name="chevron-forward" size={20} color="#fff" />
+                            </TouchableOpacity>
+                        )}
 
                         <GoogleTextInput
                             icon={icons.search}
@@ -224,6 +289,45 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         marginVertical: 20,
     },
+    activeRideBanner: {
+        backgroundColor: '#289dd2',
+        padding: 12,
+        marginVertical: 10,
+        borderRadius: 15,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        shadowColor: '#000',
+        shadowOffset: {
+          width: 0,
+          height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+      },
+      bannerIconContainer: {
+        width: 32,
+        height: 32,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+      },
+      bannerTextContainer: {
+        flex: 1,
+      },
+      bannerTitle: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 14,
+      },
+      bannerSubtitle: {
+        color: 'rgba(255, 255, 255, 0.8)',
+        fontSize: 12,
+        marginTop: 2,
+      },
     welcomeText: {
         fontSize: 24,
         fontFamily: 'JakartaExtraBold',

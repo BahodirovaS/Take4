@@ -10,23 +10,57 @@ import {
     TouchableOpacity,
     StyleSheet
 } from "react-native";
-import { collection, addDoc, query, where, orderBy, onSnapshot } from "firebase/firestore";
+import { collection, addDoc, query, where, orderBy, onSnapshot, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useUser } from "@clerk/clerk-expo";
 import { Message, Ride } from "@/types/type";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
-
+import CustomButton from "@/components/CustomButton";
 
 const Chat = () => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
+    const [rideDetails, setRideDetails] = useState<Partial<Ride> | null>(null);
     const { user } = useUser();
     const router = useRouter();
-    const { otherPersonId, otherPersonName } = useLocalSearchParams<{
+    const { 
+        otherPersonId, 
+        otherPersonName, 
+        rideId, 
+        context 
+    } = useLocalSearchParams<{
         otherPersonId: string;
         otherPersonName: string;
+        rideId?: string;
+        context?: string;
     }>();
+
+    console.log("rideId", rideId)
+
+
+    useEffect(() => {
+        if (rideId) {
+            const fetchRideDetails = async () => {
+                try {
+                    const rideDoc = await getDoc(doc(db, "rideRequests", rideId));
+                    if (rideDoc.exists()) {
+                        const data = rideDoc.data();
+                        setRideDetails({
+                            id: rideDoc.id,
+                            origin_address: data.origin_address,
+                            destination_address: data.destination_address,
+                            status: data.status
+                        });
+                    }
+                } catch (error) {
+                    console.error("Error fetching ride details:", error);
+                }
+            };
+            
+            fetchRideDetails();
+        }
+    }, [rideId]);
 
     useEffect(() => {
         if (!user?.id || !otherPersonId) return;
@@ -58,6 +92,8 @@ const Chat = () => {
                 recipientId: otherPersonId,
                 recipientName: otherPersonName,
                 timestamp: new Date(),
+                rideId: rideId || null, // Associate message with ride if exists
+                context: context || "general"
             });
             setInput("");
         } catch (error) {
@@ -65,10 +101,13 @@ const Chat = () => {
         }
     };
 
-
-
     const handleGoBack = () => {
-        router.replace("/chatroom");
+        // If this chat was opened from an active ride, go back to the ride screen
+        if (context === "active_ride" && rideId) {
+            router.back();
+        } else {
+            router.replace("/chatroom");
+        }
     };
 
     return (
@@ -81,10 +120,31 @@ const Chat = () => {
                     <TouchableOpacity onPress={handleGoBack}>
                         <Ionicons name="arrow-back" size={24} color="black" />
                     </TouchableOpacity>
-                    {otherPersonName && (
-                        <Text style={styles.otherPersonName}>{otherPersonName}</Text>
-                    )}
+                    <View style={styles.headerContent}>
+                        {otherPersonName && (
+                            <Text style={styles.otherPersonName}>{otherPersonName}</Text>
+                        )}
+                        {rideDetails && (
+                            <Text style={styles.rideInfo}>
+                                Ride to {rideDetails.destination_address?.split(',')[0]}
+                            </Text>
+                        )}
+                    </View>
                 </View>
+                
+                {/* Ride context banner if applicable */}
+                {rideDetails && (
+                    <View style={styles.rideBanner}>
+                        <Ionicons name="car-outline" size={20} color="#333" />
+                        <Text style={styles.rideBannerText}>
+                            {rideDetails.status === 'in_progress' 
+                                ? 'Active ride to: ' 
+                                : 'Ride to: '}
+                            {rideDetails.destination_address?.split(',')[0]}
+                        </Text>
+                    </View>
+                )}
+                
                 <FlatList
                     data={messages}
                     keyExtractor={(item) => item.id}
@@ -119,17 +179,18 @@ const Chat = () => {
                             placeholder="Type a message..."
                             style={styles.input}
                         />
-                        <TouchableOpacity onPress={sendMessage} style={styles.sendButton}>
-                            <Text style={styles.sendButtonText}>Send</Text>
-                        </TouchableOpacity>
+                        <CustomButton
+                            title={"Send"}
+                            bgVariant={"primary"}
+                            onPress={sendMessage}
+                            style={styles.sendButton}
+                        />
                     </View>
                 </View>
             </KeyboardAvoidingView>
         </SafeAreaView>
     );
 };
-
-
 
 const styles = StyleSheet.create({
     safeArea: {
@@ -142,11 +203,28 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: "row",
         alignItems: "center",
-        justifyContent: "space-between",
         padding: 15,
         borderBottomWidth: 1,
         borderBottomColor: "#ddd",
         backgroundColor: "#fff",
+    },
+    headerContent: {
+        flex: 1,
+        flexDirection: "column",
+        alignItems: "center",
+    },
+    rideBanner: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#f5f5f5",
+        padding: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: "#ddd",
+    },
+    rideBannerText: {
+        fontSize: 14,
+        color: "#333",
+        marginLeft: 8,
     },
     messageContainer: {
         flexDirection: "row",
@@ -157,7 +235,7 @@ const styles = StyleSheet.create({
     myMessage: {
         alignSelf: "flex-end",
         marginRight: 10,
-        backgroundColor: "#3b82f6",
+        backgroundColor: "#289dd2",
         borderBottomLeftRadius: 20,
         borderBottomRightRadius: 20,
         borderTopLeftRadius: 20,
@@ -184,7 +262,6 @@ const styles = StyleSheet.create({
         fontSize: 18,
         marginLeft: 5,
         marginRight: 5
-
     },
     myMessageText: {
         color: "#fff",
@@ -201,6 +278,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         padding: 10,
+        paddingTop: 20,
         backgroundColor: "#fff",
         borderTopWidth: 1,
         borderTopColor: "#ddd",
@@ -208,16 +286,18 @@ const styles = StyleSheet.create({
     input: {
         flex: 1,
         borderWidth: 1,
-        padding: 12,
+        paddingVertical: 10,
+        paddingHorizontal: 18,
         marginRight: 10,
         borderRadius: 25,
         borderColor: "#ddd",
         backgroundColor: "#f4f4f4",
+        fontSize: 18,
     },
     sendButton: {
-        backgroundColor: "#3b82f6",
         paddingVertical: 12,
         paddingHorizontal: 18,
+        width: "auto",
         borderRadius: 25,
         justifyContent: "center",
         alignItems: "center",
@@ -228,11 +308,14 @@ const styles = StyleSheet.create({
     },
     otherPersonName: {
         fontSize: 20,
-        flex: 1,
         fontWeight: "bold",
         textAlign: "center",
-        marginVertical: 10,
         color: "#333",
+    },
+    rideInfo: {
+        fontSize: 14,
+        color: "#666",
+        marginTop: 2,
     },
 });
 

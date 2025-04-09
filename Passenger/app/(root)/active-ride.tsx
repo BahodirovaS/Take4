@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator, SafeAreaView, TouchableOpacity } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { doc, onSnapshot, collection, query, where, getDocs, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -9,6 +9,7 @@ import RequestLoading from "@/components/RequestLoading";
 import DriverInfo from "@/components/LiveDriver";
 import { useLocationStore } from "@/store";
 import LiveDriver from "@/components/LiveDriver";
+import { Ionicons } from "@expo/vector-icons";
 
 const ActiveRide = () => {
     const { user } = useUser();
@@ -137,6 +138,11 @@ const ActiveRide = () => {
         fetchDriverDetails();
     }, [driverId]);
 
+    const handleGoToHome = () => {
+        router.push({
+            pathname: '/(root)/(tabs)/home',
+        });
+    };
 
     if (isLoading) {
         return (
@@ -162,6 +168,16 @@ const ActiveRide = () => {
     }
 
     return (
+        <SafeAreaView style={styles.container}>
+            <View style={styles.topBar}>
+            <TouchableOpacity 
+                    style={styles.backButton} 
+                    onPress={handleGoToHome}
+                >
+                    <Ionicons name="arrow-back" size={24} color="#333" />
+                </TouchableOpacity>
+                <Text style={styles.topBarText}>Active Ride</Text>
+            </View>
         <RideLayout
             title={
                 rideStatus === "accepted" && driverName ? `${driverName} is on the way!` :
@@ -190,10 +206,34 @@ const ActiveRide = () => {
                 </View>
             )}
         </RideLayout>
+        </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: 'white',
+    },
+    backButton: {
+        paddingTop: 15,
+    },
+    topBar: {
+        height: 36,
+        backgroundColor: 'white',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 16,
+        marginBottom: 12,
+        zIndex: 10,
+    },
+    topBarText: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#333',
+        paddingTop: 15,
+    },
     loadingContainer: {
         flex: 1,
         justifyContent: "center",

@@ -71,6 +71,7 @@ const RideCompleted = () => {
             <CustomButton 
                 title="Back to Home" 
                 onPress={() => router.replace("/(root)/(tabs)/home")}
+                bgVariant="primary"
                 style={styles.homeButton}
             />
         </View>
@@ -117,7 +118,6 @@ const styles = StyleSheet.create({
     },
     homeButton: {
         width: "100%",
-        backgroundColor: "#0286FF",
     },
 });
 
