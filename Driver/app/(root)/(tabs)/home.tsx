@@ -35,9 +35,6 @@ const Home = () => {
     const [recentRides, setRecentRides] = useState<Ride[]>([]);
     const [loading, setLoading] = useState(true);
     const [isOnline, setIsOnline] = useState<boolean>(false);
-    const [rideRequests, setRideRequests] = useState<Ride[]>([]);
-    const [newRequest, setNewRequest] = useState<Ride | null>(null);
-    const [modalVisible, setModalVisible] = useState(false);
     const [driverDocId, setDriverDocId] = useState<string | null>(null);
     const [hasActiveRide, setHasActiveRide] = useState(false);
     const [activeRideData, setActiveRideData] = useState<ActiveRideData | null>(null);
@@ -170,85 +167,6 @@ const Home = () => {
         fetchRideHistory();
     }, [user?.id]);
 
-    // Listen for ride requests
-    useEffect(() => {
-        if (!user?.id) return;
-
-        const q = query(
-            collection(db, "rideRequests"),
-            where("driver_id", "==", user.id),
-            where("status", "==", "requested")
-        );
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const requests = snapshot.docs.map((doc) => {
-                const data = doc.data();
-
-                return {
-                    id: doc.id,
-                    origin_address: data.origin_address,
-                    destination_address: data.destination_address,
-                    origin_latitude: data.origin_latitude,
-                    origin_longitude: data.origin_longitude,
-                    destination_latitude: data.destination_latitude,
-                    destination_longitude: data.destination_longitude,
-                    ride_time: data.ride_time,
-                    fare_price: data.fare_price,
-                    payment_status: data.payment_status,
-                    driver_id: String(data.driver_id),
-                    user_id: data.user_id,
-                    created_at: data.created_at?.toDate() || new Date(),
-                    driver: {
-                        first_name: data.driver?.first_name || "",
-                        last_name: data.driver?.last_name || "",
-                        car_seats: data.driver?.car_seats || 0,
-                    },
-                } as Ride;
-            });
-            setRideRequests(requests);
-
-            if (requests.length > 0) {
-                setNewRequest(requests[0]);
-                setModalVisible(true);
-            }
-        });
-
-        return () => unsubscribe();
-    }, [user?.id]);
-
-    const acceptRide = async (rideId: string) => {
-        try {
-            await updateDoc(doc(db, "rideRequests", rideId), {
-                status: "accepted",
-                accepted_at: new Date()
-            });
-            setModalVisible(false);
-
-            const rideIdString = String(rideId);
-
-            router.push({
-                pathname: '/(root)/active-ride',
-                params: {
-                    rideId: rideIdString
-                }
-            });
-        } catch (error) {
-            console.error("Error accepting ride:", error);
-            Alert.alert("Error", "Failed to accept the ride. Please try again.");
-        }
-    };
-
-    const declineRide = async (rideId: string) => {
-        try {
-            await updateDoc(doc(db, "rideRequests", rideId), { status: "declined" });
-            setModalVisible(false);
-            Alert.alert("Declined", "You have declined the ride.");
-        } catch (error) {
-            console.error("Error declining ride:", error);
-            Alert.alert("Error", "Failed to decline the ride. Please try again.");
-        }
-    };
-
     const handleSignOut = async () => {
         try {
             if (driverDocId) {
@@ -323,13 +241,6 @@ const Home = () => {
 
     return (
         <SafeAreaView style={styles.container}>
-            <RideRequestBottomSheet
-                visible={modalVisible}
-                ride={newRequest}
-                onAccept={acceptRide}
-                onDecline={declineRide}
-                onClose={() => setModalVisible(false)}
-            />
             <FlatList
                 data={recentRides?.slice(0, 5)}
                 renderItem={({ item }) => <RideCard ride={item} />}

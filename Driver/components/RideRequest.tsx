@@ -20,14 +20,7 @@ import Reanimated, {
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import CustomButton from "@/components/CustomButton";
-
-interface RideRequestProps {
-  visible: boolean;
-  ride: Ride | null;
-  onAccept: (rideId: string) => void;
-  onDecline: (rideId: string) => void;
-  onClose: () => void;
-}
+import { useRideRequest } from "@/contexts/RideRequestContext";
 
 interface PassengerInfo {
   first_name: string;
@@ -37,13 +30,15 @@ interface PassengerInfo {
 
 const AnimatedView = Reanimated.createAnimatedComponent(View);
 
-const RideRequestBottomSheet: React.FC<RideRequestProps> = ({
-  visible,
-  ride,
-  onAccept,
-  onDecline,
-  onClose,
-}) => {
+const RideRequestBottomSheet: React.FC = () => {
+  const { 
+    newRequest: ride, 
+    modalVisible, 
+    setModalVisible, 
+    acceptRide, 
+    declineRide 
+  } = useRideRequest();
+
   const [passengerInfo, setPassengerInfo] = useState<PassengerInfo | null>(null);
   const [loading, setLoading] = useState(false);
   
@@ -96,13 +91,13 @@ const RideRequestBottomSheet: React.FC<RideRequestProps> = ({
       }
     };
 
-    if (visible && ride) {
+    if (modalVisible && ride) {
       fetchPassengerInfo();
     }
-  }, [ride, visible]);
+  }, [ride, modalVisible]);
 
   useEffect(() => {
-    if (visible) {
+    if (modalVisible) {
       translateY.value = withTiming(0, { duration: 300 });
       backdropOpacity.value = withTiming(0.5, { duration: 300 });
       isSnappedToTop.value = true;
@@ -111,7 +106,7 @@ const RideRequestBottomSheet: React.FC<RideRequestProps> = ({
       backdropOpacity.value = withTiming(0, { duration: 300 });
       isSnappedToTop.value = false;
     }
-  }, [visible]);
+  }, [modalVisible]);
 
   const panGesture = Gesture.Pan()
     .onStart(() => {
@@ -131,7 +126,7 @@ const RideRequestBottomSheet: React.FC<RideRequestProps> = ({
       if (translateY.value > sheetHeight * 0.6) {
         translateY.value = withTiming(sheetHeight, { duration: 300 });
         backdropOpacity.value = withTiming(0, { duration: 300 });
-        runOnJS(onClose)();
+        runOnJS(setModalVisible)(false);
         isSnappedToTop.value = false;
       } else {
         translateY.value = withSpring(0, { damping: 20 });
@@ -143,8 +138,8 @@ const RideRequestBottomSheet: React.FC<RideRequestProps> = ({
   const context = useSharedValue({ y: 0 });
 
   const handleBackdropPress = () => {
-    if (visible) {
-      onClose();
+    if (modalVisible) {
+      setModalVisible(false);
     }
   };
 
@@ -164,10 +159,10 @@ const RideRequestBottomSheet: React.FC<RideRequestProps> = ({
 
   return (
     <Modal
-      visible={visible}
+      visible={modalVisible}
       transparent
       animationType="none"
-      onRequestClose={onClose}
+      onRequestClose={() => setModalVisible(false)}
     >
       <GestureHandlerRootView style={{ flex: 1 }}>
         <View style={styles.container}>
@@ -222,13 +217,13 @@ const RideRequestBottomSheet: React.FC<RideRequestProps> = ({
                 <CustomButton
                   title="Accept"
                   bgVariant="success"
-                  onPress={() => ride.id && onAccept(ride.id)}
+                  onPress={() => ride.id && acceptRide(ride.id)}
                   style={styles.actionButton}
                 />
                 <CustomButton
                   title="Decline"
                   bgVariant="danger"
-                  onPress={() => ride.id && onDecline(ride.id)}
+                  onPress={() => ride.id && declineRide(ride.id)}
                   style={styles.actionButton}
                 />
               </View>
