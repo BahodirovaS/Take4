@@ -133,9 +133,8 @@ const Home = () => {
                             payment_status: data.payment_status,
                             driver_id: String(data.driver_id),
                             user_id: data.user_id,
-                            // Convert the Firestore timestamp to an ISO string for the Ride type
-                            created_at: data.created_at && typeof data.created_at.toDate === 'function'
-                                ? data.created_at.toDate().toISOString()
+                            created_at: data.createdAt && typeof data.createdAt.toDate === 'function'
+                                ? data.createdAt.toDate().toISOString()
                                 : new Date().toISOString(),
                             driver: {
                                 first_name: data.driver?.first_name || "",
