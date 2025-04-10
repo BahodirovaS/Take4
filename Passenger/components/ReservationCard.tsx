@@ -5,7 +5,7 @@ import { collection, doc, getDoc, getDocs, query, where } from "firebase/firesto
 import { useEffect, useState } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 import CustomButton from "./CustomButton";
-import formatReservationCardDate from "@/lib/utils"
+import { formatReservationCardDate } from "@/lib/utils"
 
 const ReservationCard: React.FC<{ 
     ride: RideRequest, 
