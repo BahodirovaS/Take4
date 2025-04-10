@@ -56,7 +56,7 @@ const SignIn = () => {
                     <View style={styles.formContainer}>
                         <InputField
                             label="Email"
-                            placeholder="Enter email"
+                            // placeholder="Enter email"
                             icon={icons.email}
                             textContentType="emailAddress"
                             value={form.email}
@@ -65,7 +65,7 @@ const SignIn = () => {
 
                         <InputField
                             label="Password"
-                            placeholder="Enter password"
+                            // placeholder="Enter password"
                             icon={icons.lock}
                             secureTextEntry={true}
                             textContentType="password"
