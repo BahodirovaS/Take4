@@ -5,30 +5,33 @@ import { doc, getDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import CustomButton from "./CustomButton";
+import { formatReservationCardDate } from "@/lib/utils";
 
 const ReservationCard: React.FC<{ 
     ride: RideRequest, 
     onCancel: () => void,
     onStart: () => void,
   }> = ({ ride, onCancel, onStart }) => {
- 
+
+
+    const { dayOfWeek, monthName, dateNumber } = formatReservationCardDate(ride.scheduled_date);
+
     return (
       <View style={styles.cardContainer}>
         <View style={styles.cardContent}>
-          <View style={styles.infoContainer}>
-            <View style={styles.infoRow}>
-              <Text style={styles.label}>Date</Text>
-              <Text style={styles.value} numberOfLines={1}>
-                {ride.scheduled_date}
-              </Text>
+        <View style={styles.twoColumnContainer}>
+            <View style={styles.dateColumn}>
+            <Text style={styles.dayOfWeek}>{dayOfWeek},</Text>
+            <Text style={styles.dayOfWeek}>{monthName}</Text>
+            <Text style={styles.dateNumber}>{dateNumber}</Text>
             </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.label}>Time</Text>
-              <Text style={styles.value} numberOfLines={1}>
-                {ride.scheduled_time}
-              </Text>
-            </View>
-            <View style={styles.row}>
+            <View style={styles.infoColumn}>
+              <View style={styles.infoRow}>
+                <Text style={styles.label}>Time</Text>
+                <Text style={styles.value} numberOfLines={1}>
+                  {ride.scheduled_time}
+                </Text>
+              </View>
               <View style={styles.detailsContainer}>
                 <View style={styles.row}>
                   <Image source={icons.to} style={styles.icon} />
@@ -43,27 +46,27 @@ const ReservationCard: React.FC<{
                   </Text>
                 </View>
               </View>
-            </View>
-            <View style={styles.actionButtonsContainer}>
-            <CustomButton 
-                title="Start Ride"
-                onPress={onStart}
-                bgVariant="primary"
-                style={styles.rescheduleButton}
-              />
-              <CustomButton 
-                title="Cancel"
-                onPress={onCancel}
-                bgVariant="danger"
-                style={styles.rescheduleButton}
-              />
+              <View style={styles.actionButtonsContainer}>
+                <CustomButton 
+                    title="Start Ride"
+                    onPress={onStart}
+                    bgVariant="primary"
+                    style={styles.rescheduleButton}
+                  />
+                <CustomButton 
+                  title="Cancel"
+                  onPress={onCancel}
+                  bgVariant="danger"
+                  style={styles.cancelButton}
+                />
+              </View>
             </View>
           </View>
         </View>
       </View>
     );
   };
-
+  
 
   const styles = StyleSheet.create({
     cardContainer: {
@@ -81,11 +84,30 @@ const ReservationCard: React.FC<{
       cardContent: {
         flex: 1,
       },
-      infoContainer: {
-        marginTop: 10,
-        backgroundColor: "white",
-        borderRadius: 10,
-        padding: 10,
+      twoColumnContainer: {
+        flexDirection: 'row',
+      },
+      dateColumn: {
+        width: '25%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRightWidth: 1,
+        borderRightColor: '#E0E0E0',
+        paddingRight: 10,
+      },
+      dayOfWeek: {
+        fontSize: 20,
+        color: '#666',
+        marginBottom: 5,
+      },
+      dateNumber: {
+        fontSize: 50,
+        fontWeight: 'bold',
+        color: '#333',
+      },
+      infoColumn: {
+        width: '75%',
+        paddingLeft: 15,
       },
       infoRow: {
         flexDirection: "row",
@@ -141,5 +163,12 @@ const ReservationCard: React.FC<{
         borderRadius: 6,
         marginRight: 5,
       },
+      cancelButton: {
+        flex: 1,
+        paddingVertical: 10,
+        paddingHorizontal: 15,
+        borderRadius: 6,
+        marginLeft: 5,
+      }
   })
   export default ReservationCard

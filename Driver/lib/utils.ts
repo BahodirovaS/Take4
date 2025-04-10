@@ -48,6 +48,55 @@ export function formatDate(dateString: string): string {
   return `${day < 10 ? "0" + day : day} ${month} ${year}`;
 }
 
+export const formatReservationCardDate = (dateString: string) => {
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June", 
+    "July", "August", "September", "October", "November", "December"
+  ];
+  const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+  
+  const match = dateString.match(/^(\w+), (\w+) (\d+)$/);
+  
+  if (match) {
+    const dayOfWeek = match[1];
+    const monthName = match[2];
+    const day = parseInt(match[3]);
+
+    
+    const monthIndex = monthNames.findIndex(m => m === monthName);
+    
+    
+    const currentYear = new Date().getFullYear();
+    const date = new Date(currentYear, monthIndex, day);
+
+    return {
+      dayOfWeek: dayOfWeek,
+      monthName: monthName,
+      dateNumber: day
+    };
+  }
+
+  
+  const date = new Date(dateString);
+  
+  if (!isNaN(date.getTime())) {
+    return {
+      dayOfWeek: daysOfWeek[date.getDay()],
+      monthName: monthNames[date.getMonth()],
+      dateNumber: date.getDate()
+    };
+  }
+
+  
+  return {
+    dayOfWeek: 'Unknown',
+    dateNumber: 'N/A'
+  };
+};
+
+
+
 export const createDriver = async (driverData: any) => {
   try {
     const driversRef = collection(db, "drivers");

@@ -144,7 +144,14 @@ const Reservations = () => {
             ) : null}
           </View>
         )}
-        ListHeaderComponent={<Text style={styles.headerText}>Scheduled Rides</Text>}
+        ListHeaderComponent={
+        <View>
+          <Text style={styles.headerText}>Scheduled Rides</Text>
+          <View style={styles.header}>
+            <Image source={images.icon} style={styles.carIcon} />
+          </View>
+        </View>
+        }
       />
     </SafeAreaView>
   );
@@ -174,11 +181,22 @@ const styles = StyleSheet.create({
     width: 160,
     height: 160,
   },
+  header: {
+    flexDirection: "row",
+    justifyContent: "center",
+    paddingVertical: 10,
+    paddingLeft: 20,
+    width: "100%",
+  },
+  carIcon: {
+    width: 50,
+    height: 50,
+  },
   headerText: {
     fontSize: 30,
     alignSelf: "center",
     fontFamily: "JakartaBold",
-    marginVertical: 20,
+    marginTop: 40,
     paddingHorizontal: 20,
   },
 });
