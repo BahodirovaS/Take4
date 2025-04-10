@@ -144,21 +144,21 @@ const SignUp = () => {
                         <View style={styles.formContainer}>
                             <InputField
                                 label="First Name"
-                                placeholder="Enter first name"
+                                // placeholder="Enter first name"
                                 icon={icons.person}
                                 value={form.firstName}
                                 onChangeText={(value) => setForm({ ...form, firstName: value })}
                             />
                             <InputField
                                 label="Last Name"
-                                placeholder="Enter last name"
+                                // placeholder="Enter last name"
                                 icon={icons.person}
                                 value={form.lastName}
                                 onChangeText={(value) => setForm({ ...form, lastName: value })}
                             />
                             <InputField
                                 label="Email"
-                                placeholder="Enter email"
+                                // placeholder="Enter email"
                                 icon={icons.email}
                                 textContentType="emailAddress"
                                 value={form.email}
@@ -166,7 +166,7 @@ const SignUp = () => {
                             />
                             <InputField
                                 label="Password"
-                                placeholder="Enter password"
+                                // placeholder="Enter password"
                                 icon={icons.lock}
                                 secureTextEntry={true}
                                 textContentType="password"
