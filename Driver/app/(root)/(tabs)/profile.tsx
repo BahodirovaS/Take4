@@ -26,7 +26,8 @@ const DriverInfo = () => {
     const { user } = useUser();
 
     const [form, setForm] = useState({
-        name: "",
+        firstName: "",
+        lastName: "",
         email: "",
         phoneNumber: "",
         address: "",
@@ -38,7 +39,7 @@ const DriverInfo = () => {
         pets: false,
         carSeats: 4,
         status: false,
-        profilePhotoBase64: "", 
+        profilePhotoBase64: "", // Store base64 image directly
     });
 
     const [driverDocId, setDriverDocId] = useState<string | null>(null);
@@ -48,27 +49,29 @@ const DriverInfo = () => {
         const fetchDriverInfo = async () => {
             if (user) {
                 try {
-                    
+                    // Set initial values from user object
                     setForm((prevForm) => ({
                         ...prevForm,
-                        name: `${user?.firstName || ""} ${user?.lastName || ""}`.trim(),
+                        firstName: user?.firstName || "",
+                        lastName: user?.lastName || "",
                         email: user?.primaryEmailAddress?.emailAddress || "",
                     }));
 
-                    
+                    // Query Firestore to get driver info
                     const driversRef = collection(db, "drivers");
                     const q = query(driversRef, where("clerkId", "==", user.id));
                     const querySnapshot = await getDocs(q);
-                    
+
                     if (!querySnapshot.empty) {
-                        
+                        // Driver info found
                         const driverDoc = querySnapshot.docs[0];
                         const driverData = driverDoc.data();
-                        
+
                         setDriverDocId(driverDoc.id);
-                        
+
                         setForm({
-                            name: `${user?.firstName || ""} ${user?.lastName || ""}`.trim(),
+                            firstName: user?.firstName || driverData.firstName || "",
+                            lastName: user?.lastName || driverData.lastName || "",
                             email: user?.primaryEmailAddress?.emailAddress || "",
                             phoneNumber: driverData.phoneNumber || "",
                             address: driverData.address || "",
@@ -83,10 +86,10 @@ const DriverInfo = () => {
                             profilePhotoBase64: driverData.profilePhotoBase64 || "",
                         });
                     }
-                    
+                    // If no document found, no alert needed - this is normal for new drivers
                 } catch (error) {
                     console.error("Error fetching driver info:", error);
-                    
+                    // Only show alert if we attempted to load an existing document but failed
                     const driversRef = collection(db, "drivers");
                     const q = query(driversRef, where("clerkId", "==", user.id));
                     try {
@@ -107,62 +110,62 @@ const DriverInfo = () => {
 
     const pickImage = async () => {
         try {
-            
+            // Request permission
             const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-            
+
             if (status !== 'granted') {
                 Alert.alert('Permission Required', 'We need permission to access your photos');
                 return;
             }
-            
-            
+
+            // Launch image picker
             const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ['images'],
                 allowsEditing: true,
                 aspect: [1, 1],
-                quality: 0.5, 
-                base64: true, 
+                quality: 0.5, // Reduced quality for smaller size
+                base64: true, // Request base64 data directly
             });
-            
+
             if (!result.canceled) {
                 setUploading(true);
-                
+
                 try {
                     let base64Image;
-                    
-                    
+
+                    // Check if base64 is available directly
                     if (result.assets[0].base64) {
                         base64Image = result.assets[0].base64;
                     } else {
-                        
-                        
+                        // If not available (older versions of expo-image-picker),
+                        // read the file and convert to base64
                         const fileUri = result.assets[0].uri;
                         const fileContent = await FileSystem.readAsStringAsync(fileUri, {
                             encoding: FileSystem.EncodingType.Base64,
                         });
                         base64Image = fileContent;
                     }
-                    
-                    
-                    const imageSizeInBytes = base64Image.length * 0.75; 
+
+                    // Optional: Validate image size
+                    const imageSizeInBytes = base64Image.length * 0.75; // Approximate size calculation
                     const imageSizeInMB = imageSizeInBytes / (1024 * 1024);
-                    
+
                     if (imageSizeInMB > 1) {
                         Alert.alert(
-                            "Image Too Large", 
+                            "Image Too Large",
                             "Please select a smaller image (under 1MB)",
                             [{ text: "OK" }]
                         );
                         setUploading(false);
                         return;
                     }
-                    
-                    
+
+                    // Update form state with the base64 image data
                     setForm(prevForm => ({
                         ...prevForm,
                         profilePhotoBase64: base64Image
                     }));
-                    
+
                 } catch (error) {
                     console.error("Error processing image:", error);
                     Alert.alert("Error", "Failed to process image");
@@ -183,12 +186,15 @@ const DriverInfo = () => {
                 return Alert.alert("Error", "User not found. Please log in again.");
             }
 
-            const { 
-                phoneNumber, address, dob, licence, vMake, vPlate, 
-                vInsurance, pets, carSeats, profilePhotoBase64 
+            const {
+                firstName, lastName, email, phoneNumber, address, dob, licence, 
+                vMake, vPlate,vInsurance, pets, carSeats, profilePhotoBase64
             } = form;
 
             if (
+                !firstName! ||
+                !lastName ||
+                !email ||
                 !phoneNumber ||
                 !address ||
                 !dob ||
@@ -203,6 +209,9 @@ const DriverInfo = () => {
             }
 
             const driverData = {
+                firstName,
+                lastName,
+                email,
                 phoneNumber,
                 address,
                 dob,
@@ -213,16 +222,16 @@ const DriverInfo = () => {
                 pets,
                 carSeats,
                 clerkId: user.id,
-                status: false, 
+                status: false, // Default to offline when creating
                 updatedAt: new Date(),
-                profilePhotoBase64, 
+                profilePhotoBase64, // Store base64 image directly in Firestore
             };
 
             if (driverDocId) {
-                
+                // Update existing document
                 await updateDoc(doc(db, "drivers", driverDocId), driverData);
             } else {
-                
+                // Create new document
                 const docRef = await addDoc(collection(db, "drivers"), {
                     ...driverData,
                     createdAt: new Date()
@@ -243,9 +252,9 @@ const DriverInfo = () => {
         { label: "XL - 7 seats", value: 7 }
     ];
 
-    
-    const profileImageSource = form.profilePhotoBase64 
-        ? { uri: `data:image/jpeg;base64,${form.profilePhotoBase64}` } 
+    // Determine which profile image to use
+    const profileImageSource = form.profilePhotoBase64
+        ? { uri: `data:image/jpeg;base64,${form.profilePhotoBase64}` }
         : { uri: user?.externalAccounts[0]?.imageUrl ?? user?.imageUrl };
 
     return (
@@ -281,9 +290,15 @@ const DriverInfo = () => {
                     </View>
 
                     <InputField
-                        label="Name"
-                        value={form.name}
-                        onChangeText={(value) => setForm({ ...form, name: value })}
+                        label="First Name"
+                        value={form.firstName}
+                        onChangeText={(value) => setForm({ ...form, firstName: value })}
+                        editable={false}
+                    />
+                    <InputField
+                        label="Last Name"
+                        value={form.lastName}
+                        onChangeText={(value) => setForm({ ...form, lastName: value })}
                         editable={false}
                     />
                     <InputField
@@ -359,11 +374,11 @@ const DriverInfo = () => {
                     <View style={styles.petsContainer}>
                         <Text style={styles.petsLabel}>Will you allow pets?</Text>
                         <CustomButton
-                                title={form.pets ? 'Yes' : 'No'}
-                                onPress={() => setForm({ ...form, pets: !form.pets })}
-                                bgVariant={form.pets ? "success" : "danger"}
-                                style={styles.petsButton}
-                            />
+                            title={form.pets ? 'Yes' : 'No'}
+                            onPress={() => setForm({ ...form, pets: !form.pets })}
+                            bgVariant={form.pets ? "success" : "danger"}
+                            style={styles.petsButton}
+                        />
                     </View>
                     <CustomButton title="Update" onPress={onSubmit} style={styles.updateButton} />
                 </ScrollView>
@@ -503,10 +518,10 @@ const styles = StyleSheet.create({
         borderRadius: 9999,
     },
     petsButtonSelected: {
-        backgroundColor: "#2E7D32", 
+        backgroundColor: "#2E7D32", //Green for yes
     },
     petsButtonUnselected: {
-        backgroundColor: "#E53935", 
+        backgroundColor: "#E53935", //Red for no
     },
     petsButtonText: {
         fontSize: 16,
