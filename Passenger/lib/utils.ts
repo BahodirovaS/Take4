@@ -44,3 +44,52 @@ export function formatDate(dateString: string): string {
 
   return `${day < 10 ? "0" + day : day} ${month} ${year}`;
 }
+
+const formatReservationCardDate = (dateString: string) => {
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June", 
+    "July", "August", "September", "October", "November", "December"
+  ];
+  const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+  // Try to parse the date string manually
+  const match = dateString.match(/^(\w+), (\w+) (\d+)$/);
+  
+  if (match) {
+    const dayOfWeek = match[1];
+    const monthName = match[2];
+    const day = parseInt(match[3]);
+
+    // Determine the month index
+    const monthIndex = monthNames.findIndex(m => m === monthName);
+    
+    // Use current year as default
+    const currentYear = new Date().getFullYear();
+    const date = new Date(currentYear, monthIndex, day);
+
+    return {
+      dayOfWeek: dayOfWeek,
+      monthName: monthName,
+      dateNumber: day
+    };
+  }
+
+  // Fallback to standard date parsing
+  const date = new Date(dateString);
+  
+  if (!isNaN(date.getTime())) {
+    return {
+      dayOfWeek: daysOfWeek[date.getDay()],
+      monthName: monthNames[date.getMonth()],
+      dateNumber: date.getDate()
+    };
+  }
+
+  // If all parsing fails
+  return {
+    dayOfWeek: 'Unknown',
+    dateNumber: 'N/A'
+  };
+};
+
+export default formatReservationCardDate
