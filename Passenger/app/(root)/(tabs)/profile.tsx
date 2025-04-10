@@ -18,7 +18,7 @@ const Profile = () => {
         phoneNumber: "",
         profilePhotoBase64: "",
     });
-    
+
     const [passengerDocId, setPassengerDocId] = useState<string | null>(null);
     const [uploading, setUploading] = useState(false);
 
@@ -27,25 +27,25 @@ const Profile = () => {
         const fetchPassengerInfo = async () => {
             if (user) {
                 try {
-                    
+
                     setForm((prevForm) => ({
                         ...prevForm,
                         name: `${user?.firstName || ""} ${user?.lastName || ""}`.trim(),
                         email: user?.primaryEmailAddress?.emailAddress || "",
                     }));
 
-                    
+
                     const usersRef = collection(db, "passengers");
                     const q = query(usersRef, where("clerkId", "==", user.id));
                     const querySnapshot = await getDocs(q);
-                    
+
                     if (!querySnapshot.empty) {
-                        
+
                         const userDoc = querySnapshot.docs[0];
                         const userData = userDoc.data();
-                        
+
                         setPassengerDocId(userDoc.id);
-                        
+
                         setForm({
                             name: `${user?.firstName || ""} ${user?.lastName || ""}`.trim(),
                             email: user?.primaryEmailAddress?.emailAddress || "",
@@ -53,7 +53,7 @@ const Profile = () => {
                             profilePhotoBase64: userData.profilePhotoBase64 || "",
                         });
                     } else {
-                        
+
                         try {
                             const newUserRef = await addDoc(collection(db, "users"), {
                                 firstName: user?.firstName || "",
@@ -82,62 +82,62 @@ const Profile = () => {
 
     const pickImage = async () => {
         try {
-            
+
             const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-            
+
             if (status !== 'granted') {
                 Alert.alert('Permission Required', 'We need permission to access your photos');
                 return;
             }
-            
-            
+
+
             const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ['images'],
                 allowsEditing: true,
                 aspect: [1, 1],
-                quality: 0.5, 
-                base64: true, 
+                quality: 0.5,
+                base64: true,
             });
-            
+
             if (!result.canceled) {
                 setUploading(true);
-                
+
                 try {
                     let base64Image;
-                    
-                    
+
+
                     if (result.assets[0].base64) {
                         base64Image = result.assets[0].base64;
                     } else {
-                        
-                        
+
+
                         const fileUri = result.assets[0].uri;
                         const fileContent = await FileSystem.readAsStringAsync(fileUri, {
                             encoding: FileSystem.EncodingType.Base64,
                         });
                         base64Image = fileContent;
                     }
-                    
-                    
-                    const imageSizeInBytes = base64Image.length * 0.75; 
+
+
+                    const imageSizeInBytes = base64Image.length * 0.75;
                     const imageSizeInMB = imageSizeInBytes / (1024 * 1024);
-                    
+
                     if (imageSizeInMB > 1) {
                         Alert.alert(
-                            "Image Too Large", 
+                            "Image Too Large",
                             "Please select a smaller image (under 1MB)",
                             [{ text: "OK" }]
                         );
                         setUploading(false);
                         return;
                     }
-                    
-                    
+
+
                     setForm(prevForm => ({
                         ...prevForm,
                         profilePhotoBase64: base64Image
                     }));
-                    
+
                 } catch (error) {
                     console.error("Error processing image:", error);
                     Alert.alert("Error", "Failed to process image");
@@ -158,7 +158,7 @@ const Profile = () => {
                 return Alert.alert("Error", "User not found. Please log in again.");
             }
 
-            const { phoneNumber, profilePhotoBase64} = form;
+            const { phoneNumber, profilePhotoBase64 } = form;
 
             if (!phoneNumber) {
                 return Alert.alert("Error", "Please enter your phone number.");
@@ -166,14 +166,14 @@ const Profile = () => {
 
             const passengerData = {
                 phoneNumber,
-                profilePhotoBase64, 
+                profilePhotoBase64,
             }
 
             if (passengerDocId) {
-                
+
                 await updateDoc(doc(db, "passengers", passengerDocId), passengerData);
             } else {
-                
+
                 const docRef = await addDoc(collection(db, "passengers"), {
                     ...passengerData,
                     createdAt: new Date()
@@ -187,8 +187,8 @@ const Profile = () => {
         }
     };
 
-    const profileImageSource = form.profilePhotoBase64 
-        ? { uri: `data:image/jpeg;base64,${form.profilePhotoBase64}` } 
+    const profileImageSource = form.profilePhotoBase64
+        ? { uri: `data:image/jpeg;base64,${form.profilePhotoBase64}` }
         : { uri: user?.externalAccounts[0]?.imageUrl ?? user?.imageUrl };
 
 
@@ -204,22 +204,22 @@ const Profile = () => {
                         <Text style={styles.headerText}>My profile</Text>
 
                         <View style={styles.profileImageContainer}>
-                        <TouchableOpacity onPress={pickImage} disabled={uploading}>
-                            <Image
-                                source={profileImageSource}
-                                style={styles.profileImage}
-                            />
-                            <View style={styles.editIconContainer}>
-                                <Text style={styles.editIcon}>📷</Text>
-                            </View>
-                            {uploading && (
-                                <View style={styles.uploadingOverlay}>
-                                    <Text style={styles.uploadingText}>Processing...</Text>
+                            <TouchableOpacity onPress={pickImage} disabled={uploading}>
+                                <Image
+                                    source={profileImageSource}
+                                    style={styles.profileImage}
+                                />
+                                <View style={styles.editIconContainer}>
+                                    <Text style={styles.editIcon}>📷</Text>
                                 </View>
-                            )}
-                        </TouchableOpacity>
-                        <Text style={styles.tapToChangeText}>Tap to change photo</Text>
-                    </View>
+                                {uploading && (
+                                    <View style={styles.uploadingOverlay}>
+                                        <Text style={styles.uploadingText}>Processing...</Text>
+                                    </View>
+                                )}
+                            </TouchableOpacity>
+                            <Text style={styles.tapToChangeText}>Tap to change photo</Text>
+                        </View>
 
                         <View style={styles.infoContainer}>
                             <View style={styles.infoContent}>
@@ -267,9 +267,12 @@ const Profile = () => {
                             </View>
                         </View>
 
-                        <View style={styles.updateButtonContainer}>
-                            <Button title="Update Phone Number" onPress={onSubmit} />
-                        </View>
+                        <TouchableOpacity
+                            style={[styles.updateButtonContainer, styles.updateButton]}
+                            onPress={onSubmit}
+                        >
+                            <Text style={styles.updateButtonText}>Update Phone Number</Text>
+                        </TouchableOpacity>
                     </ScrollView>
                 </TouchableWithoutFeedback>
             </KeyboardAvoidingView>
@@ -370,10 +373,21 @@ const styles = StyleSheet.create({
     input: {
         paddingVertical: 10,
         paddingHorizontal: 15,
+        color: "#289dd2"
     },
     updateButtonContainer: {
-        marginTop: 20,
+        marginVertical: 10,
+        alignItems: 'center',
     },
+    updateButton: {
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+    },
+    updateButtonText: {
+        color: '#289dd2',
+        textAlign: 'center',
+        fontSize: 18,
+    }
 });
 
 export default Profile;
