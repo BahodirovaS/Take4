@@ -4,3 +4,5 @@ Attribute:
 - srip for schedule
 - erix for no result
 - muhammad_usman for no rides
+- Freepik for stripe
+- Pixel perfect for paypal
