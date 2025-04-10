@@ -294,6 +294,7 @@ const styles = StyleSheet.create({
         fontFamily: "JakartaBold",
         marginBottom: 20,
         alignSelf: "center",
+        marginTop: 20,
     },
     profileImageContainer: {
         alignItems: "center",

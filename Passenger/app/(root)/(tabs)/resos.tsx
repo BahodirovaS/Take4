@@ -13,11 +13,12 @@ import {
 import { useAuth, useUser } from "@clerk/clerk-expo";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, deleteDoc, doc } from "firebase/firestore";
-import { useReservationStore } from "@/store";
+import { useLocationStore, useReservationStore } from "@/store";
 import { RideRequest } from '@/types/type';
 import { icons, images } from "@/constants";
 import { formatDate } from "@/lib/utils";
 import ReservationCard from '@/components/ReservationCard';
+import { router } from 'expo-router';
 
 const Reservations = () => {
   const [rides, setRides] = useState<RideRequest[]>([]);
@@ -76,6 +77,19 @@ const Reservations = () => {
 
   const rescheduleRide = (ride: RideRequest) => {
     setReservationId(ride.id);
+    useLocationStore.getState().setUserLocation({
+      latitude: ride.origin_latitude,
+      longitude: ride.origin_longitude,
+      address: ride.origin_address
+    });
+
+    useLocationStore.getState().setDestinationLocation({
+      latitude: ride.destination_latitude,
+      longitude: ride.destination_longitude,
+      address: ride.destination_address
+    });
+
+    router.push(`/(root)/reserve-confirm-ride?reschedule=true`);
   };
 
   const renderRideItem = ({ item }: { item: RideRequest }) => {
@@ -179,7 +193,7 @@ const styles = StyleSheet.create({
     fontSize: 30,
     alignSelf: "center",
     fontFamily: "JakartaBold",
-    marginTop: 40,
+    marginTop: 20,
     paddingHorizontal: 20,
   },
 });

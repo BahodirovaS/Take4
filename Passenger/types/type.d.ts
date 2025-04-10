@@ -107,7 +107,7 @@ interface ReservationStore {
   scheduledTime: string | null;
   reservationId: string | null;
   setScheduledDateTime: (date: string, time: string) => void;
-  setReservationId: (id: string) => void;
+  setReservationId: (id: string | null) => void;
   clearReservation: () => void;
 }
 

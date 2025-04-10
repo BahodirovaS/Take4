@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     paddingRight: 10,
   },
   dayOfWeek: {
-    fontSize: 20,
+    fontSize: 15,
     color: '#666',
     marginBottom: 5,
   },

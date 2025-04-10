@@ -1,19 +1,24 @@
 import React, { useState } from "react";
-import { router } from "expo-router";
-import { Text, View, StyleSheet, TouchableOpacity, Platform } from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
+import { Text, View, StyleSheet, TouchableOpacity, Platform, Alert, ActivityIndicator } from "react-native";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { Ionicons } from "@expo/vector-icons";
+import { doc, updateDoc } from "firebase/firestore";
 
 import CustomButton from "@/components/CustomButton";
 import RideLayout from "@/components/RideLayout";
 import { useLocationStore, useReservationStore } from "@/store";
+import { db } from "@/lib/firebase";
 
 const ReserveRide: React.FC = () => {
     const { userAddress, destinationAddress } = useLocationStore();
-    const { setScheduledDateTime } = useReservationStore();
+    const { setScheduledDateTime, reservationId, setReservationId } = useReservationStore();
+    const params = useLocalSearchParams();
+    const isReschedule = params.reschedule === "true";
     
     const [isDateTimePickerVisible, setDateTimePickerVisible] = useState(false);
     const [selectedDateTime, setSelectedDateTime] = useState<Date | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const formatDateTime = (date: Date) => {
         // Format date part
@@ -40,20 +45,50 @@ const ReserveRide: React.FC = () => {
         setDateTimePickerVisible(false);
     };
 
-    const handleNext = () => {
-        if (selectedDateTime) {
-            const { formattedDate, formattedTime } = formatDateTime(selectedDateTime);
-            
-            setScheduledDateTime(
-                formattedDate,
-                formattedTime
-            );
+    const handleNext = async () => {
+        if (!selectedDateTime) return;
+
+        const { formattedDate, formattedTime } = formatDateTime(selectedDateTime);
+        setScheduledDateTime(formattedDate, formattedTime);
+        
+        if (isReschedule && reservationId) {
+            // Handle reschedule case
+            setIsSubmitting(true);
+            try {
+                const rideRef = doc(db, "rideRequests", reservationId);
+                await updateDoc(rideRef, {
+                    scheduled_date: formattedDate,
+                    scheduled_time: formattedTime,
+                    pickup_time: selectedDateTime.getTime(),
+                    updated_at: new Date().getTime()
+                });
+                
+                // Clear the reservation ID after successful update
+                setReservationId(null);
+                
+                Alert.alert(
+                    "Success", 
+                    "Your ride has been rescheduled successfully",
+                    [
+                        {
+                            text: "OK",
+                            onPress: () => router.push("/(root)/(tabs)/resos")
+                        }
+                    ]
+                );
+            } catch (error) {
+                console.error("Error rescheduling ride:", error);
+                Alert.alert("Error", "Failed to reschedule ride. Please try again.");
+            } finally {
+                setIsSubmitting(false);
+            }
+        } else {
             router.push(`/(root)/confirm-ride?reserved=true`);
         }
     };
 
     return (
-        <RideLayout title="Schedule Your Ride">
+        <RideLayout title={isReschedule ? "Reschedule Your Ride" : "Schedule Your Ride"}>
             <View style={styles.locationContainer}>
                 <View style={styles.locationRow}>
                     <View style={styles.locationDot} />
@@ -112,14 +147,19 @@ const ReserveRide: React.FC = () => {
 
             <View style={styles.buttonContainer}>
                 <CustomButton
-                    title="Next"
+                    title={isReschedule ? "Reschedule" : "Next"}
                     onPress={handleNext}
-                    disabled={!selectedDateTime}
+                    disabled={!selectedDateTime || isSubmitting}
                     style={[
                         styles.button,
-                        !selectedDateTime && styles.disabledButton
+                        (!selectedDateTime || isSubmitting) && styles.disabledButton
                     ]}
                 />
+                {isSubmitting && (
+                    <View style={styles.loadingOverlay}>
+                        <ActivityIndicator size="small" color="#FFF" />
+                    </View>
+                )}
             </View>
         </RideLayout>
     );
@@ -207,6 +247,15 @@ const styles = StyleSheet.create({
     },
     disabledButton: {
         opacity: 0.6,
+    },
+    loadingOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        alignItems: 'center',
+        justifyContent: 'center'
     }
 });
 
