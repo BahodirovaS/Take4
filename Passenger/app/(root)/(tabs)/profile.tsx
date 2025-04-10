@@ -191,6 +191,7 @@ const Profile = () => {
         ? { uri: `data:image/jpeg;base64,${form.profilePhotoBase64}` } 
         : { uri: user?.externalAccounts[0]?.imageUrl ?? user?.imageUrl };
 
+
     return (
         <SafeAreaView style={styles.container}>
             <KeyboardAvoidingView

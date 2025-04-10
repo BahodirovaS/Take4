@@ -76,7 +76,6 @@ const Reservations = () => {
 
   const rescheduleRide = (ride: RideRequest) => {
     setReservationId(ride.id);
-    // Navigation logic would go here
   };
 
   const renderRideItem = ({ item }: { item: RideRequest }) => {
