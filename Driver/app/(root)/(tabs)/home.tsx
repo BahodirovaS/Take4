@@ -13,6 +13,7 @@ import {
     StyleSheet,
     ActivityIndicator,
     Alert,
+    ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { collection, query, where, onSnapshot, doc, updateDoc, getDocs } from "firebase/firestore";
@@ -237,34 +238,47 @@ const Home = () => {
         return unsubscribe;
     }, [user?.id]);
 
-    
+    // Render ride history section
+    const renderRideHistory = () => {
+        if (loading) {
+            return <ActivityIndicator size="small" color="#000" />;
+        }
 
+        if (recentRides.length === 0) {
+            return (
+                <View style={styles.emptyComponent}>
+                    <Image
+                        source={images.noRides}
+                        style={styles.noResultImage}
+                        resizeMode="contain"
+                    />
+                    <Text style={styles.noResultText}>No recent rides found</Text>
+                </View>
+            );
+        }
+
+        return (
+            <View style={styles.rideHistoryContainer}>
+                <ScrollView
+                    contentContainerStyle={styles.rideHistoryScrollContent}
+                    showsVerticalScrollIndicator={false}
+                    nestedScrollEnabled={true}
+                >
+                    {recentRides.map((ride) => (
+                        <View key={ride.id} style={styles.rideCardContainer}>
+                            <RideCard ride={ride} />
+                        </View>
+                    ))}
+                </ScrollView>
+            </View>
+        );
+    };
+    
     return (
         <SafeAreaView style={styles.container}>
             <FlatList
-                data={recentRides?.slice(0, 5)}
-                renderItem={({ item }) => <RideCard ride={item} />}
-                keyExtractor={(item, index) => item.id || index.toString()}
-                style={styles.flatList}
-                keyboardShouldPersistTaps="handled"
-                contentContainerStyle={styles.flatListContent}
-                ListEmptyComponent={() => (
-                    <View style={styles.emptyComponent}>
-                        {!loading ? (
-                            <>
-                                <Image
-                                    source={images.noRides}
-                                    style={styles.noResultImage}
-                                    resizeMode="contain"
-                                />
-                                <Text style={styles.noResultText}>No recent rides found</Text>
-                            </>
-                        ) : (
-                            <ActivityIndicator size="small" color="#000" />
-                        )}
-                    </View>
-                )}
-                ListHeaderComponent={
+                data={[{}]} // Using a single item to render content once
+                renderItem={() => (
                     <>
                         <View style={styles.header}>
                             <Text style={styles.welcomeText}>
@@ -277,6 +291,7 @@ const Home = () => {
                                 <Image source={icons.out} style={styles.signOutIcon} />
                             </TouchableOpacity>
                         </View>
+
                         {hasActiveRide && activeRideData && (
                             <TouchableOpacity
                                 style={styles.activeRideBanner}
@@ -308,6 +323,7 @@ const Home = () => {
                                 <Ionicons name="chevron-forward" size={20} color="#fff" />
                             </TouchableOpacity>
                         )}
+
                         <View style={styles.statusContainer}>
                             <Text style={styles.statusText}>
                                 You are {isOnline ? "Online" : "Offline"}
@@ -319,13 +335,19 @@ const Home = () => {
                                 style={styles.statusButton}
                             />
                         </View>
+
                         <Text style={styles.sectionTitle}>Your current location</Text>
                         <View style={styles.mapContainer}>
                             <DriverMap showLocationButton={true} />
                         </View>
+                        
                         <Text style={styles.sectionTitle}>Ride History</Text>
+                        {renderRideHistory()}
                     </>
-                }
+                )}
+                style={styles.flatList}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={styles.flatListContent}
             />
         </SafeAreaView>
     );
@@ -380,8 +402,8 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.25,
         shadowRadius: 3.84,
         elevation: 5,
-      },
-      bannerIconContainer: {
+    },
+    bannerIconContainer: {
         width: 32,
         height: 32,
         backgroundColor: 'rgba(255, 255, 255, 0.2)',
@@ -389,20 +411,20 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 12,
-      },
-      bannerTextContainer: {
+    },
+    bannerTextContainer: {
         flex: 1,
-      },
-      bannerTitle: {
+    },
+    bannerTitle: {
         color: '#fff',
         fontWeight: 'bold',
         fontSize: 14,
-      },
-      bannerSubtitle: {
+    },
+    bannerSubtitle: {
         color: 'rgba(255, 255, 255, 0.8)',
         fontSize: 12,
         marginTop: 2,
-      },
+    },
     welcomeText: {
         fontSize: 24,
         fontFamily: 'JakartaExtraBold',
@@ -438,16 +460,6 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         justifyContent: "center",
     },
-    online: {
-        backgroundColor: "#F87171",
-    },
-    offline: {
-        backgroundColor: "#34D399",
-    },
-    toggleButtonText: {
-        color: "#ffff",
-        fontWeight: "bold",
-    },
     sectionTitle: {
         fontSize: 20,
         fontFamily: 'JakartaBold',
@@ -458,6 +470,21 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         backgroundColor: 'transparent',
         height: 300,
+    },
+    rideHistoryContainer: {
+        maxHeight: 250,
+        borderWidth: 1,
+        borderColor: '#c0c0c0',
+        borderRadius: 10,
+        overflow: "hidden",
+    },
+    rideHistoryScrollContent: {
+        paddingVertical: 0,
+    },
+    rideCardContainer: {
+        marginVertical: 0,
+        marginBottom: 10,
+        marginTop: 0,
     },
 });
 

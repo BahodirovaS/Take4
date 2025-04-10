@@ -94,9 +94,9 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   infoContainer: {
-    marginTop: 10,
+    marginBottom: 10,
     backgroundColor: "#f0f0f0",
-    borderRadius: 10,
+    borderRadius: 0,
     padding: 10,
   },
   infoRow: {
