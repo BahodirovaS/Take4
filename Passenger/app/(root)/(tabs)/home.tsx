@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
     welcomeText: {
-        fontSize: 24,
+        fontSize: 30,
         fontFamily: 'JakartaExtraBold',
     },
     signOutButton: {

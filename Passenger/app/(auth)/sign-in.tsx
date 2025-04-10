@@ -43,46 +43,46 @@ const SignIn = () => {
     return (
         <SafeAreaView style={styles.safeArea}>
 
-        <ScrollView style={styles.container}>
-            <View style={styles.container}>
-            <View style={styles.header}>
-                    <Image source={images.icon} style={styles.carIcon} />
-                    <Text style={styles.headerTitle}>RidePal Passenger</Text>
+            <ScrollView style={styles.container}>
+                <View style={styles.container}>
+                    <View style={styles.header}>
+                        <Image source={images.icon} style={styles.carIcon} />
+                        <Text style={styles.headerTitle}>RidePal Passenger</Text>
+                    </View>
+                    <View style={styles.welcomeContainer}>
+                        <Text style={styles.welcomeText}>Welcome Back👋</Text>
+                    </View>
+
+                    <View style={styles.formContainer}>
+                        <InputField
+                            label="Email"
+                            placeholder="Enter email"
+                            icon={icons.email}
+                            textContentType="emailAddress"
+                            value={form.email}
+                            onChangeText={(value) => setForm({ ...form, email: value })}
+                        />
+
+                        <InputField
+                            label="Password"
+                            placeholder="Enter password"
+                            icon={icons.lock}
+                            secureTextEntry={true}
+                            textContentType="password"
+                            value={form.password}
+                            onChangeText={(value) => setForm({ ...form, password: value })}
+                        />
+
+                        <CustomButton title="Sign In" onPress={onSignInPress} style={styles.button} />
+
+                        <OAuth />
+
+                        <Link href="/sign-up" style={styles.link}>
+                            Don't have an account? <Text style={styles.linkText}>Sign Up</Text>
+                        </Link>
+                    </View>
                 </View>
-                <View style={styles.welcomeContainer}>
-                    <Text style={styles.welcomeText}>Welcome Back👋</Text>
-                </View>
-
-                <View style={styles.formContainer}>
-                    <InputField
-                        label="Email"
-                        placeholder="Enter email"
-                        icon={icons.email}
-                        textContentType="emailAddress"
-                        value={form.email}
-                        onChangeText={(value) => setForm({ ...form, email: value })}
-                    />
-
-                    <InputField
-                        label="Password"
-                        placeholder="Enter password"
-                        icon={icons.lock}
-                        secureTextEntry={true}
-                        textContentType="password"
-                        value={form.password}
-                        onChangeText={(value) => setForm({ ...form, password: value })}
-                    />
-
-                    <CustomButton title="Sign In" onPress={onSignInPress} style={styles.button} />
-
-                    <OAuth />
-
-                    <Link href="/sign-up" style={styles.link}>
-                        Don't have an account? <Text style={styles.linkText}>Sign Up</Text>
-                    </Link>
-                </View>
-            </View>
-        </ScrollView>
+            </ScrollView>
         </SafeAreaView>
 
     );
