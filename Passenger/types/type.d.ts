@@ -1,3 +1,4 @@
+import { Timestamp } from "firebase/firestore";
 import { TextInputProps, TouchableOpacityProps } from "react-native";
 
 declare interface Driver {
