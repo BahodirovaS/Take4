@@ -26,7 +26,7 @@ const RideCard: React.FC<{ ride: Ride }> = ({ ride }) => {
           
           setDriverName(
             driverData.firstName && driverData.lastName
-              ? `${driverData.firstName} ${driverData.lastName}`
+              ? `${driverData.firstName}`
               : "Unknown Driver"
           );
         }
@@ -38,6 +38,8 @@ const RideCard: React.FC<{ ride: Ride }> = ({ ride }) => {
 
     fetchDriver();
   }, [ride.driver_id]);
+
+
 
   return (
     <View style={styles.cardContainer}>

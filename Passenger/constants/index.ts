@@ -34,15 +34,19 @@ import car from "@/assets/icons/car.png"
 import icon from "@/assets/images/icon.png"
 import calendar from "@/assets/images/calendar.png"
 import noRides from "@/assets/images/no-rides.png"
+import stripe from "@/assets/images/stripe.png"
+import paypal from "@/assets/images/paypal.png"
 
 export const images = {
   check,
   noResult,
   message,
   resos,
-  icon, 
+  icon,
   calendar,
-  noRides
+  noRides,
+  stripe,
+  paypal,
 };
 
 export const icons = {

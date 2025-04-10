@@ -95,8 +95,8 @@ const Home = () => {
                             payment_status: data.payment_status,
                             driver_id: data.driver_id,
                             user_id: data.user_id,
-                            created_at: data.created_at && typeof data.created_at.toDate === 'function'
-                                ? data.created_at.toDate().toISOString()
+                            created_at: data.createdAt && typeof data.createdAt.toDate === 'function'
+                                ? data.createdAt.toDate().toISOString()
                                 : new Date().toISOString(),
                             driver: {
                                 first_name: data.driver?.firstName || "",
@@ -107,9 +107,7 @@ const Home = () => {
                         } as Ride;
                     });
 
-                    // Sort by created_at date, most recent first
                     rides.sort((a, b) => {
-                        // Parse the ISO string dates
                         const timeA = new Date(a.created_at).getTime();
                         const timeB = new Date(b.created_at).getTime();
                         return timeB - timeA;
