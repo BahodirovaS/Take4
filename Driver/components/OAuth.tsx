@@ -38,7 +38,7 @@ const OAuth = () => {
             style={styles.googleIcon}
           />
         )}
-        bgVariant="outline"
+        // bgVariant="outline"
         textVariant="primary"
         onPress={handleGoogleSignIn}
       />
@@ -61,12 +61,13 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     fontSize: 18,
-    color: "#000000",
+    color: "white",
   },
   googleButton: {
     marginTop: 20,
     width: "100%",
     shadowOpacity: 0,
+    backgroundColor: "white"
   },
   googleIcon: {
     width: 20,

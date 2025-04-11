@@ -91,11 +91,11 @@ const SignIn = () => {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: "white",
+        backgroundColor: "#365b6d",
     },
     container: {
         flex: 1,
-        backgroundColor: "white",
+        backgroundColor: "transparent",
     },
     header: {
         flexDirection: "row",
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: 24,
         fontFamily: "JakartaSemiBold",
-        color: "black",
+        color: "white",
     },
     welcomeContainer: {
         position: "relative",
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         fontSize: 40,
-        color: "black",
+        color: "white",
         fontWeight: "bold",
         fontFamily: "Jakarta-Medium",
         textAlign: "center"
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     link: {
         fontSize: 18,
         textAlign: "center",
-        color: "#6B7280",
+        color: "white",
         marginTop: 40,
     },
     linkText: {

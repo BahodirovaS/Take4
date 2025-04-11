@@ -490,13 +490,13 @@ const styles = StyleSheet.create({
         fontFamily: "JakartaSemiBold",
     },
     carSeatSelected: {
-        backgroundColor: "#289dd2",
+        backgroundColor: "#AED6EB",
     },
     carSeatUnselected: {
         backgroundColor: "#f3f4f6",
     },
     carSeatTextSelected: {
-        color: "white",
+        color: "black",
     },
     carSeatTextUnselected: {
         color: "black",

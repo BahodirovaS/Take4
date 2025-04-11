@@ -70,20 +70,21 @@ const ReservationCard: React.FC<{
 
   const styles = StyleSheet.create({
     cardContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "white",
-        marginBottom: 20,
-        borderBottomWidth: 1,
-        borderBottomColor: "#E0E0E0",
-        borderTopWidth:1,
-        borderTopColor: "#E0E0E0",
-        marginHorizontal: 10,
-      },
-      cardContent: {
-        flex: 1,
-      },
+      backgroundColor: "white",
+      marginBottom: 20,
+      borderWidth: 1,
+      borderColor: "#E0E0E0",
+      marginHorizontal: 10,
+      borderRadius: 10,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    cardContent: {
+      padding: 15,
+    },
       twoColumnContainer: {
         flexDirection: 'row',
       },
@@ -96,7 +97,7 @@ const ReservationCard: React.FC<{
         paddingRight: 10,
       },
       dayOfWeek: {
-        fontSize: 20,
+        fontSize: 14,
         color: '#666',
         marginBottom: 5,
       },

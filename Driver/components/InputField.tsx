@@ -46,12 +46,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: "JakartaSemiBold",
     marginBottom: 12,
+    color: "white",
   },
   inputWrapper: {
     flexDirection: 'row',
     justifyContent: 'flex-start',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6', // neutral-100 background color
+    backgroundColor: 'white', // neutral-100 background color
     borderRadius: 9999, // full rounded corners
     borderWidth: 1,
     borderColor: '#F3F4F6', // neutral-100 border color
