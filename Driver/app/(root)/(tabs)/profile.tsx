@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 30,
-        fontFamily: "JakartaBold",
+        fontFamily: "DMSans-Bold",
         marginBottom: 20,
         alignSelf: "center",
     },
@@ -459,20 +459,20 @@ const styles = StyleSheet.create({
     },
     uploadingText: {
         color: 'white',
-        fontFamily: 'JakartaMedium',
+        fontFamily: 'DMSans-Medium',
         fontSize: 14,
     },
     tapToChangeText: {
         marginTop: 8,
         fontSize: 14,
         color: '#666',
-        fontFamily: 'JakartaRegular',
+        fontFamily: 'DMSans',
     },
     carSeatsTitle: {
         marginTop: 16,
         marginBottom: 8,
         fontSize: 18,
-        fontFamily: "JakartaSemiBold",
+        fontFamily: "DMSans-SemiBold",
     },
     carSeatOptions: {
         marginBottom: 20,
@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
     },
     carSeatText: {
         fontSize: 14,
-        fontFamily: "JakartaSemiBold",
+        fontFamily: "DMSans-SemiBold",
     },
     carSeatSelected: {
         backgroundColor: "#AED6EB",
@@ -508,7 +508,7 @@ const styles = StyleSheet.create({
     },
     petsLabel: {
         fontSize: 18,
-        fontFamily: "JakartaSemiBold",
+        fontFamily: "DMSans-SemiBold",
         marginRight: 12,
     },
     petsButton: {
@@ -526,7 +526,7 @@ const styles = StyleSheet.create({
     petsButtonText: {
         fontSize: 16,
         color: "white",
-        fontFamily: "JakartaSemiBold",
+        fontFamily: "DMSans-SemiBold",
     },
     updateButton: {
         marginTop: 20,

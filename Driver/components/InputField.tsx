@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 18,
-    fontFamily: "JakartaSemiBold",
+    fontFamily: "DMSans-SemiBold",
     marginBottom: 12,
     color: "white",
   },
@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    fontFamily: "JakartaSemiBold",
+    fontFamily: "DMSans-SemiBold",
     fontSize: 15,
     textAlign: 'left',
     borderRadius: 9999, // full rounded corners

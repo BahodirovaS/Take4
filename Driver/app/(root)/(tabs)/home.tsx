@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
     },
     welcomeText: {
         fontSize: 24,
-        fontFamily: 'JakartaExtraBold',
+        fontFamily: 'DMSans-ExtraBold',
     },
     signOutButton: {
         justifyContent: 'center',
@@ -461,7 +461,7 @@ const styles = StyleSheet.create({
     },
     sectionTitle: {
         fontSize: 20,
-        fontFamily: 'JakartaBold',
+        fontFamily: 'DMSans-Bold',
         marginTop: 20,
         marginBottom: 10,
     },

@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     color: '#666',
-    fontFamily: 'JakartaRegular',
+    fontFamily: 'DMSans',
     marginTop: 10,
   },
   image: {
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
   headerText: {
     fontSize: 30,
     alignSelf: "center",
-    fontFamily: "JakartaBold",
+    fontFamily: "DMSans-Bold",
     marginTop: 40,
     paddingHorizontal: 20,
   },
