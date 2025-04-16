@@ -113,12 +113,12 @@ const styles = StyleSheet.create({
     },
     reservationTitle: {
         fontSize: 16,
-        fontFamily: "JakartaSemiBold",
+        fontFamily: "DMSans-SemiBold",
         color: "#0066CC",
     },
     reservationDetails: {
         fontSize: 14,
-        fontFamily: "JakartaRegular",
+        fontFamily: "DMSans",
         marginTop: 5,
     },
     infoCard: {
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     },
     infoText: {
         fontSize: 16,
-        fontFamily: "JakartaRegular",
+        fontFamily: "DMSans",
     },
     price: {
         color: "#0CC25F",
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
     },
     addressText: {
         fontSize: 16,
-        fontFamily: "JakartaRegular",
+        fontFamily: "DMSans",
         marginLeft: 8,
     },
     icon: {
@@ -192,14 +192,14 @@ const styles = StyleSheet.create({
     },
     modalTitle: {
         fontSize: 24,
-        fontFamily: "JakartaBold",
+        fontFamily: "DMSans-Bold",
         marginTop: 20,
         textAlign: "center",
     },
     modalText: {
         fontSize: 16,
         color: "#A0A0A0",
-        fontFamily: "JakartaRegular",
+        fontFamily: "DMSans",
         textAlign: "center",
         marginTop: 10,
     },

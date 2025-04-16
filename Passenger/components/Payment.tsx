@@ -263,14 +263,14 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 24,
-    fontFamily: "JakartaBold",
+    fontFamily: "DMSans-Bold",
     marginTop: 20,
     textAlign: "center",
   },
   modalText: {
     fontSize: 16,
     color: "#A0A0A0",
-    fontFamily: "JakartaRegular",
+    fontFamily: "DMSans",
     textAlign: "center",
     marginTop: 10,
   },

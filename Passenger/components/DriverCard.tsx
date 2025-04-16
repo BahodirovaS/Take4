@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
   },
   seatCategoryText: {
     fontSize: 18,
-    fontFamily: "JakartaRegular",
+    fontFamily: "DMSans",
   },
   priceTimeContainer: {
     flexDirection: "row",
@@ -121,23 +121,23 @@ const styles = StyleSheet.create({
   },
   priceText: {
     fontSize: 14,
-    fontFamily: "JakartaRegular",
+    fontFamily: "DMSans",
     marginLeft: 4,
   },
   separator: {
     fontSize: 14,
-    fontFamily: "JakartaRegular",
+    fontFamily: "DMSans",
     color: "#6B6B6B",
     marginHorizontal: 4,
   },
   timeText: {
     fontSize: 14,
-    fontFamily: "JakartaRegular",
+    fontFamily: "DMSans",
     color: "#6B6B6B",
   },
   seatText: {
     fontSize: 14,
-    fontFamily: "JakartaRegular",
+    fontFamily: "DMSans",
     color: "#6B6B6B",
   },
 });

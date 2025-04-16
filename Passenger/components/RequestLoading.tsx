@@ -77,20 +77,20 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: "bold",
         marginBottom: 20,
-        fontFamily: "JakartaBold",
+        fontFamily: "DMSans-Bold",
     },
     statusText: {
         fontSize: 16,
         marginTop: 20,
         textAlign: "center",
         color: "#666",
-        fontFamily: "JakartaRegular",
+        fontFamily: "DMSans",
     },
     timeText: {
         fontSize: 14,
         marginTop: 10,
         color: "#888",
-        fontFamily: "JakartaRegular",
+        fontFamily: "DMSans",
     },
     cancelButton: {
         marginTop: 40,

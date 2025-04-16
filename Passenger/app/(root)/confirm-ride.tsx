@@ -78,13 +78,13 @@ const styles = StyleSheet.create({
     },
     reservationTitle: {
         fontSize: 16,
-        fontFamily: "JakartaSemiBold",
+        fontFamily: "DMSans-SemiBold",
         color: "#0066CC",
         marginBottom: 5,
     },
     reservationText: {
         fontSize: 14,
-        fontFamily: "JakartaRegular",
+        fontFamily: "DMSans",
     },
     footer: {
         marginHorizontal: 20,

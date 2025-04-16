@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     },
     titleText: {
         fontSize: 24,
-        fontFamily: "JakartaBold",
+        fontFamily: "DMSans-Bold",
         marginBottom: 20,
     },
     rideDetailsContainer: {
@@ -108,12 +108,12 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     detailLabel: {
-        fontFamily: "JakartaSemiBold",
+        fontFamily: "DMSans-SemiBold",
         width: 80,
         color: "#666",
     },
     detailValue: {
-        fontFamily: "JakartaRegular",
+        fontFamily: "DMSans",
         flex: 1,
     },
     homeButton: {

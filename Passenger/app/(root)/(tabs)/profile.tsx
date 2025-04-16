@@ -1,4 +1,4 @@
-import { useUser } from "@clerk/clerk-expo";
+import { useAuth, useUser } from "@clerk/clerk-expo";
 import { Image, ScrollView, Text, View, StyleSheet, Button, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard, Alert, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import InputField from "@/components/InputField";
@@ -7,10 +7,44 @@ import { collection, query, where, getDocs, doc, updateDoc, addDoc } from "fireb
 import { db } from "@/lib/firebase";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
+import * as Location from "expo-location";
+import { router } from "expo-router";
+import { useLocationStore } from "@/store";
+import CustomButton from "@/components/CustomButton";
+import { icons } from "@/constants";
 
 
 const Profile = () => {
     const { user } = useUser();
+    const { signOut } = useAuth();
+    const { setUserLocation, setDestinationLocation } = useLocationStore();
+    const [hasPermission, setHasPermission] = useState<boolean>(false);
+
+
+    const handleSignOut = () => {
+        signOut();
+        router.replace("/(auth)/sign-up");
+    };
+    useEffect(() => {
+        (async () => {
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== "granted") {
+                setHasPermission(false);
+                return;
+            }
+            let location = await Location.getCurrentPositionAsync({});
+            const address = await Location.reverseGeocodeAsync({
+                latitude: location.coords?.latitude!,
+                longitude: location.coords?.longitude!,
+            });
+            setUserLocation({
+                latitude: location.coords?.latitude,
+                longitude: location.coords?.longitude,
+                address: `${address[0].name}, ${address[0].region}`,
+            });
+        })();
+    }, []);
+
 
     const [form, setForm] = useState({
         name: "",
@@ -225,6 +259,7 @@ const Profile = () => {
                             <View style={styles.infoContent}>
                                 <InputField
                                     label="First name"
+                                    icon={icons.lock}
                                     placeholder={user?.firstName || "Not Found"}
                                     containerStyle={styles.inputContainer}
                                     inputStyle={styles.input}
@@ -233,6 +268,7 @@ const Profile = () => {
 
                                 <InputField
                                     label="Last name"
+                                    icon={icons.lock}
                                     placeholder={user?.lastName || "Not Found"}
                                     containerStyle={styles.inputContainer}
                                     inputStyle={styles.input}
@@ -241,6 +277,7 @@ const Profile = () => {
 
                                 <InputField
                                     label="Email"
+                                    icon={icons.lock}
                                     placeholder={user?.primaryEmailAddress?.emailAddress || "Not Found"}
                                     containerStyle={styles.inputContainer}
                                     inputStyle={styles.input}
@@ -264,15 +301,20 @@ const Profile = () => {
                                         setForm({ ...form, phoneNumber: formattedValue });
                                     }}
                                 />
+                                <CustomButton
+                                    title="Update Phone Number"
+                                    onPress={onSubmit}
+                                    bgVariant="primary"
+                                    style={styles.updateButton}
+                                />
                             </View>
                         </View>
-
-                        <TouchableOpacity
-                            style={[styles.updateButtonContainer, styles.updateButton]}
-                            onPress={onSubmit}
-                        >
-                            <Text style={styles.updateButtonText}>Update Phone Number</Text>
-                        </TouchableOpacity>
+                        <CustomButton 
+                            title="Log Out"
+                            onPress={handleSignOut}
+                            bgVariant="danger"
+                            style={styles.signOutButton}
+                        />
                     </ScrollView>
                 </TouchableWithoutFeedback>
             </KeyboardAvoidingView>
@@ -291,7 +333,7 @@ const styles = StyleSheet.create({
     },
     headerText: {
         fontSize: 30,
-        fontFamily: "JakartaBold",
+        fontFamily: "DMSans-Bold",
         marginBottom: 20,
         alignSelf: "center",
         marginTop: 20,
@@ -344,14 +386,14 @@ const styles = StyleSheet.create({
     },
     uploadingText: {
         color: 'white',
-        fontFamily: 'JakartaMedium',
+        fontFamily: 'DMSans-Medium',
         fontSize: 14,
     },
     tapToChangeText: {
         marginTop: 8,
         fontSize: 14,
         color: '#666',
-        fontFamily: 'JakartaRegular',
+        fontFamily: 'DMSans',
     },
     infoContainer: {
         backgroundColor: "white",
@@ -376,19 +418,20 @@ const styles = StyleSheet.create({
         paddingHorizontal: 15,
         color: "#289dd2"
     },
-    updateButtonContainer: {
-        marginVertical: 10,
-        alignItems: 'center',
-    },
     updateButton: {
-        paddingHorizontal: 20,
         paddingVertical: 10,
+        marginTop: 20,
     },
-    updateButtonText: {
-        color: '#289dd2',
-        textAlign: 'center',
-        fontSize: 18,
-    }
+    signOutButton: {
+        marginTop: 30,
+        justifyContent: 'center',
+        alignSelf: "center",
+        width: "40%"
+    },
+    signOutIcon: {
+        width: 16,
+        height: 16,
+    },
 });
 
 export default Profile;

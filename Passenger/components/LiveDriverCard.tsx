@@ -102,12 +102,12 @@ const styles = StyleSheet.create({
   },
   driverName: {
     fontSize: 16,
-    fontFamily: "JakartaSemiBold",
+    fontFamily: "DMSans-SemiBold",
     marginBottom: 4,
   },
   carInfo: {
     fontSize: 14,
-    fontFamily: "JakartaRegular",
+    fontFamily: "DMSans",
     color: "#666",
   },
   etaContainer: {
@@ -118,13 +118,13 @@ const styles = StyleSheet.create({
   },
   etaLabel: {
     fontSize: 12,
-    fontFamily: "JakartaRegular",
+    fontFamily: "DMSans",
     color: "#666",
     marginBottom: 2,
   },
   etaValue: {
     fontSize: 16,
-    fontFamily: "JakartaBold",
+    fontFamily: "DMSans-Bold",
   },
   contactContainer: {
     marginTop: 16,
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   },
   contactHeader: {
     fontSize: 14,
-    fontFamily: "JakartaSemiBold",
+    fontFamily: "DMSans-SemiBold",
     marginBottom: 12,
     color: "#333",
   },
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
   },
   contactLabel: {
     fontSize: 12,
-    fontFamily: "JakartaRegular",
+    fontFamily: "DMSans",
     color: "#333",
   },
 });

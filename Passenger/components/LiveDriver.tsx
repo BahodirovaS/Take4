@@ -177,12 +177,12 @@ const styles = StyleSheet.create({
     },
     loadingText: {
         marginTop: 10,
-        fontFamily: "JakartaRegular",
+        fontFamily: "DMSans",
         color: "#666",
     },
     errorText: {
         marginBottom: 15,
-        fontFamily: "JakartaMedium",
+        fontFamily: "DMSans-Medium",
         color: "#FF3B30",
         textAlign: "center",
     },

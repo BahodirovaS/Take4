@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     },
     label: {
         fontSize: 18,
-        fontFamily: "JakartaSemiBold",
+        fontFamily: "DMSans-SemiBold",
         marginBottom: 12,
     },
     buttonContainer: {

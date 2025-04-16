@@ -1,6 +1,4 @@
 import { useUser } from "@clerk/clerk-expo";
-import { useAuth } from "@clerk/clerk-expo";
-import * as Location from "expo-location";
 import { router } from "expo-router";
 import { useState, useEffect } from "react";
 import React from "react";
@@ -12,11 +10,10 @@ import {
     FlatList,
     StyleSheet,
     ActivityIndicator,
-    Dimensions,
     ScrollView
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { collection, query, where, onSnapshot, doc, updateDoc, getDocs } from "firebase/firestore";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
 import GoogleTextInput from "@/components/GoogleTextInput";
 import Map from "@/components/Map";
 import RideCard from "@/components/RideCard";
@@ -28,60 +25,27 @@ import { Ionicons } from "@expo/vector-icons";
 
 const Home = () => {
     const { user } = useUser();
-    const { signOut } = useAuth();
     const { setUserLocation, setDestinationLocation } = useLocationStore();
     const [recentRides, setRecentRides] = useState<Ride[]>([]);
     const [loading, setLoading] = useState(true);
-    const [hasPermission, setHasPermission] = useState<boolean>(false);
     const [hasActiveRide, setHasActiveRide] = useState(false);
     const [activeRideData, setActiveRideData] = useState<ActiveRideData | null>(null);
 
-    const handleSignOut = () => {
-        signOut();
-        router.replace("/(auth)/sign-up");
-    };
-
-    useEffect(() => {
-        (async () => {
-            let { status } = await Location.requestForegroundPermissionsAsync();
-            if (status !== "granted") {
-                setHasPermission(false);
-                return;
-            }
-
-            let location = await Location.getCurrentPositionAsync({});
-
-            const address = await Location.reverseGeocodeAsync({
-                latitude: location.coords?.latitude!,
-                longitude: location.coords?.longitude!,
-            });
-
-            setUserLocation({
-                latitude: location.coords?.latitude,
-                longitude: location.coords?.longitude,
-                address: `${address[0].name}, ${address[0].region}`,
-            });
-        })();
-    }, []);
-
+    
     useEffect(() => {
         if (!user?.id) return;
-
         const fetchRideHistory = async () => {
             try {
                 setLoading(true);
-
                 const ridesRef = collection(db, "rideRequests");
                 const q = query(
                     ridesRef,
                     where("user_id", "==", user.id),
                     where("status", "in", ["completed"])
                 );
-
                 const unsubscribe = onSnapshot(q, (snapshot) => {
                     const rides = snapshot.docs.map((doc) => {
                         const data = doc.data();
-
                         return {
                             id: doc.id,
                             origin_address: data.origin_address,
@@ -106,26 +70,24 @@ const Home = () => {
                             status: data.status
                         } as Ride;
                     });
-
                     rides.sort((a, b) => {
                         const timeA = new Date(a.created_at).getTime();
                         const timeB = new Date(b.created_at).getTime();
                         return timeB - timeA;
                     });
-
                     setRecentRides(rides);
                     setLoading(false);
                 });
-
                 return unsubscribe;
             } catch (error) {
                 console.error("Error fetching ride history:", error);
                 setLoading(false);
             }
         };
-
         fetchRideHistory();
     }, [user?.id]);
+
+
 
     const handleDestinationPress = (location: {
         latitude: number;
@@ -137,6 +99,7 @@ const Home = () => {
         router.push("/(root)/find-ride");
     };
 
+
     useEffect(() => {
         if (!user?.id) return;
         const activeRidesQuery = query(
@@ -144,12 +107,10 @@ const Home = () => {
             where("user_id", "==", user.id),
             where("status", "in", ["accepted", "arrived_at_pickup", "in_progress"])
         );
-
         const unsubscribe = onSnapshot(activeRidesQuery, (snapshot) => {
             if (!snapshot.empty) {
                 const rideDoc = snapshot.docs[0];
                 const rideData = rideDoc.data();
-
                 setHasActiveRide(true);
                 setActiveRideData({
                     rideId: rideDoc.id,
@@ -161,15 +122,14 @@ const Home = () => {
                 setActiveRideData(null);
             }
         });
-
         return unsubscribe;
     }, [user?.id]);
+
 
     const renderRideHistory = () => {
         if (loading) {
             return <ActivityIndicator size="small" color="#000" />;
         }
-
         if (recentRides.length === 0) {
             return (
                 <View style={styles.emptyComponent}>
@@ -209,12 +169,6 @@ const Home = () => {
                             <Text style={styles.welcomeText}>
                                 Welcome {user?.firstName}👋
                             </Text>
-                            <TouchableOpacity
-                                onPress={handleSignOut}
-                                style={styles.signOutButton}
-                            >
-                                <Image source={icons.out} style={styles.signOutIcon} />
-                            </TouchableOpacity>
                         </View>
 
                         {hasActiveRide && activeRideData && (
@@ -363,19 +317,7 @@ const styles = StyleSheet.create({
     },
     welcomeText: {
         fontSize: 30,
-        fontFamily: 'JakartaExtraBold',
-    },
-    signOutButton: {
-        justifyContent: 'center',
-        alignItems: 'center',
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: 'white',
-    },
-    signOutIcon: {
-        width: 16,
-        height: 16,
+        fontFamily: 'DMSans-Bold',
     },
     searchInput: {
         backgroundColor: 'white',
@@ -385,7 +327,7 @@ const styles = StyleSheet.create({
     },
     sectionTitle: {
         fontSize: 20,
-        fontFamily: 'JakartaBold',
+        fontFamily: 'DMSans-Bold',
         marginTop: 20,
         marginBottom: 10,
     },

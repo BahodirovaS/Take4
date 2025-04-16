@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
         marginTop: 20,
         fontSize: 16,
         textAlign: "center",
-        fontFamily: "JakartaRegular",
+        fontFamily: "DMSans",
     },
     errorContainer: {
         flex: 1,
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
     errorText: {
         fontSize: 16,
         textAlign: "center",
-        fontFamily: "JakartaRegular",
+        fontFamily: "DMSans",
         color: "#FF3B30",
     },
 });

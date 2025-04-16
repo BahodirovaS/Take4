@@ -62,13 +62,13 @@ const RideCard: React.FC<{ ride: Ride }> = ({ ride }) => {
             <View style={styles.detailsContainer}>
               <View style={styles.row}>
                 <Image source={icons.to} style={styles.icon} />
-                <Text style={styles.text} numberOfLines={1}>
+                <Text style={styles.text} numberOfLines={2}>
                   {ride.origin_address}
                 </Text>
               </View>
               <View style={styles.row}>
                 <Image source={icons.point} style={styles.icon} />
-                <Text style={styles.text} numberOfLines={1}>
+                <Text style={styles.text} numberOfLines={2}>
                   {ride.destination_address}
                 </Text>
               </View>
@@ -106,6 +106,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-start",
+    marginTop: 7,
   },
   detailsContainer: {
     flex: 1,
@@ -118,7 +119,7 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 14,
-    fontWeight: "500",
+    fontFamily: "DMSans-Medium",
     flexShrink: 1,
   },
   infoContainer: {
@@ -134,13 +135,13 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    color: " ",
+    fontFamily: "DMSans-Light",
     marginRight: 10,
     width: 60,
   },
   value: {
     fontSize: 14,
-    fontWeight: "bold",
+    fontFamily: "DMSans-Medium",
     flex: 1,
     marginLeft: 10,
   },

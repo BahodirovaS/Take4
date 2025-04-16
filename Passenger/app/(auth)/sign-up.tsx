@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         fontSize: 35,
-        fontFamily: "DMSans-Medium",
+        fontFamily: "DMSans-Light",
         color: "black",
         textAlign: "center",
     },
@@ -280,9 +280,10 @@ const styles = StyleSheet.create({
     },
     linkText: {
         fontSize: 18,
+        fontFamily: "DMSans-Light",
         textAlign: "center",
         color: "#888",
-        marginTop: 40,
+        marginTop: 20,
     },
     linkHighlight: {
         color: "#289dd2",

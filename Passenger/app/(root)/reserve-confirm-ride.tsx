@@ -195,12 +195,12 @@ const styles = StyleSheet.create({
     },
     locationText: {
         fontSize: 16,
-        fontFamily: "JakartaRegular",
+        fontFamily: "DMSans",
         flex: 1,
     },
     sectionTitle: {
         fontSize: 18,
-        fontFamily: "JakartaSemiBold",
+        fontFamily: "DMSans-SemiBold",
         marginBottom: 12,
         marginTop: 20,
     },
@@ -215,11 +215,11 @@ const styles = StyleSheet.create({
     },
     selectorText: {
         fontSize: 16,
-        fontFamily: "JakartaRegular",
+        fontFamily: "DMSans",
     },
     timeText: {
         fontSize: 14,
-        fontFamily: "JakartaRegular",
+        fontFamily: "DMSans",
         color: "#0066CC",
         marginTop: 4,
     },
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
     },
     infoText: {
         fontSize: 14,
-        fontFamily: "JakartaRegular",
+        fontFamily: "DMSans",
         color: "#666",
         marginLeft: 8,
     },

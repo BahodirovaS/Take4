@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   },
   bottomSheetTitle: {
     fontSize: 20,
-    fontFamily: "JakartaSemiBold",
+    fontFamily: "DMSans-SemiBold",
     textAlign: "left",
     marginBottom: 20,
     fontWeight: "bold"

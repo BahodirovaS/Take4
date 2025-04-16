@@ -31,7 +31,7 @@ const InputField = ({
         ]}>
           {icon && <Image source={icon} style={[styles.icon, iconStyle]} />}
           <TextInput
-            placeholderTextColor="#000000"
+            placeholderTextColor="#696969"
             style={[
               styles.inputField, 
               inputStyle,
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
     color: '#000000', 
   },
   nonEditableInput: {
-    color: '#000000', 
+    color: '#808080', 
     backgroundColor: 'transparent',
   }
 });

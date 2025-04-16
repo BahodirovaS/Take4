@@ -76,7 +76,7 @@ const ReservationCard: React.FC<{
                 </View>
                 <View style={styles.row}>
                   <Image source={icons.point} style={styles.icon} />
-                  <Text style={styles.text} numberOfLines={1}>
+                  <Text style={styles.text} numberOfLines={3}>
                     {ride.destination_address}
                   </Text>
                 </View>
@@ -128,16 +128,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRightWidth: 1,
     borderRightColor: '#E0E0E0',
-    paddingRight: 10,
+    paddingRight: 13,
   },
   dayOfWeek: {
     fontSize: 14,
     color: '#666',
     marginBottom: 5,
+    fontFamily: "DMSans-Medium",
   },
   dateNumber: {
     fontSize: 50,
-    fontWeight: 'bold',
+    fontFamily: "DMSans-Medium",
     color: '#333',
   },
   infoColumn: {
@@ -153,10 +154,12 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 15,
     color: "gray",
+    fontFamily: "DMSans-Light",
   },
   value: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "bold",
+    fontFamily: "DMSans-Medium",
   },
   row: {
     flexDirection: "row",
@@ -173,7 +176,7 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 14,
-    fontWeight: "500",
+    fontFamily: "DMSans-Medium",
     flexShrink: 1,
   },
   actionButtonsContainer: {

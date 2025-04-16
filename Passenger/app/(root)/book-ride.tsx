@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
     },
     infoText: {
         fontSize: 16,
-        fontFamily: "JakartaRegular",
+        fontFamily: "DMSans",
     },
     price: {
         color: "#0CC25F",
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     },
     addressText: {
         fontSize: 16,
-        fontFamily: "JakartaRegular",
+        fontFamily: "DMSans",
         marginLeft: 8,
     },
     icon: {
