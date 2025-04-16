@@ -51,7 +51,7 @@ const ReservationCard: React.FC<{
                     title="Start Ride"
                     onPress={onStart}
                     bgVariant="primary"
-                    style={styles.rescheduleButton}
+                    style={styles.startButton}
                   />
                 <CustomButton 
                   title="Cancel"
@@ -94,16 +94,17 @@ const ReservationCard: React.FC<{
         justifyContent: 'center',
         borderRightWidth: 1,
         borderRightColor: '#E0E0E0',
-        paddingRight: 10,
+        paddingRight: 13,
       },
       dayOfWeek: {
         fontSize: 14,
         color: '#666',
         marginBottom: 5,
+        fontFamily: "DMSans-Medium",
       },
       dateNumber: {
         fontSize: 50,
-        fontWeight: 'bold',
+        fontFamily: "DMSans-Medium",
         color: '#333',
       },
       infoColumn: {
@@ -112,18 +113,19 @@ const ReservationCard: React.FC<{
       },
       infoRow: {
         flexDirection: "row",
-        justifyContent: "flex-start",
+        justifyContent: "space-between",
         alignItems: "center",
         marginBottom: 10,
       },
       label: {
-        flex: 1,
         fontSize: 15,
         color: "gray",
+        fontFamily: "DMSans-Light",
       },
       value: {
         fontSize: 14,
-        fontWeight: "bold",
+        fontFamily: "DMSans-Medium",
+        
       },
       row: {
         flexDirection: "row",
@@ -131,33 +133,24 @@ const ReservationCard: React.FC<{
         justifyContent: "flex-start",
         paddingTop: 10,
       },
-      mapImage: {
-        flex: 1,
-        width: 80,
-        height: 90,
-        borderRadius: 10,
-      },
       detailsContainer: {
-        flex: 1,
-        marginRight: 80,
         marginBottom: 15,
       },
       icon: {
         width: 20,
         height: 20,
-        marginRight: 5,
+        marginRight: 10,
       },
       text: {
         fontSize: 14,
-        fontWeight: "500",
+        fontFamily: "DMSans-Medium",
         flexShrink: 1,
       },
       actionButtonsContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginTop: 10,
       },
-      rescheduleButton: {
+      startButton: {
         flex: 1,
         paddingVertical: 10,
         paddingHorizontal: 15,

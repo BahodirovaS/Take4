@@ -19,11 +19,29 @@ import * as FileSystem from "expo-file-system";
 
 import CustomButton from "@/components/CustomButton";
 import InputField from "@/components/InputField";
-import { useUser } from "@clerk/clerk-expo";
+import { useAuth, useUser } from "@clerk/clerk-expo";
 
 const DriverInfo = () => {
     const router = useRouter();
     const { user } = useUser();
+    const { signOut } = useAuth();
+
+    const handleSignOut = async () => {
+        try {
+            if (driverDocId) {
+                await updateDoc(doc(db, "drivers", driverDocId), {
+                    status: false,
+                    last_offline: new Date()
+                });
+            }
+
+            await signOut();
+            router.replace("/(auth)/sign-in");
+        } catch (error) {
+            console.error('Error during sign out:', error);
+        }
+    };
+
 
     const [form, setForm] = useState({
         firstName: "",
@@ -187,8 +205,8 @@ const DriverInfo = () => {
             }
 
             const {
-                firstName, lastName, email, phoneNumber, address, dob, licence, 
-                vMake, vPlate,vInsurance, pets, carSeats, profilePhotoBase64
+                firstName, lastName, email, phoneNumber, address, dob, licence,
+                vMake, vPlate, vInsurance, pets, carSeats, profilePhotoBase64
             } = form;
 
             if (
@@ -379,8 +397,16 @@ const DriverInfo = () => {
                             bgVariant={form.pets ? "success" : "danger"}
                             style={styles.petsButton}
                         />
+                            <Text style={styles.toggleHint}>Click to toggle</Text>
+
                     </View>
-                    <CustomButton title="Update" onPress={onSubmit} style={styles.updateButton} />
+                    <CustomButton title="Update Profile" onPress={onSubmit} style={styles.updateButton} />
+                    <CustomButton 
+                            title="Log Out"
+                            onPress={handleSignOut}
+                            bgVariant="danger"
+                            style={styles.signOutButton}
+                        />
                 </ScrollView>
             </KeyboardAvoidingView>
         </SafeAreaView>
@@ -528,7 +554,24 @@ const styles = StyleSheet.create({
         color: "white",
         fontFamily: "DMSans-SemiBold",
     },
+    toggleHint: {
+        fontSize: 12,
+        color: "#666666",
+        fontFamily: "DMSans",
+        textAlign: "center",
+        marginTop: 4,
+        marginLeft: 15
+    },
     updateButton: {
         marginTop: 20,
+        justifyContent: 'center',
+        alignSelf: "center",
+        width: "60%"
+    },
+    signOutButton: {
+        marginTop: 30,
+        justifyContent: 'center',
+        alignSelf: "center",
+        width: "60%"
     },
 });

@@ -44,18 +44,20 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 18,
-    fontFamily: "DMSans-SemiBold",
+    fontFamily: "DMSans-Medium",
     marginBottom: 12,
-    color: "white",
   },
   inputWrapper: {
     flexDirection: 'row',
     justifyContent: 'flex-start',
     alignItems: 'center',
-    backgroundColor: 'white', // neutral-100 background color
-    borderRadius: 9999, // full rounded corners
+    backgroundColor: '#F3F4F6', 
+    borderRadius: 9999, 
     borderWidth: 1,
-    borderColor: '#F3F4F6', // neutral-100 border color
+    borderColor: '#F3F4F6', 
+  },
+  nonEditableWrapper: {
+    backgroundColor: '#F3F4F6', 
   },
   icon: {
     width: 24,
@@ -69,8 +71,13 @@ const styles = StyleSheet.create({
     fontFamily: "DMSans-SemiBold",
     fontSize: 15,
     textAlign: 'left',
-    borderRadius: 9999, // full rounded corners
+    borderRadius: 9999, 
+    color: '#000000', 
   },
+  nonEditableInput: {
+    color: '#808080', 
+    backgroundColor: 'transparent',
+  }
 });
 
 export default InputField;

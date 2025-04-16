@@ -173,7 +173,11 @@ const SignUp = () => {
                                 value={form.password}
                                 onChangeText={(value) => setForm({ ...form, password: value })}
                             />
-                            <CustomButton title="Sign Up" onPress={onSignUpPress} style={styles.signUpButton} />
+                            <CustomButton
+                                title="Sign Up"
+                                onPress={onSignUpPress}
+                                style={styles.signUpButton}
+                            />
                             <OAuth />
                             <Link href="/sign-in" style={styles.linkText}>
                                 Already have an account? <Text style={styles.linkHighlight}>Log In</Text>
@@ -234,7 +238,7 @@ const SignUp = () => {
                         </ReactNativeModal>
                     </View>
                 </ScrollView>
-                </SafeAreaView>
+            </SafeAreaView>
         </KeyboardAvoidingView>
     );
 };
@@ -263,7 +267,7 @@ const styles = StyleSheet.create({
     },
     headerTitle: {
         fontSize: 24,
-        fontFamily: "DMSans-SemiBold",
+        fontFamily: "DMSans-Medium",
         color: "black",
     },
     createContainer: {
@@ -277,7 +281,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         fontSize: 35,
-        fontFamily: "DMSans-SemiBold",
+        fontFamily: "DMSans-Light",
         color: "black",
         textAlign: "center",
     },
@@ -286,12 +290,15 @@ const styles = StyleSheet.create({
     },
     signUpButton: {
         marginTop: 24,
+        width: "60%",
+        alignSelf: "center",
     },
     linkText: {
         fontSize: 18,
+        fontFamily: "DMSans-Light",
         textAlign: "center",
         color: "#888",
-        marginTop: 40,
+        marginTop: 20,
     },
     linkHighlight: {
         color: "#289dd2",
@@ -327,7 +334,7 @@ const styles = StyleSheet.create({
         marginVertical: 20,
     },
     successTitle: {
-        fontFamily: "DMSansBold",
+        fontFamily: "DMSans-Bold",
         fontSize: 24,
         textAlign: "center",
     },

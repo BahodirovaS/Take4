@@ -58,25 +58,16 @@ const styles = StyleSheet.create({
   cardContainer: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
     backgroundColor: "white",
-    borderRadius: 10,
-    marginBottom: 10,
   },
   cardContent: {
     flex: 1,
-    // padding: 10,
   },
   row: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-start",
-    paddingTop: 10
-  },
-  mapImage: {
-    width: 80,
-    height: 90,
-    borderRadius: 10,
+    marginTop: 7,
   },
   detailsContainer: {
     flex: 1,
@@ -86,33 +77,32 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     marginRight: 5,
-    marginLeft: 5,
   },
   text: {
     fontSize: 14,
-    fontWeight: "500",
+    fontFamily: "DMSans-Medium",
     flexShrink: 1,
   },
   infoContainer: {
-    marginBottom: 10,
     backgroundColor: "#f0f0f0",
     borderRadius: 0,
     padding: 10,
+    marginBottom: 10,
   },
   infoRow: {
     flexDirection: "row",
-    justifyContent: "flex-start",
     alignItems: "center",
     marginBottom: 10,
   },
   label: {
     fontSize: 16,
-    color: "gray",
-    marginRight: 10
+    fontFamily: "DMSans-Medium",
+    marginRight: 10,
+    width: 60,
   },
   value: {
     fontSize: 14,
-    fontWeight: "bold",
+    fontFamily: "DMSans-Medium",
     flex: 1,
     marginLeft: 10,
   },
@@ -125,5 +115,4 @@ const styles = StyleSheet.create({
     textTransform: "capitalize",
   },
 });
-
 export default RideCard;
