@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
     },
     headerTitle: {
         fontSize: 24,
-        fontFamily: "JakartaSemiBold",
+        fontFamily: "DMSans-Medium",
         color: "black",
     },
     createContainer: {
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         fontSize: 35,
-        fontFamily: "JakartaSemiBold",
+        fontFamily: "DMSans-Medium",
         color: "black",
         textAlign: "center",
     },
@@ -294,12 +294,12 @@ const styles = StyleSheet.create({
         minHeight: 300,
     },
     modalTitle: {
-        fontFamily: "JakartaExtraBold",
+        fontFamily: "DMSans-ExtraBold",
         fontSize: 24,
         marginBottom: 10,
     },
     modalDescription: {
-        fontFamily: "Jakarta",
+        fontFamily: "DMSans",
         marginBottom: 20,
     },
     errorText: {
@@ -318,12 +318,12 @@ const styles = StyleSheet.create({
         marginVertical: 20,
     },
     successTitle: {
-        fontFamily: "JakartaBold",
+        fontFamily: "DMSans-Bold",
         fontSize: 24,
         textAlign: "center",
     },
     successDescription: {
-        fontFamily: "Jakarta",
+        fontFamily: "DMSans",
         fontSize: 16,
         color: "#888",
         textAlign: "center",

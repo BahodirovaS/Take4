@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     },
     headerTitle: {
         fontSize: 24,
-        fontFamily: "JakartaSemiBold",
+        fontFamily: "DMSans-SemiBold",
         color: "black",
     },
     welcomeContainer: {
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
         fontSize: 40,
         color: "black",
         fontWeight: "bold",
-        fontFamily: "Jakarta-Medium",
+        fontFamily: "DMSans-Medium",
         textAlign: "center"
     },
     formContainer: {

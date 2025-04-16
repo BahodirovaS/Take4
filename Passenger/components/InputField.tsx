@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 18,
-    fontFamily: "JakartaSemiBold",
+    fontFamily: "DMSans-Medium",
     marginBottom: 12,
   },
   inputWrapper: {
@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    fontFamily: "JakartaSemiBold",
+    fontFamily: "DMSans-SemiBold",
     fontSize: 15,
     textAlign: 'left',
     borderRadius: 9999, 
