@@ -139,6 +139,8 @@ const styles = StyleSheet.create({
     },
     button: {
         marginTop: 24,
+        width: "60%",
+        alignSelf: "center",
     },
     link: {
         fontSize: 18,

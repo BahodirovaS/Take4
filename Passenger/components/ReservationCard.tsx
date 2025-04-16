@@ -158,7 +158,6 @@ const styles = StyleSheet.create({
   },
   value: {
     fontSize: 15,
-    fontWeight: "bold",
     fontFamily: "DMSans-Medium",
   },
   row: {

@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    fontFamily: "DMSans-Light",
+    fontFamily: "DMSans-Medium",
     marginRight: 10,
     width: 60,
   },

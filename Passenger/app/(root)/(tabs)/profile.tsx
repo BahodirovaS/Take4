@@ -428,10 +428,6 @@ const styles = StyleSheet.create({
         alignSelf: "center",
         width: "40%"
     },
-    signOutIcon: {
-        width: 16,
-        height: 16,
-    },
 });
 
 export default Profile;
