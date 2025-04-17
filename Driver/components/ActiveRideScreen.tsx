@@ -8,27 +8,22 @@ import {
     Linking,
     Platform,
     ScrollView,
-    ActivityIndicator,
     SafeAreaView,
-    StatusBar,
 } from 'react-native';
-import { doc, updateDoc, onSnapshot, collection, addDoc, query, where, getDocs, limit } from 'firebase/firestore';
-import { db } from '@/lib/firebase'
 import { Ionicons } from '@expo/vector-icons';
-import * as Location from 'expo-location';
-import { Ride } from '@/types/type'
+import { Ride, PassengerInfo, ActiveRideProps } from '@/types/type';
 import DriverMap from "@/components/DriverMap";
 import { useLocationStore } from '@/store';
-import { ActiveRideProps } from '@/types/type';
 import { router } from 'expo-router';
 import CustomButton from './CustomButton';
-
-interface PassengerInfo {
-    id: string;
-    firstName: string;
-    lastName: string;
-    photoUrl?: string;
-}
+import { 
+    fetchPassengerInfo, 
+    subscribeToRideDetails, 
+    setupLocationTracking,
+    markArrivedAtPickup,
+    startRide,
+    completeRide
+} from '@/lib/fetch';
 
 const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCancel }) => {
     const [ride, setRide] = useState<Ride | null>(null);
@@ -38,209 +33,137 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
     const [passengerInfo, setPassengerInfo] = useState<PassengerInfo | null>(null);
     const [loadingPassenger, setLoadingPassenger] = useState<boolean>(false);
 
-
     const locationStore = useLocationStore();
     const { setUserLocation, setDestinationLocation } = locationStore;
 
-    // Fetch passenger info from the database
-    const fetchPassengerInfo = async (userId: string) => {
-        if (!userId) return;
-
-        setLoadingPassenger(true);
-        try {
-            // Query passengers collection where clerkId matches the ride.user_id
-            const passengersQuery = query(
-                collection(db, "passengers"),
-                where("clerkId", "==", userId),
-                limit(1)
-            );
-
-            const passengersSnapshot = await getDocs(passengersQuery);
-
-            if (!passengersSnapshot.empty) {
-                const passengerDoc = passengersSnapshot.docs[0];
-                const data = passengerDoc.data();
-                setPassengerInfo({
-                    id: userId,
-                    firstName: data.firstName || "Unknown",
-                    lastName: data.lastName || "",
-                    photoUrl: data.photoUrl
-                });
-            } else {
-                setPassengerInfo({
-                    id: userId,
-                    firstName: "Passenger",
-                    lastName: "",
-                });
-            }
-        } catch (error) {
-            setPassengerInfo({
-                id: userId,
-                firstName: "Passenger",
-                lastName: "",
-            });
-        } finally {
-            setLoadingPassenger(false);
-        }
+    // Handle ride status changes based on status from Firestore
+    const handleRideStatusChange = (status: string) => {
+        const newRideStage = 
+            status === 'accepted' ? 'to_pickup' :
+            status === 'arrived_at_pickup' ? 'to_destination' :
+            status === 'in_progress' ? 'to_destination' :
+            'to_pickup';
+        
+        setRideStage(newRideStage);
     };
 
+    // Load passenger information when needed
+    const loadPassengerInfo = async (userId: string) => {
+        if (!userId) return;
+        
+        setLoadingPassenger(true);
+        const info = await fetchPassengerInfo(userId);
+        if (info) setPassengerInfo(info);
+        setLoadingPassenger(false);
+    };
+
+    // Handle ride data updates
+    const handleRideUpdate = (updatedRide: Ride) => {
+        setRide(updatedRide);
+        
+        if (updatedRide.user_id) {
+            loadPassengerInfo(updatedRide.user_id);
+        }
+
+        setDestinationLocation({
+            latitude: rideStage === 'to_pickup'
+                ? updatedRide.origin_latitude
+                : updatedRide.destination_latitude,
+            longitude: rideStage === 'to_pickup'
+                ? updatedRide.origin_longitude
+                : updatedRide.destination_longitude,
+            address: rideStage === 'to_pickup'
+                ? updatedRide.origin_address
+                : updatedRide.destination_address
+        });
+    };
+
+    // Set up ride details subscription and location tracking
     useEffect(() => {
         if (!rideId) {
             console.error("Error: rideId is undefined or null");
             setIsLoading(false);
             Alert.alert("Error", "No ride ID provided");
-            return () => { };
+            return () => {};
         }
 
-        const fetchRideDetails = async () => {
-            try {
-                const rideRef = doc(db, "rideRequests", rideId);
-
-                const unsubscribe = onSnapshot(rideRef, (docSnap) => {
-                    if (docSnap.exists()) {
-                        const data = docSnap.data();
-                        setRide({
-                            id: docSnap.id,
-                            origin_address: data.origin_address,
-                            destination_address: data.destination_address,
-                            origin_latitude: data.origin_latitude,
-                            origin_longitude: data.origin_longitude,
-                            destination_latitude: data.destination_latitude,
-                            destination_longitude: data.destination_longitude,
-                            user_id: data.user_id,
-                            ride_time: data.ride_time,
-                            fare_price: data.fare_price,
-                            payment_status: data.payment_status,
-                            driver_id: data.driver_id,
-                            created_at: data.createdAt?.toDate?.() || new Date(),
-                            driver: {
-                                first_name: data.driver?.first_name || "",
-                                last_name: data.driver?.last_name || "",
-                                car_seats: data.driver?.car_seats || 0,
-                            },
-                            status: data.status,
-                        });
-
-                        // Determine initial ride stage based on ride status
-                        const initialRideStage =
-                            data.status === 'accepted' ? 'to_pickup' :
-                                data.status === 'arrived_at_pickup' ? 'to_destination' :
-                                    data.status === 'in_progress' ? 'to_destination' :
-                                        'to_pickup';
-
-                        setRideStage(initialRideStage);
-
-                        if (data.user_id) {
-                            fetchPassengerInfo(data.user_id);
-                        }
-
-                        setDestinationLocation({
-                            latitude: rideStage === 'to_pickup'
-                                ? data.origin_latitude
-                                : data.destination_latitude,
-                            longitude: rideStage === 'to_pickup'
-                                ? data.origin_longitude
-                                : data.destination_longitude,
-                            address: rideStage === 'to_pickup'
-                                ? data.origin_address
-                                : data.destination_address
-                        });
-
-                        if (data.status === 'cancelled') {
-                            Alert.alert('Ride Cancelled', 'This ride has been cancelled by the passenger.');
-                            onCancel();
-                        }
-                    }
-                    setIsLoading(false);
-                });
-
-                return () => unsubscribe();
-            } catch (error) {
-                console.error("Error fetching ride details:", error);
+        // Subscribe to ride updates
+        const unsubscribeRide = subscribeToRideDetails(
+            rideId,
+            handleRideUpdate,
+            handleRideStatusChange,
+            (errorMsg) => {
                 setIsLoading(false);
-                Alert.alert("Error", "Failed to load ride details");
+                Alert.alert("Error", errorMsg);
             }
-        };
+        );
 
-        fetchRideDetails();
-    }, [rideId, rideStage, setDestinationLocation]);
-
-    useEffect(() => {
-        let locationSubscription: any;
-
-        const getLocationPermission = async () => {
-            const { status } = await Location.requestForegroundPermissionsAsync();
-
-            if (status !== 'granted') {
-                Alert.alert('Permission Denied', 'Location permission is required for navigation');
-                return;
-            }
-
-            const location = await Location.getCurrentPositionAsync({});
-            const { latitude, longitude } = location.coords;
-
-            // Update local state
-            setCurrentLocation({ latitude, longitude });
-
-            // Update user location in the store to enable route display
-            const address = await Location.reverseGeocodeAsync({
-                latitude,
-                longitude
-            }).catch(() => [{ name: "", region: "" }]);
-
-            setUserLocation({
-                latitude,
-                longitude,
-                address: `${address[0]?.name || ""}, ${address[0]?.region || ""}`,
-            });
-
-            // Subscribe to location updates
-            locationSubscription = await Location.watchPositionAsync(
-                {
-                    accuracy: Location.Accuracy.High,
-                    distanceInterval: 10, // Update every 10 meters
-                },
-                async (location) => {
-                    const { latitude, longitude } = location.coords;
-                    setCurrentLocation({ latitude, longitude });
-
-                    // Update location store with current position
+        // Set up location tracking
+        const setupLocation = async () => {
+            const locationSubscription = await setupLocationTracking(
+                rideId,
+                (location) => {
+                    setCurrentLocation(location);
                     setUserLocation({
-                        latitude,
-                        longitude,
-                        address: `${address[0]?.name || ""}, ${address[0]?.region || ""}`,
+                        latitude: location.latitude,
+                        longitude: location.longitude,
+                        address: "",  // Will be filled by the resolved address
                     });
-
-                    // Update driver location in Firestore
-                    if (rideId) {
-                        updateDoc(doc(db, "rideRequests", rideId), {
-                            driver_current_latitude: latitude,
-                            driver_current_longitude: longitude,
-                            last_location_update: new Date(),
-                        }).catch(err => console.error("Error updating driver location:", err));
-                    }
-                }
+                },
+                (address) => {
+                    // Create a new location object with the updated address
+                    const updatedLocation = {
+                        ...currentLocation,
+                        latitude: currentLocation?.latitude || 0,
+                        longitude: currentLocation?.longitude || 0,
+                        address
+                    };
+                    setUserLocation(updatedLocation);
+                },
+                (errorMsg) => Alert.alert("Location Error", errorMsg)
             );
+
+            setIsLoading(false);
+            return locationSubscription;
         };
 
-        getLocationPermission();
+        let locationSubscription: any;
+        setupLocation().then(sub => {
+            locationSubscription = sub;
+        });
 
+        // Cleanup function
         return () => {
+            unsubscribeRide();
             if (locationSubscription) {
                 locationSubscription.remove();
             }
         };
-    }, [rideId, setUserLocation]);
+    }, [rideId]);
+
+    // Update destination when ride stage changes
+    useEffect(() => {
+        if (ride) {
+            setDestinationLocation({
+                latitude: rideStage === 'to_pickup'
+                    ? ride.origin_latitude
+                    : ride.destination_latitude,
+                longitude: rideStage === 'to_pickup'
+                    ? ride.origin_longitude
+                    : ride.destination_longitude,
+                address: rideStage === 'to_pickup'
+                    ? ride.origin_address
+                    : ride.destination_address
+            });
+        }
+    }, [rideStage, ride, setDestinationLocation]);
 
     const handleArriveAtPickup = async () => {
-        try {
-            await updateDoc(doc(db, "rideRequests", rideId), {
-                status: 'arrived_at_pickup',
-                arrived_at_pickup_time: new Date()
-            });
-
+        const success = await markArrivedAtPickup(rideId);
+        
+        if (success) {
             setRideStage('to_destination');
-
+            
             if (ride) {
                 setDestinationLocation({
                     latitude: ride.destination_latitude,
@@ -248,25 +171,19 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
                     address: ride.destination_address
                 });
             }
-
+            
             Alert.alert("Arrived", "Let the passenger know you've arrived");
-        } catch (error) {
-            console.error("Error updating ride status:", error);
+        } else {
             Alert.alert("Error", "Could not update ride status");
         }
     };
 
     const handleStartRide = async () => {
-        try {
-            await updateDoc(doc(db, "rideRequests", rideId), {
-                status: 'in_progress',
-                ride_start_time: new Date()
-            });
-
-            // Change ride stage to destination
+        const success = await startRide(rideId);
+        
+        if (success) {
             setRideStage('to_destination');
-
-            // Update destination location to the ride's final destination
+            
             if (ride) {
                 setDestinationLocation({
                     latitude: ride.destination_latitude,
@@ -274,64 +191,41 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
                     address: ride.destination_address
                 });
             }
-
+            
             Alert.alert("Ride Started", "Navigate to destination");
-        } catch (error) {
-            console.error("Error updating ride status:", error);
+        } else {
             Alert.alert("Error", "Could not start the ride");
         }
     };
 
     const handleCompleteRide = async () => {
-        try {
-            const {
-                userLatitude,
-                userLongitude,
-                userAddress,
-                destinationLatitude,
-                destinationLongitude,
-                destinationAddress
-            } = locationStore;
-
-            // Update current ride request status to completed
-            await updateDoc(doc(db, "rideRequests", rideId), {
-                status: 'completed',
-                ride_end_time: new Date()
-            });
-
-            // Add completed ride to Firestore 'completedRides' collection
-            const completedRideData = {
-                origin_address: userAddress,
-                destination_address: destinationAddress,
-                origin_latitude: userLatitude,
-                origin_longitude: userLongitude,
-                destination_latitude: destinationLatitude,
-                destination_longitude: destinationLongitude,
-                ride_time: Math.round(Date.now() / 1000),
-                fare_price: ride?.fare_price || 0,
-                payment_status: "paid",
-                driver_id: ride?.driver_id,
-                user_id: ride?.user_id,
-                rideRequestId: rideId, // Reference to original ride request
-                created_at: new Date(),
-                completed_at: new Date()
-            };
-
-            // Add to completedRides collection
-            await addDoc(collection(db, "completedRides"), completedRideData);
-
+        if (!ride) return;
+        
+        const success = await completeRide(
+            rideId, 
+            ride,
+            {
+                userLatitude: locationStore.userLatitude,
+                userLongitude: locationStore.userLongitude,
+                userAddress: locationStore.userAddress || "",
+                destinationLatitude: locationStore.destinationLatitude,
+                destinationLongitude: locationStore.destinationLongitude,
+                destinationAddress: locationStore.destinationAddress || ""
+            }
+        );
+        
+        if (success) {
             Alert.alert(
                 "Ride Completed",
                 "The ride has been marked as completed",
                 [{
                     text: "OK",
                     onPress: () => {
-                        router.replace('/(root)/(tabs)/home')
+                        router.replace('/(root)/(tabs)/home');
                     }
                 }]
             );
-        } catch (error) {
-            console.error("Error completing ride:", error);
+        } else {
             Alert.alert("Error", "Could not complete the ride");
         }
     };
@@ -556,20 +450,7 @@ const styles = StyleSheet.create({
     },
     customActionButton: {
         width: '100%',
-    },
-    startRideButton: {
-        backgroundColor: '#EA4335',
-        paddingVertical: 22,
-        borderRadius: 8,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 32,
-    },
-    buttonText: {
-        color: 'white',
-        fontWeight: 'bold',
-        marginLeft: 4,
-    },
+    }
 });
 
 export default ActiveRideScreen;

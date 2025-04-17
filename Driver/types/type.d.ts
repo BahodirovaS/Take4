@@ -32,6 +32,12 @@ declare interface MarkerData {
   status: boolean;
 }
 
+declare interface PassengerInfo {
+  id: string;
+  firstName: string;
+  lastName: string;
+  photoUrl?: string;
+}
 
 declare interface MapProps {
   destinationLatitude?: number;

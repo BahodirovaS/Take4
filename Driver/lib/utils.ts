@@ -57,18 +57,13 @@ export const formatReservationCardDate = (dateString: string) => {
   ];
   const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-  
   const match = dateString.match(/^(\w+), (\w+) (\d+)$/);
   
   if (match) {
     const dayOfWeek = match[1];
     const monthName = match[2];
     const day = parseInt(match[3]);
-
-    
-    const monthIndex = monthNames.findIndex(m => m === monthName);
-    
-    
+    const monthIndex = monthNames.findIndex(m => m === monthName);    
     const currentYear = new Date().getFullYear();
     const date = new Date(currentYear, monthIndex, day);
 
@@ -78,10 +73,7 @@ export const formatReservationCardDate = (dateString: string) => {
       dateNumber: day
     };
   }
-
-  
   const date = new Date(dateString);
-  
   if (!isNaN(date.getTime())) {
     return {
       dayOfWeek: daysOfWeek[date.getDay()],
@@ -89,8 +81,6 @@ export const formatReservationCardDate = (dateString: string) => {
       dateNumber: date.getDate()
     };
   }
-
-  
   return {
     dayOfWeek: 'Unknown',
     dateNumber: 'N/A'
@@ -118,22 +108,19 @@ export const createDriver = async (driverData: any) => {
   }
 };
 
+
 export const checkDriverExists = async (email: string) => {
   try {
-    // Query drivers collection by email
     const driversRef = collection(db, "drivers");
     const q = query(driversRef, where("email", "==", email));
     const querySnapshot = await getDocs(q);
-    
     if (querySnapshot.empty) {
       return {
         exists: false,
         data: null
       };
     }
-    
-    // Return driver data if found
-    const driverDoc = querySnapshot.docs[0];
+        const driverDoc = querySnapshot.docs[0];
     return {
       exists: true,
       data: {
