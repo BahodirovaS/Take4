@@ -32,11 +32,34 @@ const getTextVariantStyle = (variant: ButtonProps["textVariant"]): TextStyle => 
   }
 };
 
+const getButtonSizeStyle = (size: ButtonProps["size"]): ViewStyle => {
+  switch (size) {
+    case "small":
+      return styles.buttonSmall;
+    case "large":
+      return styles.buttonLarge;
+    default:
+      return {}; // Default size (medium)
+  }
+};
+
+const getTextSizeStyle = (size: ButtonProps["size"]): TextStyle => {
+  switch (size) {
+    case "small":
+      return styles.textSmall;
+    case "large":
+      return styles.textLarge;
+    default:
+      return {}; // Default size (medium)
+  }
+};
+
 const CustomButton = ({
   onPress,
   title,
   bgVariant = "primary",
   textVariant = "default",
+  size = "medium",
   IconLeft,
   IconRight,
   style, // Accept the external style
@@ -45,11 +68,22 @@ const CustomButton = ({
   return (
     <TouchableOpacity
       onPress={onPress}
-      style={[styles.button, getBgVariantStyle(bgVariant), style]} // Merge styles
+      style={[
+        styles.button, 
+        getBgVariantStyle(bgVariant), 
+        getButtonSizeStyle(size),
+        style
+      ]} // Merge styles
       {...props}
     >
       {IconLeft && <IconLeft />}
-      <Text style={[styles.text, getTextVariantStyle(textVariant)]}>
+      <Text 
+        style={[
+          styles.text, 
+          getTextVariantStyle(textVariant),
+          getTextSizeStyle(size)
+        ]}
+      >
         {title}
       </Text>
       {IconRight && <IconRight />}
@@ -70,6 +104,12 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
   },
+  buttonSmall: {
+    padding: 8,
+  },
+  buttonLarge: {
+    padding: 16,
+  },
   bgPrimary: { backgroundColor: "#289dd2" },
   bgSecondary: { backgroundColor: "#6B7280" },
   bgDanger: { backgroundColor: "#E53935" },
@@ -79,7 +119,15 @@ const styles = StyleSheet.create({
     borderColor: "#D1D5DB",
     borderWidth: 0.5,
   },
-  text: { fontSize: 18, fontFamily: "DMSans-Bold",
+  text: { 
+    fontSize: 17, 
+    fontFamily: "DMSans-Bold",
+  },
+  textSmall: {
+    fontSize: 14,
+  },
+  textLarge: {
+    fontSize: 20,
   },
   textDefault: { color: "#FFFFFF" },
   textPrimary: { color: "#000000" },

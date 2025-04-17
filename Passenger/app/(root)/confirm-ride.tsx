@@ -77,13 +77,13 @@ const styles = StyleSheet.create({
         marginBottom: 15,
     },
     reservationTitle: {
-        fontSize: 16,
+        fontSize: 18,
         fontFamily: "DMSans-SemiBold",
         color: "#0066CC",
         marginBottom: 5,
     },
     reservationText: {
-        fontSize: 14,
+        fontSize: 16,
         fontFamily: "DMSans",
     },
     footer: {

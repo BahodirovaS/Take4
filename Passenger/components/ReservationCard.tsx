@@ -86,12 +86,14 @@ const ReservationCard: React.FC<{
                   title="Reschedule"
                   onPress={onReschedule}
                   bgVariant="primary"
+                  size="small"
                   style={styles.rescheduleButton}
                 />
                 <CustomButton 
                   title="Cancel"
                   onPress={onCancel}
                   bgVariant="danger"
+                  size="small"
                   style={styles.cancelButton}
                 />
               </View>
@@ -174,7 +176,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   text: {
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: "DMSans-Medium",
     flexShrink: 1,
   },

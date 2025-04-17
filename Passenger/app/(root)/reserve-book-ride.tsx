@@ -112,12 +112,12 @@ const styles = StyleSheet.create({
         marginBottom: 15,
     },
     reservationTitle: {
-        fontSize: 16,
+        fontSize: 18,
         fontFamily: "DMSans-SemiBold",
         color: "#0066CC",
     },
     reservationDetails: {
-        fontSize: 14,
+        fontSize: 17,
         fontFamily: "DMSans",
         marginTop: 5,
     },

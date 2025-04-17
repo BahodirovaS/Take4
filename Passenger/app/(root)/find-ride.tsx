@@ -35,7 +35,7 @@ const FindRide: React.FC = () => {
                     icon={icons.map}
                     initialLocation={destinationAddress!}
                     containerStyle="bg-neutral-100"
-                    textInputBackgroundColor="transparent"
+                    textInputBackgroundColor="#f5f5f5"
                     handlePress={(location) => setDestinationLocation(location)}
                 />
             </View>
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         marginTop: 20,
         marginBottom: 70,
-        gap:15
+        gap: 10,
     },
     button: {
         flex: 1,
