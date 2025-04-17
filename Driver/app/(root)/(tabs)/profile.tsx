@@ -566,12 +566,12 @@ const styles = StyleSheet.create({
         marginTop: 20,
         justifyContent: 'center',
         alignSelf: "center",
-        width: "60%"
+        width: "70%"
     },
     signOutButton: {
         marginTop: 30,
         justifyContent: 'center',
         alignSelf: "center",
-        width: "60%"
+        width: "70%"
     },
 });

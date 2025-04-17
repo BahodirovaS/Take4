@@ -41,7 +41,7 @@ const ReservationCard: React.FC<{
                 </View>
                 <View style={styles.row}>
                   <Image source={icons.point} style={styles.icon} />
-                  <Text style={styles.text} numberOfLines={1}>
+                  <Text style={styles.text} numberOfLines={3}>
                     {ride.destination_address}
                   </Text>
                 </View>
@@ -51,12 +51,14 @@ const ReservationCard: React.FC<{
                     title="Start Ride"
                     onPress={onStart}
                     bgVariant="primary"
+                    size="small"
                     style={styles.startButton}
                   />
                 <CustomButton 
                   title="Cancel"
                   onPress={onCancel}
                   bgVariant="danger"
+                  size="small"
                   style={styles.cancelButton}
                 />
               </View>

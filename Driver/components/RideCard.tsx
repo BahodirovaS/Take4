@@ -23,13 +23,13 @@ const RideCard: React.FC<{ ride: Ride }> = ({ ride }) => {
             <View style={styles.detailsContainer}>
               <View style={styles.row}>
                 <Image source={icons.to} style={styles.icon} />
-                <Text style={styles.text} numberOfLines={1}>
+                <Text style={styles.text} numberOfLines={2}>
                   {ride.origin_address}
                 </Text>
               </View>
               <View style={styles.row}>
                 <Image source={icons.point} style={styles.icon} />
-                <Text style={styles.text} numberOfLines={1}>
+                <Text style={styles.text} numberOfLines={2}>
                   {ride.destination_address}
                 </Text>
               </View>

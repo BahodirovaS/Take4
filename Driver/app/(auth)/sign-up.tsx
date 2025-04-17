@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
     },
     signUpButton: {
         marginTop: 24,
-        width: "60%",
+        width: "70%",
         alignSelf: "center",
     },
     linkText: {
