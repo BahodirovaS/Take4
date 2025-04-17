@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { doc, updateDoc, onSnapshot, collection, addDoc, query, where, getDocs, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import * as Location from 'expo-location';
-import { Ride, PassengerInfo } from '@/types/type';
+import { Ride, ActiveRideData, PassengerInfo } from '@/types/type';
 import { Alert } from 'react-native';
 
 const DEFAULT_TIMEOUT = 5000;
@@ -316,5 +316,210 @@ export const completeRide = async (
   } catch (error) {
       console.error("Error completing ride:", error);
       return false;
+  }
+};
+
+/**
+ * Fetches and subscribes to user's current location
+ */
+export const getUserLocation = async (
+  onLocationUpdate: (location: { 
+    latitude: number; 
+    longitude: number; 
+    address: string;
+  }) => void
+) => {
+  try {
+    let { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== "granted") {
+      return null;
+    }
+
+    let location = await Location.getCurrentPositionAsync({});
+    const address = await Location.reverseGeocodeAsync({
+      latitude: location.coords?.latitude!,
+      longitude: location.coords?.longitude!,
+    }).catch(() => [{ name: "", region: "" }]);
+
+    const locationData = {
+      latitude: location.coords?.latitude || 0,
+      longitude: location.coords?.longitude || 0,
+      address: `${address[0]?.name || ""}, ${address[0]?.region || ""}`,
+    };
+
+    onLocationUpdate(locationData);
+    return locationData;
+  } catch (error) {
+    console.error("Error fetching location:", error);
+    return null;
+  }
+};
+
+/**
+ * Fetches driver status and subscribes to changes
+ */
+export const getDriverStatus = (
+  userId: string,
+  onStatusUpdate: (driverId: string, status: boolean) => void,
+  onError: (error: any) => void
+) => {
+  try {
+    const driversRef = collection(db, "drivers");
+    const q = query(driversRef, where("clerkId", "==", userId));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (!snapshot.empty) {
+        const driverDoc = snapshot.docs[0];
+        const driverData = driverDoc.data();
+
+        onStatusUpdate(driverDoc.id, driverData.status || false);
+      }
+    }, onError);
+
+    return unsubscribe;
+  } catch (error) {
+    console.error("Error subscribing to driver status:", error);
+    onError(error);
+    return () => {};
+  }
+};
+
+/**
+ * Updates the driver's online status
+ */
+export const updateDriverStatus = async (
+  driverDocId: string,
+  newStatus: boolean
+): Promise<boolean> => {
+  try {
+    await updateDoc(doc(db, "drivers", driverDocId), {
+      status: newStatus,
+      [newStatus ? 'last_online' : 'last_offline']: new Date()
+    });
+    return true;
+  } catch (error) {
+    console.error('Error updating status:', error);
+    return false;
+  }
+};
+
+/**
+ * Fetches and subscribes to ride history
+ */
+export const getRideHistory = (
+  userId: string,
+  onRidesUpdate: (rides: Ride[]) => void,
+  onError: (error: any) => void
+) => {
+  try {
+    const ridesRef = collection(db, "rideRequests");
+    const q = query(
+      ridesRef,
+      where("driver_id", "==", userId),
+      where("status", "in", ["completed", "accepted"])
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const rides = snapshot.docs.map((doc) => {
+        const data = doc.data();
+
+        return {
+          id: doc.id,
+          origin_address: data.origin_address,
+          destination_address: data.destination_address,
+          origin_latitude: data.origin_latitude,
+          origin_longitude: data.origin_longitude,
+          destination_latitude: data.destination_latitude,
+          destination_longitude: data.destination_longitude,
+          ride_time: data.ride_time,
+          fare_price: data.fare_price,
+          payment_status: data.payment_status,
+          driver_id: String(data.driver_id),
+          user_id: data.user_id,
+          created_at: data.createdAt && typeof data.createdAt.toDate === 'function'
+            ? data.createdAt.toDate().toISOString()
+            : new Date().toISOString(),
+          driver: {
+            first_name: data.driver?.first_name || "",
+            last_name: data.driver?.last_name || "",
+            car_seats: data.driver?.car_seats || 0,
+          },
+          status: data.status
+        } as Ride;
+      });
+
+      // Sort by created_at date, most recent first
+      rides.sort((a, b) => {
+        const timeA = new Date(a.created_at).getTime();
+        const timeB = new Date(b.created_at).getTime();
+        return timeB - timeA;
+      });
+
+      onRidesUpdate(rides);
+    }, onError);
+
+    return unsubscribe;
+  } catch (error) {
+    console.error("Error subscribing to ride history:", error);
+    onError(error);
+    return () => {};
+  }
+};
+
+/**
+ * Checks and subscribes to any active rides
+ */
+export const checkActiveRides = (
+  userId: string,
+  onActiveRideUpdate: (hasActiveRide: boolean, activeRideData: ActiveRideData | null) => void,
+  onError: (error: any) => void
+) => {
+  try {
+    const activeRidesQuery = query(
+      collection(db, "rideRequests"),
+      where("driver_id", "==", userId),
+      where("status", "in", ["accepted", "arrived_at_pickup", "in_progress"])
+    );
+
+    const unsubscribe = onSnapshot(activeRidesQuery, (snapshot) => {
+      if (!snapshot.empty) {
+        const rideDoc = snapshot.docs[0];
+        const rideData = rideDoc.data();
+
+        onActiveRideUpdate(true, {
+          rideId: rideDoc.id,
+          status: rideData.status,
+          destination: rideData.destination_address
+        });
+      } else {
+        onActiveRideUpdate(false, null);
+      }
+    }, onError);
+
+    return unsubscribe;
+  } catch (error) {
+    console.error("Error checking active rides:", error);
+    onError(error);
+    return () => {};
+  }
+};
+
+/**
+ * Updates driver status during sign out
+ */
+export const updateDriverStatusOnSignOut = async (
+  driverDocId: string | null
+): Promise<boolean> => {
+  if (!driverDocId) return true;
+  
+  try {
+    await updateDoc(doc(db, "drivers", driverDocId), {
+      status: false,
+      last_offline: new Date()
+    });
+    return true;
+  } catch (error) {
+    console.error('Error updating status during sign out:', error);
+    return false;
   }
 };
