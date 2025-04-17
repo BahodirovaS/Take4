@@ -27,7 +27,7 @@ const ReservationCard: React.FC<{
             </View>
             <View style={styles.infoColumn}>
               <View style={styles.infoRow}>
-                <Text style={styles.label}>Time</Text>
+                <Text style={styles.label}>Pickup Time</Text>
                 <Text style={styles.value} numberOfLines={1}>
                   {ride.scheduled_time}
                 </Text>
@@ -120,12 +120,12 @@ const ReservationCard: React.FC<{
         marginBottom: 10,
       },
       label: {
-        fontSize: 15,
+        fontSize: 18,
         color: "gray",
         fontFamily: "DMSans-Light",
       },
       value: {
-        fontSize: 14,
+        fontSize: 18,
         fontFamily: "DMSans-Medium",
         
       },

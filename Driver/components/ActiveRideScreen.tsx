@@ -45,7 +45,7 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
     // Fetch passenger info from the database
     const fetchPassengerInfo = async (userId: string) => {
         if (!userId) return;
-        
+
         setLoadingPassenger(true);
         try {
             // Query passengers collection where clerkId matches the ride.user_id
@@ -54,9 +54,9 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
                 where("clerkId", "==", userId),
                 limit(1)
             );
-            
+
             const passengersSnapshot = await getDocs(passengersQuery);
-            
+
             if (!passengersSnapshot.empty) {
                 const passengerDoc = passengersSnapshot.docs[0];
                 const data = passengerDoc.data();
@@ -87,7 +87,7 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
     useEffect(() => {
         if (!rideId) {
             console.error("Error: rideId is undefined or null");
-            setIsLoading(false);    
+            setIsLoading(false);
             Alert.alert("Error", "No ride ID provided");
             return () => { };
         }
@@ -122,12 +122,12 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
                         });
 
                         // Determine initial ride stage based on ride status
-                        const initialRideStage = 
+                        const initialRideStage =
                             data.status === 'accepted' ? 'to_pickup' :
-                            data.status === 'arrived_at_pickup' ? 'to_destination' :
-                            data.status === 'in_progress' ? 'to_destination' :
-                            'to_pickup';
-    
+                                data.status === 'arrived_at_pickup' ? 'to_destination' :
+                                    data.status === 'in_progress' ? 'to_destination' :
+                                        'to_pickup';
+
                         setRideStage(initialRideStage);
 
                         if (data.user_id) {
@@ -135,14 +135,14 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
                         }
 
                         setDestinationLocation({
-                            latitude: rideStage === 'to_pickup' 
-                                ? data.origin_latitude 
+                            latitude: rideStage === 'to_pickup'
+                                ? data.origin_latitude
                                 : data.destination_latitude,
-                            longitude: rideStage === 'to_pickup' 
-                                ? data.origin_longitude 
+                            longitude: rideStage === 'to_pickup'
+                                ? data.origin_longitude
                                 : data.destination_longitude,
-                            address: rideStage === 'to_pickup' 
-                                ? data.origin_address 
+                            address: rideStage === 'to_pickup'
+                                ? data.origin_address
                                 : data.destination_address
                         });
 
@@ -181,13 +181,13 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
 
             // Update local state
             setCurrentLocation({ latitude, longitude });
-            
+
             // Update user location in the store to enable route display
             const address = await Location.reverseGeocodeAsync({
                 latitude,
                 longitude
             }).catch(() => [{ name: "", region: "" }]);
-            
+
             setUserLocation({
                 latitude,
                 longitude,
@@ -262,7 +262,7 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
                 status: 'in_progress',
                 ride_start_time: new Date()
             });
-            
+
             // Change ride stage to destination
             setRideStage('to_destination');
 
@@ -284,13 +284,13 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
 
     const handleCompleteRide = async () => {
         try {
-            const { 
-                userLatitude, 
-                userLongitude, 
-                userAddress, 
-                destinationLatitude, 
-                destinationLongitude, 
-                destinationAddress 
+            const {
+                userLatitude,
+                userLongitude,
+                userAddress,
+                destinationLatitude,
+                destinationLongitude,
+                destinationAddress
             } = locationStore;
 
             // Update current ride request status to completed
@@ -366,7 +366,7 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
             Alert.alert("Error", "Cannot find passenger information");
             return;
         }
-        
+
         router.push({
             pathname: "/chat",
             params: {
@@ -395,29 +395,29 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.topBar}>
-            <TouchableOpacity 
-                    style={styles.backButton} 
+                <TouchableOpacity
+                    style={styles.backButton}
                     onPress={handleGoToHome}
                 >
                     <Ionicons name="arrow-back" size={24} color="#333" />
                 </TouchableOpacity>
                 <Text style={styles.topBarText}>Active Ride</Text>
             </View>
-            
+
             <View style={styles.mapContainer}>
-                <DriverMap showLocationButton={true}/>
+                <DriverMap showLocationButton={true} />
             </View>
 
             <View style={styles.rideInfoContainer}>
                 <ScrollView style={styles.infoScroll}>
                     <View style={styles.headerContainer}>
                         <Text style={styles.stageText}>
-                            {rideStage === 'to_pickup' 
-                                ? `Heading to pickup ${passengerInfo?.firstName || 'passenger'}` 
+                            {rideStage === 'to_pickup'
+                                ? `Heading to pickup ${passengerInfo?.firstName || 'passenger'}`
                                 : `Taking ${passengerInfo?.firstName || 'passenger'} to destination`}
                         </Text>
                     </View>
-                    
+
                     <Text style={styles.addressText}>
                         {rideStage === 'to_pickup' ? ride.origin_address : ride.destination_address}
                     </Text>
@@ -428,7 +428,7 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
                         title="Navigate"
                         bgVariant="primary"
                         onPress={openGoogleMapsNavigation}
-                        IconLeft={() => <Ionicons name="navigate" size={20} color="white" />}
+                        IconLeft={() => <Ionicons name="navigate" size={20} color="white" marginRight="5"/>}
                         style={styles.navigationButton}
                     />
 
@@ -436,7 +436,7 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
                         title="Message"
                         bgVariant="secondary"
                         onPress={handleMessagePassenger}
-                        IconLeft={() => <Ionicons name="chatbubble-ellipses-outline" size={20} color="white" />}
+                        IconLeft={() => <Ionicons name="chatbubble-ellipses-outline" size={20} color="white" marginRight="5"/>}
                         style={styles.messageButton}
                     />
                 </View>
@@ -496,7 +496,7 @@ const styles = StyleSheet.create({
     },
     topBarText: {
         fontSize: 18,
-        fontWeight: 'bold',
+        fontFamily: "DMSans-Medium",
         color: '#333',
     },
     mapContainer: {
@@ -528,13 +528,14 @@ const styles = StyleSheet.create({
     },
     stageText: {
         fontSize: 20,
-        fontWeight: 'bold',
+        fontFamily: "DMSans-Bold",
         marginBottom: 4,
     },
     addressText: {
         fontSize: 20,
         marginBottom: 8,
         marginTop: 8,
+        fontFamily: "DMSans-Medium",
     },
     buttonContainer: {
         flexDirection: 'row',

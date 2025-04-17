@@ -307,106 +307,110 @@ const DriverInfo = () => {
                         <Text style={styles.tapToChangeText}>Tap to change photo</Text>
                     </View>
 
-                    <InputField
-                        label="First Name"
-                        value={form.firstName}
-                        onChangeText={(value) => setForm({ ...form, firstName: value })}
-                        editable={false}
-                    />
-                    <InputField
-                        label="Last Name"
-                        value={form.lastName}
-                        onChangeText={(value) => setForm({ ...form, lastName: value })}
-                        editable={false}
-                    />
-                    <InputField
-                        label="Email"
-                        value={form.email}
-                        onChangeText={(value) => setForm({ ...form, email: value })}
-                        editable={false}
-                    />
-                    <InputField
-                        label="Phone Number"
-                        placeholder="Format 123-456-7890"
-                        value={form.phoneNumber}
-                        onChangeText={(value) => {
-                            let formattedValue = value.replace(/\D/g, '');
-                            if (formattedValue.length > 3 && formattedValue.length <= 6) {
-                                formattedValue = `${formattedValue.slice(0, 3)}-${formattedValue.slice(3)}`;
-                            } else if (formattedValue.length > 6) {
-                                formattedValue = `${formattedValue.slice(0, 3)}-${formattedValue.slice(3, 6)}-${formattedValue.slice(6, 10)}`;
-                            }
-                            setForm({ ...form, phoneNumber: formattedValue });
-                        }}
-                    />
-                    <InputField
-                        label="Address"
-                        placeholder="Enter your address"
-                        value={form.address}
-                        onChangeText={(value) => setForm({ ...form, address: value })}
-                    />
-                    <InputField
-                        label="Date of Birth"
-                        placeholder="YYYY-MM-DD"
-                        value={form.dob}
-                        onChangeText={(value) => setForm({ ...form, dob: value })}
-                    />
-                    <InputField
-                        label="Driver's License"
-                        placeholder="Enter license number"
-                        value={form.licence}
-                        onChangeText={(value) => setForm({ ...form, licence: value })}
-                    />
-                    <InputField
-                        label="Vehicle Make"
-                        placeholder="Enter vehicle make"
-                        value={form.vMake}
-                        onChangeText={(value) => setForm({ ...form, vMake: value })}
-                    />
-                    <InputField
-                        label="Vehicle Plate"
-                        placeholder="Enter license plate number"
-                        value={form.vPlate}
-                        onChangeText={(value) => setForm({ ...form, vPlate: value })}
-                    />
-                    <InputField
-                        label="Insurance Number"
-                        placeholder="Enter insurance number"
-                        value={form.vInsurance}
-                        onChangeText={(value) => setForm({ ...form, vInsurance: value })}
-                    />
-                    <Text style={styles.carSeatsTitle}>Car Seats</Text>
-                    <View style={styles.carSeatOptions}>
-                        {carSeatOptions.map((option) => (
-                            <TouchableOpacity
-                                key={option.value}
-                                onPress={() => setForm({ ...form, carSeats: option.value })}
-                                style={[styles.carSeatOption, form.carSeats === option.value ? styles.carSeatSelected : styles.carSeatUnselected]}
-                            >
-                                <Text style={[styles.carSeatText, form.carSeats === option.value ? styles.carSeatTextSelected : styles.carSeatTextUnselected]}>
-                                    {option.label}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                    <View style={styles.petsContainer}>
-                        <Text style={styles.petsLabel}>Will you allow pets?</Text>
-                        <CustomButton
-                            title={form.pets ? 'Yes' : 'No'}
-                            onPress={() => setForm({ ...form, pets: !form.pets })}
-                            bgVariant={form.pets ? "success" : "danger"}
-                            style={styles.petsButton}
-                        />
-                            <Text style={styles.toggleHint}>Click to toggle</Text>
+                    <View style={styles.infoContainer}>
+                        <View style={styles.infoContent}>
+                            <InputField
+                                label="First Name"
+                                value={form.firstName}
+                                onChangeText={(value) => setForm({ ...form, firstName: value })}
+                                editable={false}
+                            />
+                            <InputField
+                                label="Last Name"
+                                value={form.lastName}
+                                onChangeText={(value) => setForm({ ...form, lastName: value })}
+                                editable={false}
+                            />
+                            <InputField
+                                label="Email"
+                                value={form.email}
+                                onChangeText={(value) => setForm({ ...form, email: value })}
+                                editable={false}
+                            />
+                            <InputField
+                                label="Phone Number"
+                                placeholder="Format 123-456-7890"
+                                value={form.phoneNumber}
+                                onChangeText={(value) => {
+                                    let formattedValue = value.replace(/\D/g, '');
+                                    if (formattedValue.length > 3 && formattedValue.length <= 6) {
+                                        formattedValue = `${formattedValue.slice(0, 3)}-${formattedValue.slice(3)}`;
+                                    } else if (formattedValue.length > 6) {
+                                        formattedValue = `${formattedValue.slice(0, 3)}-${formattedValue.slice(3, 6)}-${formattedValue.slice(6, 10)}`;
+                                    }
+                                    setForm({ ...form, phoneNumber: formattedValue });
+                                }}
+                            />
+                            <InputField
+                                label="Address"
+                                placeholder="Enter your address"
+                                value={form.address}
+                                onChangeText={(value) => setForm({ ...form, address: value })}
+                            />
+                            <InputField
+                                label="Date of Birth"
+                                placeholder="YYYY-MM-DD"
+                                value={form.dob}
+                                onChangeText={(value) => setForm({ ...form, dob: value })}
+                            />
+                            <InputField
+                                label="Driver's License"
+                                placeholder="Enter license number"
+                                value={form.licence}
+                                onChangeText={(value) => setForm({ ...form, licence: value })}
+                            />
+                            <InputField
+                                label="Vehicle Make"
+                                placeholder="Enter vehicle make"
+                                value={form.vMake}
+                                onChangeText={(value) => setForm({ ...form, vMake: value })}
+                            />
+                            <InputField
+                                label="Vehicle Plate"
+                                placeholder="Enter license plate number"
+                                value={form.vPlate}
+                                onChangeText={(value) => setForm({ ...form, vPlate: value })}
+                            />
+                            <InputField
+                                label="Insurance Number"
+                                placeholder="Enter insurance number"
+                                value={form.vInsurance}
+                                onChangeText={(value) => setForm({ ...form, vInsurance: value })}
+                            />
+                            <Text style={styles.carSeatsTitle}>Car Seats</Text>
+                            <View style={styles.carSeatOptions}>
+                                {carSeatOptions.map((option) => (
+                                    <TouchableOpacity
+                                        key={option.value}
+                                        onPress={() => setForm({ ...form, carSeats: option.value })}
+                                        style={[styles.carSeatOption, form.carSeats === option.value ? styles.carSeatSelected : styles.carSeatUnselected]}
+                                    >
+                                        <Text style={[styles.carSeatText, form.carSeats === option.value ? styles.carSeatTextSelected : styles.carSeatTextUnselected]}>
+                                            {option.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                            <View style={styles.petsContainer}>
+                                <Text style={styles.petsLabel}>Will you allow pets?</Text>
+                                <CustomButton
+                                    title={form.pets ? 'Yes' : 'No'}
+                                    onPress={() => setForm({ ...form, pets: !form.pets })}
+                                    bgVariant={form.pets ? "success" : "danger"}
+                                    style={styles.petsButton}
+                                />
+                                {/* <Text style={styles.toggleHint}>Click to toggle</Text> */}
 
+                            </View>
+                            <CustomButton title="Update Profile" onPress={onSubmit} style={styles.updateButton} />
+                        </View>
                     </View>
-                    <CustomButton title="Update Profile" onPress={onSubmit} style={styles.updateButton} />
-                    <CustomButton 
-                            title="Log Out"
-                            onPress={handleSignOut}
-                            bgVariant="danger"
-                            style={styles.signOutButton}
-                        />
+                    <CustomButton
+                        title="Log Out"
+                        onPress={handleSignOut}
+                        bgVariant="danger"
+                        style={styles.signOutButton}
+                    />
                 </ScrollView>
             </KeyboardAvoidingView>
         </SafeAreaView>
@@ -435,6 +439,7 @@ const styles = StyleSheet.create({
         fontSize: 30,
         fontFamily: "DMSans-Bold",
         marginBottom: 20,
+        marginTop: 30,
         alignSelf: "center",
     },
     profileImageContainer: {
@@ -471,6 +476,21 @@ const styles = StyleSheet.create({
     },
     editIcon: {
         fontSize: 16,
+    },
+    infoContainer: {
+        backgroundColor: "white",
+        borderRadius: 8,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 5,
+        paddingVertical: 15,
+        paddingHorizontal: 20,
+    },
+    infoContent: {
+        flexDirection: "column",
+        justifyContent: "center",
+        width: "100%",
     },
     uploadingOverlay: {
         position: 'absolute',
@@ -560,10 +580,11 @@ const styles = StyleSheet.create({
         fontFamily: "DMSans",
         textAlign: "center",
         marginTop: 4,
-        marginLeft: 15
+        marginLeft: 5
     },
     updateButton: {
         marginTop: 20,
+        marginBottom: 20,
         justifyContent: 'center',
         alignSelf: "center",
         width: "70%"

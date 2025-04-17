@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
     fontSize: 30,
     alignSelf: "center",
     fontFamily: "DMSans-Bold",
-    marginTop: 40,
+    marginTop: 30,
     paddingHorizontal: 20,
   },
 });
