@@ -496,7 +496,7 @@ const styles = StyleSheet.create({
     },
     topBarText: {
         fontSize: 18,
-        fontFamily: "DMSans-Medium",
+        fontFamily: "DMSans-SemiBold",
         color: '#333',
     },
     mapContainer: {

@@ -416,12 +416,13 @@ const styles = StyleSheet.create({
     },
     bannerTitle: {
         color: '#fff',
-        fontWeight: 'bold',
-        fontSize: 14,
+        fontFamily: "DMSans-Bold",
+        fontSize: 16,
     },
     bannerSubtitle: {
         color: 'rgba(255, 255, 255, 0.8)',
-        fontSize: 12,
+        fontFamily: "DMSans-Medium",
+        fontSize: 15,
         marginTop: 2,
     },
     welcomeText: {

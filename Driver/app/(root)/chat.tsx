@@ -24,11 +24,11 @@ const Chat = () => {
     const [rideDetails, setRideDetails] = useState<Partial<Ride> | null>(null);
     const { user } = useUser();
     const router = useRouter();
-    const { 
-        otherPersonId, 
-        otherPersonName, 
-        rideId, 
-        context 
+    const {
+        otherPersonId,
+        otherPersonName,
+        rideId,
+        context
     } = useLocalSearchParams<{
         otherPersonId: string;
         otherPersonName: string;
@@ -36,7 +36,7 @@ const Chat = () => {
         context?: string;
     }>();
 
-    
+
     useEffect(() => {
         if (rideId) {
             const fetchRideDetails = async () => {
@@ -55,7 +55,7 @@ const Chat = () => {
                     console.error("Error fetching ride details:", error);
                 }
             };
-            
+
             fetchRideDetails();
         }
     }, [rideId]);
@@ -90,7 +90,7 @@ const Chat = () => {
                 recipientId: otherPersonId,
                 recipientName: otherPersonName,
                 timestamp: new Date(),
-                rideId: rideId || null, 
+                rideId: rideId || null,
                 context: context || "general"
             });
             setInput("");
@@ -100,7 +100,7 @@ const Chat = () => {
     };
 
     const handleGoBack = () => {
-        
+
         if (context === "active_ride" && rideId) {
             router.back();
         }
@@ -127,19 +127,19 @@ const Chat = () => {
                         )}
                     </View>
                 </View>
-                
+
                 {rideDetails && (
                     <View style={styles.rideBanner}>
                         <Ionicons name="car-outline" size={20} color="#333" />
                         <Text style={styles.rideBannerText}>
-                            {rideDetails.status === 'in_progress' 
-                                ? 'Active ride to: ' 
+                            {rideDetails.status === 'in_progress'
+                                ? 'Active ride to: '
                                 : 'Ride to: '}
                             {rideDetails.destination_address?.split(',')[0]}
                         </Text>
                     </View>
                 )}
-                
+
                 <FlatList
                     data={messages}
                     keyExtractor={(item) => item.id}
@@ -218,6 +218,7 @@ const styles = StyleSheet.create({
     },
     rideBannerText: {
         fontSize: 14,
+        fontFamily: "DMSans-Medium",
         color: "#333",
         marginLeft: 8,
     },
@@ -259,10 +260,12 @@ const styles = StyleSheet.create({
         marginRight: 5
     },
     myMessageText: {
-        color: "#fff",
+        color: "#ffffff",
+        fontFamily: "DMSans",
     },
     otherMessageText: {
         color: "#333",
+        fontFamily: "DMSans",
     },
     inputWrapper: {
         justifyContent: "flex-end",
@@ -288,6 +291,7 @@ const styles = StyleSheet.create({
         borderColor: "#ddd",
         backgroundColor: "#f4f4f4",
         fontSize: 18,
+        fontFamily: "DMSans",
     },
     sendButton: {
         paddingVertical: 12,
@@ -303,12 +307,13 @@ const styles = StyleSheet.create({
     },
     otherPersonName: {
         fontSize: 20,
-        fontWeight: "bold",
+        fontFamily: "DMSans-Bold",
         textAlign: "center",
         color: "#333",
     },
     rideInfo: {
         fontSize: 14,
+        fontFamily: "DMSans-Medium",
         color: "#666",
         marginTop: 2,
     },
