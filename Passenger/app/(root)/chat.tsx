@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
         borderColor: "#ddd",
         backgroundColor: "#f4f4f4",
         fontSize: 18,
-        fontFamily: "DMSans-Medium",
+        fontFamily: "DMSans",
     },
     sendButton: {
         paddingVertical: 12,
