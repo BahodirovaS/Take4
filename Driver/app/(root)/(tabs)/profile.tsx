@@ -12,38 +12,23 @@ import {
     Image,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { collection, addDoc, doc, updateDoc, query, where, getDocs } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import * as ImagePicker from "expo-image-picker";
-import * as FileSystem from "expo-file-system";
-
 import CustomButton from "@/components/CustomButton";
 import InputField from "@/components/InputField";
 import { useAuth, useUser } from "@clerk/clerk-expo";
+import { 
+    fetchDriverInfo, 
+    selectProfileImage, 
+    saveDriverProfile,
+    updateDriverStatusOnSignOut
+} from "@/lib/fetch";
+import { DriverProfileForm } from "@/types/type"
 
 const DriverInfo = () => {
     const router = useRouter();
     const { user } = useUser();
     const { signOut } = useAuth();
 
-    const handleSignOut = async () => {
-        try {
-            if (driverDocId) {
-                await updateDoc(doc(db, "drivers", driverDocId), {
-                    status: false,
-                    last_offline: new Date()
-                });
-            }
-
-            await signOut();
-            router.replace("/(auth)/sign-in");
-        } catch (error) {
-            console.error('Error during sign out:', error);
-        }
-    };
-
-
-    const [form, setForm] = useState({
+    const [form, setForm] = useState<DriverProfileForm>({
         firstName: "",
         lastName: "",
         email: "",
@@ -57,211 +42,120 @@ const DriverInfo = () => {
         pets: false,
         carSeats: 4,
         status: false,
-        profilePhotoBase64: "", // Store base64 image directly
+        profilePhotoBase64: "",
     });
 
     const [driverDocId, setDriverDocId] = useState<string | null>(null);
     const [uploading, setUploading] = useState(false);
 
     useEffect(() => {
-        const fetchDriverInfo = async () => {
-            if (user) {
-                try {
-                    // Set initial values from user object
-                    setForm((prevForm) => ({
-                        ...prevForm,
-                        firstName: user?.firstName || "",
-                        lastName: user?.lastName || "",
-                        email: user?.primaryEmailAddress?.emailAddress || "",
-                    }));
+        const loadDriverInfo = async () => {
+            if (!user) return;
 
-                    // Query Firestore to get driver info
-                    const driversRef = collection(db, "drivers");
-                    const q = query(driversRef, where("clerkId", "==", user.id));
-                    const querySnapshot = await getDocs(q);
+            setForm((prevForm) => ({
+                ...prevForm,
+                firstName: user?.firstName || "",
+                lastName: user?.lastName || "",
+                email: user?.primaryEmailAddress?.emailAddress || "",
+            }));
 
-                    if (!querySnapshot.empty) {
-                        // Driver info found
-                        const driverDoc = querySnapshot.docs[0];
-                        const driverData = driverDoc.data();
+            const { driverData, driverDocId: docId, error } = await fetchDriverInfo(user.id);
 
-                        setDriverDocId(driverDoc.id);
-
-                        setForm({
-                            firstName: user?.firstName || driverData.firstName || "",
-                            lastName: user?.lastName || driverData.lastName || "",
-                            email: user?.primaryEmailAddress?.emailAddress || "",
-                            phoneNumber: driverData.phoneNumber || "",
-                            address: driverData.address || "",
-                            dob: driverData.dob || "",
-                            licence: driverData.licence || "",
-                            vMake: driverData.vMake || "",
-                            vPlate: driverData.vPlate || "",
-                            vInsurance: driverData.vInsurance || "",
-                            pets: driverData.pets || false,
-                            carSeats: driverData.carSeats || 4,
-                            status: driverData.status || false,
-                            profilePhotoBase64: driverData.profilePhotoBase64 || "",
-                        });
-                    }
-                    // If no document found, no alert needed - this is normal for new drivers
-                } catch (error) {
-                    console.error("Error fetching driver info:", error);
-                    // Only show alert if we attempted to load an existing document but failed
-                    const driversRef = collection(db, "drivers");
-                    const q = query(driversRef, where("clerkId", "==", user.id));
-                    try {
-                        const countSnapshot = await getDocs(q);
-                        if (!countSnapshot.empty) {
-                            Alert.alert("Error", "Failed to load driver information.");
-                        }
-                    } catch (countError) {
-                        console.error("Error checking if driver exists:", countError);
-                        Alert.alert("Error", "Failed to load driver information.");
-                    }
-                }
-            }
-        };
-
-        fetchDriverInfo();
-    }, [user]);
-
-    const pickImage = async () => {
-        try {
-            // Request permission
-            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-            if (status !== 'granted') {
-                Alert.alert('Permission Required', 'We need permission to access your photos');
+            if (error) {
+                Alert.alert("Error", "Failed to load driver information.");
                 return;
             }
 
-            // Launch image picker
-            const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ['images'],
-                allowsEditing: true,
-                aspect: [1, 1],
-                quality: 0.5, // Reduced quality for smaller size
-                base64: true, // Request base64 data directly
-            });
-
-            if (!result.canceled) {
-                setUploading(true);
-
-                try {
-                    let base64Image;
-
-                    // Check if base64 is available directly
-                    if (result.assets[0].base64) {
-                        base64Image = result.assets[0].base64;
-                    } else {
-                        // If not available (older versions of expo-image-picker),
-                        // read the file and convert to base64
-                        const fileUri = result.assets[0].uri;
-                        const fileContent = await FileSystem.readAsStringAsync(fileUri, {
-                            encoding: FileSystem.EncodingType.Base64,
-                        });
-                        base64Image = fileContent;
-                    }
-
-                    // Optional: Validate image size
-                    const imageSizeInBytes = base64Image.length * 0.75; // Approximate size calculation
-                    const imageSizeInMB = imageSizeInBytes / (1024 * 1024);
-
-                    if (imageSizeInMB > 1) {
-                        Alert.alert(
-                            "Image Too Large",
-                            "Please select a smaller image (under 1MB)",
-                            [{ text: "OK" }]
-                        );
-                        setUploading(false);
-                        return;
-                    }
-
-                    // Update form state with the base64 image data
-                    setForm(prevForm => ({
-                        ...prevForm,
-                        profilePhotoBase64: base64Image
-                    }));
-
-                } catch (error) {
-                    console.error("Error processing image:", error);
-                    Alert.alert("Error", "Failed to process image");
-                } finally {
-                    setUploading(false);
-                }
+            if (driverData) {
+                setDriverDocId(docId);
+                
+                setForm({
+                    ...driverData,
+                    firstName: user?.firstName || driverData.firstName || "",
+                    lastName: user?.lastName || driverData.lastName || "",
+                    email: user?.primaryEmailAddress?.emailAddress || "",
+                });
             }
+        };
+
+        loadDriverInfo();
+    }, [user]);
+
+    const handleSignOut = async () => {
+        try {
+            await updateDriverStatusOnSignOut(driverDocId);
+            await signOut();
+            router.replace("/(auth)/sign-in");
         } catch (error) {
-            console.error("Error picking image:", error);
-            Alert.alert("Error", "Failed to select image");
-            setUploading(false);
+            console.error('Error during sign out:', error);
         }
     };
 
+    const pickImage = async () => {
+        setUploading(true);
+        const { base64Image, error } = await selectProfileImage();
+        
+        if (base64Image) {
+            setForm(prevForm => ({
+                ...prevForm,
+                profilePhotoBase64: base64Image
+            }));
+        } else if (error && error.message !== 'Permission denied') {
+            Alert.alert("Error", "Failed to select image");
+        }
+        
+        setUploading(false);
+    };
+
     const onSubmit = async () => {
-        try {
-            if (!user) {
-                return Alert.alert("Error", "User not found. Please log in again.");
+        if (!user) {
+            return Alert.alert("Error", "User not found. Please log in again.");
+        }
+
+        const {
+            firstName, lastName, email, phoneNumber, address, dob, licence,
+            vMake, vPlate, vInsurance, carSeats
+        } = form;
+
+        if (
+            !firstName ||
+            !lastName ||
+            !email ||
+            !phoneNumber ||
+            !address ||
+            !dob ||
+            !licence ||
+            !vMake ||
+            !vPlate ||
+            !vInsurance ||
+            carSeats === null ||
+            carSeats === undefined
+        ) {
+            return Alert.alert("Error", "Please fill out all required fields.");
+        }
+
+        // Save profile
+        const { success, newDocId, error } = await saveDriverProfile(user.id, form, driverDocId);
+
+        if (success) {
+            if (newDocId && !driverDocId) {
+                setDriverDocId(newDocId);
             }
-
-            const {
-                firstName, lastName, email, phoneNumber, address, dob, licence,
-                vMake, vPlate, vInsurance, pets, carSeats, profilePhotoBase64
-            } = form;
-
-            if (
-                !firstName! ||
-                !lastName ||
-                !email ||
-                !phoneNumber ||
-                !address ||
-                !dob ||
-                !licence ||
-                !vMake ||
-                !vPlate ||
-                !vInsurance ||
-                carSeats === null ||
-                carSeats === undefined
-            ) {
-                return Alert.alert("Error", "Please fill out all required fields.");
-            }
-
-            const driverData = {
-                firstName,
-                lastName,
-                email,
-                phoneNumber,
-                address,
-                dob,
-                licence,
-                vMake,
-                vPlate,
-                vInsurance,
-                pets,
-                carSeats,
-                clerkId: user.id,
-                status: false, // Default to offline when creating
-                updatedAt: new Date(),
-                profilePhotoBase64, // Store base64 image directly in Firestore
-            };
-
-            if (driverDocId) {
-                // Update existing document
-                await updateDoc(doc(db, "drivers", driverDocId), driverData);
-            } else {
-                // Create new document
-                const docRef = await addDoc(collection(db, "drivers"), {
-                    ...driverData,
-                    createdAt: new Date()
-                });
-                setDriverDocId(docRef.id);
-            }
-
             Alert.alert("Success", "Information updated successfully.");
-        } catch (err) {
-            console.error("Submission Error:", err);
+        } else {
             Alert.alert("Error", "An error occurred. Please try again.");
         }
+    };
+
+    // Format phone number with dashes
+    const formatPhoneNumber = (value: string) => {
+        let formattedValue = value.replace(/\D/g, '');
+        if (formattedValue.length > 3 && formattedValue.length <= 6) {
+            formattedValue = `${formattedValue.slice(0, 3)}-${formattedValue.slice(3)}`;
+        } else if (formattedValue.length > 6) {
+            formattedValue = `${formattedValue.slice(0, 3)}-${formattedValue.slice(3, 6)}-${formattedValue.slice(6, 10)}`;
+        }
+        return formattedValue;
     };
 
     const carSeatOptions = [
@@ -270,7 +164,6 @@ const DriverInfo = () => {
         { label: "XL - 7 seats", value: 7 }
     ];
 
-    // Determine which profile image to use
     const profileImageSource = form.profilePhotoBase64
         ? { uri: `data:image/jpeg;base64,${form.profilePhotoBase64}` }
         : { uri: user?.externalAccounts[0]?.imageUrl ?? user?.imageUrl };
@@ -331,15 +224,10 @@ const DriverInfo = () => {
                                 label="Phone Number"
                                 placeholder="Format 123-456-7890"
                                 value={form.phoneNumber}
-                                onChangeText={(value) => {
-                                    let formattedValue = value.replace(/\D/g, '');
-                                    if (formattedValue.length > 3 && formattedValue.length <= 6) {
-                                        formattedValue = `${formattedValue.slice(0, 3)}-${formattedValue.slice(3)}`;
-                                    } else if (formattedValue.length > 6) {
-                                        formattedValue = `${formattedValue.slice(0, 3)}-${formattedValue.slice(3, 6)}-${formattedValue.slice(6, 10)}`;
-                                    }
-                                    setForm({ ...form, phoneNumber: formattedValue });
-                                }}
+                                onChangeText={(value) => setForm({ 
+                                    ...form, 
+                                    phoneNumber: formatPhoneNumber(value) 
+                                })}
                             />
                             <InputField
                                 label="Address"
@@ -399,8 +287,6 @@ const DriverInfo = () => {
                                     bgVariant={form.pets ? "success" : "danger"}
                                     style={styles.petsButton}
                                 />
-                                {/* <Text style={styles.toggleHint}>Click to toggle</Text> */}
-
                             </View>
                             <CustomButton title="Update Profile" onPress={onSubmit} style={styles.updateButton} />
                         </View>
@@ -562,25 +448,6 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         paddingHorizontal: 20,
         borderRadius: 9999,
-    },
-    petsButtonSelected: {
-        backgroundColor: "#2E7D32", //Green for yes
-    },
-    petsButtonUnselected: {
-        backgroundColor: "#E53935", //Red for no
-    },
-    petsButtonText: {
-        fontSize: 16,
-        color: "white",
-        fontFamily: "DMSans-SemiBold",
-    },
-    toggleHint: {
-        fontSize: 12,
-        color: "#666666",
-        fontFamily: "DMSans",
-        textAlign: "center",
-        marginTop: 4,
-        marginLeft: 5
     },
     updateButton: {
         marginTop: 20,

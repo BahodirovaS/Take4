@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import { doc, updateDoc, onSnapshot, collection, addDoc, query, where, getDocs, limit } from 'firebase/firestore';
+import { doc, updateDoc, onSnapshot, collection, addDoc, query, where, getDocs, limit, deleteDoc, orderBy, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import * as Location from 'expo-location';
-import { Ride, ActiveRideData, PassengerInfo } from '@/types/type';
+import { Ride, ActiveRideData, PassengerInfo, DriverProfileForm, RideRequest, Message } from '@/types/type';
 import { Alert } from 'react-native';
+import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system";
 
 const DEFAULT_TIMEOUT = 5000;
 
@@ -504,22 +506,358 @@ export const checkActiveRides = (
   }
 };
 
+
 /**
- * Updates driver status during sign out
- */
-export const updateDriverStatusOnSignOut = async (
+* Fetch driver information from Firestore
+*/
+export const fetchDriverInfo = async (userId: string): Promise<{
+  driverData: DriverProfileForm | null;
+  driverDocId: string | null;
+  error: Error | null;
+}> => {
+  try {
+      const driversRef = collection(db, "drivers");
+      const q = query(driversRef, where("clerkId", "==", userId));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+          const driverDoc = querySnapshot.docs[0];
+          const data = driverDoc.data();
+
+          return {
+              driverData: {
+                  firstName: data.firstName || "",
+                  lastName: data.lastName || "",
+                  email: data.email || "",
+                  phoneNumber: data.phoneNumber || "",
+                  address: data.address || "",
+                  dob: data.dob || "",
+                  licence: data.licence || "",
+                  vMake: data.vMake || "",
+                  vPlate: data.vPlate || "",
+                  vInsurance: data.vInsurance || "",
+                  pets: data.pets || false,
+                  carSeats: data.carSeats || 4,
+                  status: data.status || false,
+                  profilePhotoBase64: data.profilePhotoBase64 || "",
+              },
+              driverDocId: driverDoc.id,
+              error: null
+          };
+      }
+
+      return {
+          driverData: null,
+          driverDocId: null,
+          error: null
+      };
+  } catch (error) {
+      console.error("Error fetching driver info:", error);
+      return {
+          driverData: null,
+          driverDocId: null,
+          error: error as Error
+      };
+  }
+};
+
+/**
+* Select an image from the device gallery
+*/
+export const selectProfileImage = async (): Promise<{
+  base64Image: string | null;
+  error: Error | null;
+}> => {
+  try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (status !== 'granted') {
+          Alert.alert('Permission Required', 'We need permission to access your photos');
+          return { base64Image: null, error: new Error('Permission denied') };
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.5,
+          base64: true,
+      });
+
+      if (result.canceled) {
+          return { base64Image: null, error: null };
+      }
+
+      let base64Image;
+
+      if (result.assets[0].base64) {
+          base64Image = result.assets[0].base64;
+      } else {
+          const fileUri = result.assets[0].uri;
+          const fileContent = await FileSystem.readAsStringAsync(fileUri, {
+              encoding: FileSystem.EncodingType.Base64,
+          });
+          base64Image = fileContent;
+      }
+
+      const imageSizeInBytes = base64Image.length * 0.75;
+      const imageSizeInMB = imageSizeInBytes / (1024 * 1024);
+
+      if (imageSizeInMB > 1) {
+          Alert.alert(
+              "Image Too Large",
+              "Please select a smaller image (under 1MB)",
+              [{ text: "OK" }]
+          );
+          return { base64Image: null, error: new Error('Image too large') };
+      }
+
+      return {
+          base64Image,
+          error: null
+      };
+  } catch (error) {
+      console.error("Error picking image:", error);
+      return {
+          base64Image: null,
+          error: error as Error
+      };
+  }
+};
+
+/**
+* Save driver profile to Firestore
+*/
+export const saveDriverProfile = async (
+  userId: string,
+  driverData: DriverProfileForm,
   driverDocId: string | null
-): Promise<boolean> => {
+): Promise<{
+  success: boolean;
+  newDocId: string | null;
+  error: Error | null;
+}> => {
+  try {
+      const formattedDriverData = {
+          ...driverData,
+          clerkId: userId,
+          updatedAt: new Date(),
+      };
+
+      if (driverDocId) {
+          await updateDoc(doc(db, "drivers", driverDocId), formattedDriverData);
+          return {
+              success: true,
+              newDocId: driverDocId,
+              error: null
+          };
+      } else {
+          const docRef = await addDoc(collection(db, "drivers"), {
+              ...formattedDriverData,
+              createdAt: new Date()
+          });
+          return {
+              success: true,
+              newDocId: docRef.id,
+              error: null
+          };
+      }
+  } catch (error) {
+      console.error("Error saving driver profile:", error);
+      return {
+          success: false,
+          newDocId: null,
+          error: error as Error
+      };
+  }
+};
+
+/**
+* Update driver status during sign out
+*/
+export const updateDriverStatusOnSignOut = async (driverDocId: string | null): Promise<boolean> => {
   if (!driverDocId) return true;
   
   try {
-    await updateDoc(doc(db, "drivers", driverDocId), {
-      status: false,
-      last_offline: new Date()
+      await updateDoc(doc(db, "drivers", driverDocId), {
+          status: false,
+          last_offline: new Date()
+      });
+      return true;
+  } catch (error) {
+      console.error('Error updating status during sign out:', error);
+      return false;
+  }
+};
+
+/**
+ * Fetch scheduled rides for a driver
+ */
+export const fetchScheduledRides = async (userId: string): Promise<{
+  rides: RideRequest[];
+  error: Error | null;
+}> => {
+  try {
+    if (!userId) {
+      return { rides: [], error: null };
+    }
+
+    const q = query(
+      collection(db, "rideRequests"),
+      where("driver_id", "==", userId),
+      where("status", "==", "scheduled")
+    );
+
+    const querySnapshot = await getDocs(q);
+    const scheduledRides: RideRequest[] = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    } as RideRequest));
+
+    return { 
+      rides: scheduledRides, 
+      error: null 
+    };
+  } catch (error) {
+    console.error("Error fetching scheduled rides:", error);
+    return { 
+      rides: [], 
+      error: error as Error 
+    };
+  }
+};
+
+/**
+ * Update ride status to "accepted" and start the ride
+ */
+export const startScheduledRide = async (rideId: string): Promise<{
+  success: boolean;
+  error: Error | null;
+}> => {
+  try {
+    await updateDoc(doc(db, "rideRequests", rideId), {
+      status: "accepted",
+      accepted_at: new Date()
+    });
+    
+    return { 
+      success: true, 
+      error: null 
+    };
+  } catch (error) {
+    console.error("Error accepting ride:", error);
+    return { 
+      success: false, 
+      error: error as Error 
+    };
+  }
+};
+
+/**
+ * Cancel a scheduled ride
+ */
+export const cancelScheduledRide = async (rideId: string): Promise<{
+  success: boolean;
+  error: Error | null;
+}> => {
+  try {
+    await deleteDoc(doc(db, "rideRequests", rideId));
+    
+    return { 
+      success: true, 
+      error: null 
+    };
+  } catch (error) {
+    console.error("Error cancelling ride:", error);
+    return { 
+      success: false, 
+      error: error as Error 
+    };
+  }
+};
+
+/**
+ * Subscribe to messages between two users
+ */
+export const subscribeToMessages = (
+  userId: string | undefined,
+  otherPersonId: string | undefined,
+  onMessagesUpdate: (messages: Message[]) => void
+): (() => void) => {
+  if (!userId || !otherPersonId) {
+    return () => {};
+  }
+
+  const q = query(
+    collection(db, "messages"),
+    where("senderId", "in", [userId, otherPersonId]),
+    where("recipientId", "in", [userId, otherPersonId]),
+    orderBy("timestamp", "desc")
+  );
+
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const messagesData = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data()
+    } as Message));
+    onMessagesUpdate(messagesData);
+  });
+
+  return unsubscribe;
+};
+
+/**
+ * Fetch details of a specific ride
+ */
+export const fetchRideDetails = async (
+  rideId: string
+): Promise<Partial<Ride> | null> => {
+  try {
+    const rideDoc = await getDoc(doc(db, "rideRequests", rideId));
+    if (rideDoc.exists()) {
+      const data = rideDoc.data();
+      return {
+        id: rideDoc.id,
+        origin_address: data.origin_address,
+        destination_address: data.destination_address,
+        status: data.status
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error("Error fetching ride details:", error);
+    return null;
+  }
+};
+
+/**
+ * Send a message to another user
+ */
+export const sendMessage = async (
+  message: string,
+  senderId: string,
+  senderName: string,
+  recipientId: string,
+  recipientName: string,
+  rideId?: string,
+  context?: string
+): Promise<boolean> => {
+  if (!message.trim()) return false;
+  
+  try {
+    await addDoc(collection(db, "messages"), {
+      text: message,
+      senderId: senderId || "guest",
+      senderName: senderName || "Guest",
+      recipientId: recipientId,
+      recipientName: recipientName,
+      timestamp: new Date(),
+      rideId: rideId || null,
+      context: context || "general"
     });
     return true;
   } catch (error) {
-    console.error('Error updating status during sign out:', error);
+    console.error("Error sending message: ", error);
     return false;
   }
 };

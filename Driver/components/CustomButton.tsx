@@ -62,7 +62,7 @@ const CustomButton = ({
   size = "medium",
   IconLeft,
   IconRight,
-  style, // Accept the external style
+  style,
   ...props
 }: ButtonProps) => {
   return (
@@ -73,7 +73,7 @@ const CustomButton = ({
         getBgVariantStyle(bgVariant), 
         getButtonSizeStyle(size),
         style
-      ]} // Merge styles
+      ]}
       {...props}
     >
       {IconLeft && <IconLeft />}

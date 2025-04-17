@@ -32,6 +32,23 @@ declare interface MarkerData {
   status: boolean;
 }
 
+declare interface DriverProfileForm {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  address: string;
+  dob: string;
+  licence: string;
+  vMake: string;
+  vPlate: string;
+  vInsurance: string;
+  pets: boolean;
+  carSeats: number;
+  status: boolean;
+  profilePhotoBase64: string;
+}
+
 declare interface PassengerInfo {
   id: string;
   firstName: string;

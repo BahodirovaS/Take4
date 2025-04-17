@@ -16,9 +16,9 @@ import DriverMap from "@/components/DriverMap";
 import { useLocationStore } from '@/store';
 import { router } from 'expo-router';
 import CustomButton from './CustomButton';
-import { 
-    fetchPassengerInfo, 
-    subscribeToRideDetails, 
+import {
+    fetchPassengerInfo,
+    subscribeToRideDetails,
     setupLocationTracking,
     markArrivedAtPickup,
     startRide,
@@ -36,35 +36,30 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
     const locationStore = useLocationStore();
     const { setUserLocation, setDestinationLocation } = locationStore;
 
-    // Handle ride status changes based on status from Firestore
     const handleRideStatusChange = (status: string) => {
-        const newRideStage = 
+        const newRideStage =
             status === 'accepted' ? 'to_pickup' :
-            status === 'arrived_at_pickup' ? 'to_destination' :
-            status === 'in_progress' ? 'to_destination' :
-            'to_pickup';
-        
+                status === 'arrived_at_pickup' ? 'to_destination' :
+                    status === 'in_progress' ? 'to_destination' :
+                        'to_pickup';
+
         setRideStage(newRideStage);
     };
 
-    // Load passenger information when needed
     const loadPassengerInfo = async (userId: string) => {
         if (!userId) return;
-        
         setLoadingPassenger(true);
         const info = await fetchPassengerInfo(userId);
         if (info) setPassengerInfo(info);
         setLoadingPassenger(false);
     };
 
-    // Handle ride data updates
+
     const handleRideUpdate = (updatedRide: Ride) => {
         setRide(updatedRide);
-        
         if (updatedRide.user_id) {
             loadPassengerInfo(updatedRide.user_id);
         }
-
         setDestinationLocation({
             latitude: rideStage === 'to_pickup'
                 ? updatedRide.origin_latitude
@@ -77,17 +72,13 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
                 : updatedRide.destination_address
         });
     };
-
-    // Set up ride details subscription and location tracking
     useEffect(() => {
         if (!rideId) {
             console.error("Error: rideId is undefined or null");
             setIsLoading(false);
             Alert.alert("Error", "No ride ID provided");
-            return () => {};
+            return () => { };
         }
-
-        // Subscribe to ride updates
         const unsubscribeRide = subscribeToRideDetails(
             rideId,
             handleRideUpdate,
@@ -98,7 +89,6 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
             }
         );
 
-        // Set up location tracking
         const setupLocation = async () => {
             const locationSubscription = await setupLocationTracking(
                 rideId,
@@ -107,11 +97,10 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
                     setUserLocation({
                         latitude: location.latitude,
                         longitude: location.longitude,
-                        address: "",  // Will be filled by the resolved address
+                        address: "",
                     });
                 },
                 (address) => {
-                    // Create a new location object with the updated address
                     const updatedLocation = {
                         ...currentLocation,
                         latitude: currentLocation?.latitude || 0,
@@ -132,7 +121,6 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
             locationSubscription = sub;
         });
 
-        // Cleanup function
         return () => {
             unsubscribeRide();
             if (locationSubscription) {
@@ -141,7 +129,6 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
         };
     }, [rideId]);
 
-    // Update destination when ride stage changes
     useEffect(() => {
         if (ride) {
             setDestinationLocation({
@@ -160,10 +147,10 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
 
     const handleArriveAtPickup = async () => {
         const success = await markArrivedAtPickup(rideId);
-        
+
         if (success) {
             setRideStage('to_destination');
-            
+
             if (ride) {
                 setDestinationLocation({
                     latitude: ride.destination_latitude,
@@ -171,7 +158,7 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
                     address: ride.destination_address
                 });
             }
-            
+
             Alert.alert("Arrived", "Let the passenger know you've arrived");
         } else {
             Alert.alert("Error", "Could not update ride status");
@@ -180,10 +167,10 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
 
     const handleStartRide = async () => {
         const success = await startRide(rideId);
-        
+
         if (success) {
             setRideStage('to_destination');
-            
+
             if (ride) {
                 setDestinationLocation({
                     latitude: ride.destination_latitude,
@@ -191,7 +178,7 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
                     address: ride.destination_address
                 });
             }
-            
+
             Alert.alert("Ride Started", "Navigate to destination");
         } else {
             Alert.alert("Error", "Could not start the ride");
@@ -200,9 +187,9 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
 
     const handleCompleteRide = async () => {
         if (!ride) return;
-        
+
         const success = await completeRide(
-            rideId, 
+            rideId,
             ride,
             {
                 userLatitude: locationStore.userLatitude,
@@ -213,7 +200,7 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
                 destinationAddress: locationStore.destinationAddress || ""
             }
         );
-        
+
         if (success) {
             Alert.alert(
                 "Ride Completed",
@@ -322,7 +309,7 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
                         title="Navigate"
                         bgVariant="primary"
                         onPress={openGoogleMapsNavigation}
-                        IconLeft={() => <Ionicons name="navigate" size={20} color="white" marginRight="5"/>}
+                        IconLeft={() => <Ionicons name="navigate" size={20} color="white" marginRight="5" />}
                         style={styles.navigationButton}
                     />
 
@@ -330,7 +317,7 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
                         title="Message"
                         bgVariant="secondary"
                         onPress={handleMessagePassenger}
-                        IconLeft={() => <Ionicons name="chatbubble-ellipses-outline" size={20} color="white" marginRight="5"/>}
+                        IconLeft={() => <Ionicons name="chatbubble-ellipses-outline" size={20} color="white" marginRight="5" />}
                         style={styles.messageButton}
                     />
                 </View>

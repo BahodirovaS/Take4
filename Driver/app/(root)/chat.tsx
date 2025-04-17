@@ -10,13 +10,12 @@ import {
     TouchableOpacity,
     StyleSheet
 } from "react-native";
-import { collection, addDoc, query, where, orderBy, onSnapshot, doc, getDoc, updateDoc, increment, setDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import { useUser } from "@clerk/clerk-expo";
 import { Message, Ride } from "@/types/type";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import CustomButton from "@/components/CustomButton";
+import { subscribeToMessages, fetchRideDetails, sendMessage as sendMessageUtil } from "@/lib/fetch";
 
 const Chat = () => {
     const [messages, setMessages] = useState<Message[]>([]);
@@ -24,6 +23,7 @@ const Chat = () => {
     const [rideDetails, setRideDetails] = useState<Partial<Ride> | null>(null);
     const { user } = useUser();
     const router = useRouter();
+    
     const {
         otherPersonId,
         otherPersonName,
@@ -36,77 +36,79 @@ const Chat = () => {
         context?: string;
     }>();
 
-
     useEffect(() => {
-        if (rideId) {
-            const fetchRideDetails = async () => {
-                try {
-                    const rideDoc = await getDoc(doc(db, "rideRequests", rideId));
-                    if (rideDoc.exists()) {
-                        const data = rideDoc.data();
-                        setRideDetails({
-                            id: rideDoc.id,
-                            origin_address: data.origin_address,
-                            destination_address: data.destination_address,
-                            status: data.status
-                        });
-                    }
-                } catch (error) {
-                    console.error("Error fetching ride details:", error);
+        const loadRideDetails = async () => {
+            if (rideId) {
+                const details = await fetchRideDetails(rideId);
+                if (details) {
+                    setRideDetails(details);
                 }
-            };
-
-            fetchRideDetails();
-        }
+            }
+        };
+        loadRideDetails();
     }, [rideId]);
 
 
 
     useEffect(() => {
-        if (!user?.id || !otherPersonId) return;
-        const q = query(
-            collection(db, "messages"),
-            where("senderId", "in", [user.id, otherPersonId]),
-            where("recipientId", "in", [user.id, otherPersonId]),
-            orderBy("timestamp", "desc")
+        const unsubscribe = subscribeToMessages(
+            user?.id,
+            otherPersonId,
+            (updatedMessages) => setMessages(updatedMessages)
         );
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const messagesData = snapshot.docs.map((doc) => ({
-                id: doc.id,
-                ...doc.data()
-            } as Message));
-            setMessages(messagesData);
-        });
-
         return unsubscribe;
     }, [user?.id, otherPersonId]);
 
-    const sendMessage = async () => {
-        if (!input.trim()) return;
-        try {
-            await addDoc(collection(db, "messages"), {
-                text: input,
-                senderId: user?.id || "guest",
-                senderName: user?.firstName || "Guest",
-                recipientId: otherPersonId,
-                recipientName: otherPersonName,
-                timestamp: new Date(),
-                rideId: rideId || null,
-                context: context || "general"
-            });
+
+    const handleSendMessage = async () => {
+        if (!user?.id || !input.trim()) return;
+        const success = await sendMessageUtil(
+            input,
+            user.id,
+            user.firstName || "User",
+            otherPersonId,
+            otherPersonName,
+            rideId,
+            context
+        );
+        if (success) {
             setInput("");
-        } catch (error) {
-            console.error("Error sending message: ", error);
         }
     };
 
     const handleGoBack = () => {
-
         if (context === "active_ride" && rideId) {
+            router.back();
+        } else {
             router.back();
         }
     };
+
+    const getShortDestination = () => {
+        return rideDetails?.destination_address?.split(',')[0] || "destination";
+    };
+
+    const renderMessage = ({ item }: { item: Message }) => (
+        <View
+            style={[
+                styles.messageContainer,
+                item.senderId === user?.id
+                    ? styles.myMessage
+                    : styles.otherMessage,
+            ]}
+        >
+            <Text
+                style={[
+                    styles.message,
+                    item.senderId === user?.id
+                        ? styles.myMessageText
+                        : styles.otherMessageText,
+                ]}
+            >
+                {item.text}
+            </Text>
+        </View>
+    );
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -124,12 +126,11 @@ const Chat = () => {
                         )}
                         {rideDetails && (
                             <Text style={styles.rideInfo}>
-                                Ride to {rideDetails.destination_address?.split(',')[0]}
+                                Ride to {getShortDestination()}
                             </Text>
                         )}
                     </View>
                 </View>
-
                 {rideDetails && (
                     <View style={styles.rideBanner}>
                         <Ionicons name="car-outline" size={20} color="#333" />
@@ -137,35 +138,14 @@ const Chat = () => {
                             {rideDetails.status === 'in_progress'
                                 ? 'Active ride to: '
                                 : 'Ride to: '}
-                            {rideDetails.destination_address?.split(',')[0]}
+                            {getShortDestination()}
                         </Text>
                     </View>
                 )}
-
                 <FlatList
                     data={messages}
                     keyExtractor={(item) => item.id}
-                    renderItem={({ item }) => (
-                        <View
-                            style={[
-                                styles.messageContainer,
-                                item.senderId === user?.id
-                                    ? styles.myMessage
-                                    : styles.otherMessage,
-                            ]}
-                        >
-                            <Text
-                                style={[
-                                    styles.message,
-                                    item.senderId === user?.id
-                                        ? styles.myMessageText
-                                        : styles.otherMessageText,
-                                ]}
-                            >
-                                {item.text}
-                            </Text>
-                        </View>
-                    )}
+                    renderItem={renderMessage}
                     inverted
                 />
                 <View style={styles.inputWrapper}>
@@ -179,7 +159,7 @@ const Chat = () => {
                         <CustomButton
                             title={"Send"}
                             bgVariant={"primary"}
-                            onPress={sendMessage}
+                            onPress={handleSendMessage}
                             style={styles.sendButton}
                         />
                     </View>
