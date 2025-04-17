@@ -60,21 +60,6 @@ const Chat = () => {
         }
     }, [rideId]);
 
-    useEffect(() => {
-        if (otherPersonId) {
-            const unreadRef = doc(db, "unreadMessages", `${otherPersonId}`);
-            setDoc(unreadRef, {
-                userId: undefined,
-                senderId: otherPersonId,
-                count: 0,
-                lastUpdated: new Date()
-            }).catch(error => {
-                console.error("Error resetting unread count:", error);
-            });
-
-            console.log("Reset unread count for chat with:", otherPersonId);
-        }
-    }, [otherPersonId]);
 
 
     useEffect(() => {
@@ -110,44 +95,11 @@ const Chat = () => {
                 rideId: rideId || null,
                 context: context || "general"
             });
-            const unreadDocId = `${otherPersonId}_${user?.id}`;
-            const unreadRef = doc(db, "unreadMessages", unreadDocId);
-
-            const unreadDoc = await getDoc(unreadRef);
-            if (unreadDoc.exists()) {
-                await updateDoc(unreadRef, {
-                    count: increment(1),
-                    lastUpdated: new Date()
-                });
-            } else {
-                await setDoc(unreadRef, {
-                    senderId: user?.id,
-                    recipientId: otherPersonId,
-                    count: 1,
-                    lastUpdated: new Date()
-                });
-            }
             setInput("");
         } catch (error) {
             console.error("Error sending message: ", error);
         }
     };
-
-    useEffect(() => {
-        if (user?.id && otherPersonId) {
-          const unreadDocId = `${user?.id}_${otherPersonId}`;
-          const unreadRef = doc(db, "unreadMessages", unreadDocId);
-          
-          // Reset the count to 0
-          setDoc(unreadRef, {
-            senderId: otherPersonId,
-            recipientId: user?.id,
-            count: 0,
-            lastUpdated: new Date()
-          }, { merge: true })
-          .catch(error => console.error("Error resetting unread count:", error));
-        }
-      }, [user?.id, otherPersonId]);
 
     const handleGoBack = () => {
 
