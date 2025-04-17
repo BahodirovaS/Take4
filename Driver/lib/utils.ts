@@ -1,6 +1,8 @@
 import { Ride } from "@/types/type";
-import { collection, query, where, getDocs, addDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { useEffect, useState } from "react";
+import { useUser } from "@clerk/clerk-expo";
 
 
 export const sortRides = (rides: Ride[]): Ride[] => {
@@ -144,3 +146,4 @@ export const checkDriverExists = async (email: string) => {
     throw error;
   }
 };
+
