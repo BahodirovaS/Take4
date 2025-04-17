@@ -70,10 +70,10 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         marginTop: 20,
         marginBottom: 70,
+        gap:15
     },
     button: {
         flex: 1,
-        marginHorizontal: 6,
     },
 });
 

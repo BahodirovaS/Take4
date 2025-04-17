@@ -73,7 +73,11 @@ const SignIn = () => {
                             onChangeText={(value) => setForm({ ...form, password: value })}
                         />
 
-                        <CustomButton title="Sign In" onPress={onSignInPress} style={styles.button} />
+                        <CustomButton
+                            title="Sign In"
+                            onPress={onSignInPress}
+                            style={styles.button}
+                        />
 
                         <OAuth />
 
@@ -139,7 +143,7 @@ const styles = StyleSheet.create({
     },
     button: {
         marginTop: 24,
-        width: "60%",
+        width: "70%",
         alignSelf: "center",
     },
     link: {

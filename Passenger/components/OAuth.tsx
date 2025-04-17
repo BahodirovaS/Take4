@@ -65,8 +65,8 @@ const styles = StyleSheet.create({
   },
   googleButton: {
     marginTop: 20,
-    width: "60%",
-    shadowOpacity: 0,
+    width: "70%",
+    alignSelf: "center",
   },
   googleIcon: {
     width: 20,

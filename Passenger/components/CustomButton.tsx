@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     borderColor: "#D1D5DB",
     borderWidth: 0.5,
   },
-  text: { fontSize: 16, fontFamily: "DMSans-Bold",
+  text: { fontSize: 18, fontFamily: "DMSans-Bold",
   },
   textDefault: { color: "#FFFFFF" },
   textPrimary: { color: "#000000" },

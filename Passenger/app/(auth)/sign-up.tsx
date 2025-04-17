@@ -277,6 +277,8 @@ const styles = StyleSheet.create({
     },
     signUpButton: {
         marginTop: 24,
+        width: "70%",
+        alignSelf: "center",
     },
     linkText: {
         fontSize: 18,
