@@ -217,6 +217,7 @@ const styles = StyleSheet.create({
     },
     rideBannerText: {
         fontSize: 14,
+        fontFamily: "DMSans-Medium",
         color: "#333",
         marginLeft: 8,
     },
@@ -252,16 +253,20 @@ const styles = StyleSheet.create({
     },
     message: {
         flexShrink: 1,
-        color: "#fff",
+        color: "#ffffff",
         fontSize: 18,
         marginLeft: 5,
         marginRight: 5
     },
     myMessageText: {
-        color: "#fff",
+        color: "#ffffff",
+        fontFamily: "DMSans",
+
     },
     otherMessageText: {
         color: "#333",
+        fontFamily: "DMSans",
+
     },
     inputWrapper: {
         justifyContent: "flex-end",
@@ -287,6 +292,7 @@ const styles = StyleSheet.create({
         borderColor: "#ddd",
         backgroundColor: "#f4f4f4",
         fontSize: 18,
+        fontFamily: "DMSans-Medium",
     },
     sendButton: {
         paddingVertical: 12,
@@ -302,12 +308,13 @@ const styles = StyleSheet.create({
     },
     otherPersonName: {
         fontSize: 20,
-        fontWeight: "bold",
+        fontFamily: "DMSans-Bold",
         textAlign: "center",
         color: "#333",
     },
     rideInfo: {
         fontSize: 14,
+        fontFamily: "DMSans-Medium",
         color: "#666",
         marginTop: 2,
     },

@@ -93,18 +93,18 @@ const ActiveRide = () => {
                         longitude: data.destination_longitude,
                         address: data.destination_address
                     });
-                }    
+                }
                 setRideStatus(data.status);
                 if (data.status === "completed") {
                     router.replace({
                         pathname: "/(root)/ride-completed",
                         params: { rideId: rideId }
                     });
-                }    
-                if (data.driver_id && 
-                    (data.status === "accepted" || 
-                     data.status === "arrived_at_pickup" || 
-                     data.status === "in_progress")) {
+                }
+                if (data.driver_id &&
+                    (data.status === "accepted" ||
+                        data.status === "arrived_at_pickup" ||
+                        data.status === "in_progress")) {
                     setDriverId(data.driver_id);
                     setDriverLocation({
                         latitude: data.driver_current_latitude || 0,
@@ -168,42 +168,42 @@ const ActiveRide = () => {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.topBar}>
-            <TouchableOpacity 
-                    style={styles.backButton} 
+                <TouchableOpacity
+                    style={styles.backButton}
                     onPress={handleGoToHome}
                 >
                     <Ionicons name="arrow-back" size={24} color="#333" />
                 </TouchableOpacity>
                 <Text style={styles.topBarText}>Active Ride</Text>
             </View>
-        <RideLayout
-            title={
-                rideStatus === "accepted" && driverName ? `${driverName} is on the way!` :
-                    rideStatus === "arrived_at_pickup" && driverName ? `${driverName} is here!` :
-                        rideStatus === "in_progress" ? `Headed to ${destinationAddress}` :
-                            rideStatus === "completed" ? "Your ride is complete" :
-                                ""
-            }
-            rideStatus={rideStatus}
-            driverLocation={driverLocation}
-        >
-            {["accepted", "arrived_at_pickup", "in_progress"].includes(rideStatus) && driverId ? (
-                <LiveDriver
-                    driverId={driverId}
-                    rideId={rideId}
-                    driverLocation={driverLocation}
-                    rideStatus={rideStatus}
-                />
-            ) : rideStatus === "requested" ? (
-                <RequestLoading rideId={rideId} />
-            ) : (
-                <View style={styles.errorContainer}>
-                    <Text style={styles.errorText}>
-                        Your ride was {rideStatus}. Please try requesting again.
-                    </Text>
-                </View>
-            )}
-        </RideLayout>
+            <RideLayout
+                title={
+                    rideStatus === "accepted" && driverName ? `${driverName} is on the way!` :
+                        rideStatus === "arrived_at_pickup" && driverName ? `${driverName} is here!` :
+                            rideStatus === "in_progress" ? `Headed to ${destinationAddress}` :
+                                rideStatus === "completed" ? "Your ride is complete" :
+                                    ""
+                }
+                rideStatus={rideStatus}
+                driverLocation={driverLocation}
+            >
+                {["accepted", "arrived_at_pickup", "in_progress"].includes(rideStatus) && driverId ? (
+                    <LiveDriver
+                        driverId={driverId}
+                        rideId={rideId}
+                        driverLocation={driverLocation}
+                        rideStatus={rideStatus}
+                    />
+                ) : rideStatus === "requested" ? (
+                    <RequestLoading rideId={rideId} />
+                ) : (
+                    <View style={styles.errorContainer}>
+                        <Text style={styles.errorText}>
+                            Your ride was {rideStatus}. Please try requesting again.
+                        </Text>
+                    </View>
+                )}
+            </RideLayout>
         </SafeAreaView>
     );
 };
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
     },
     topBarText: {
         fontSize: 18,
-        fontWeight: 'bold',
+        fontFamily: "DMSans-SemiBold",
         color: '#333',
         paddingTop: 15,
     },
