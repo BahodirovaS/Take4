@@ -1,40 +1,57 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, Image, ActivityIndicator } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import { images } from "@/constants";
-
 import CustomButton from "@/components/CustomButton";
+import { CompletedRideDetails } from "@/types/type"
+import { 
+  fetchCompletedRideDetails, 
+  formatFarePrice,  
+} from "@/lib/fetch";
 
 const RideCompleted = () => {
     const { rideId } = useLocalSearchParams();
-    const [rideDetails, setRideDetails] = useState<any>(null);
+    const [rideDetails, setRideDetails] = useState<CompletedRideDetails | null>(null);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const fetchRideDetails = async () => {
-            if (!rideId) return;
-
-            try {
-                const rideDocRef = doc(db, "rideRequests", rideId as string);
-                const rideSnapshot = await getDoc(rideDocRef);
-
-                if (rideSnapshot.exists()) {
-                    const data = rideSnapshot.data();
-                    setRideDetails(data);
-                }
-            } catch (error) {
-                console.error("Error fetching ride details:", error);
+        fetchCompletedRideDetails(
+            rideId as string,
+            (details) => {
+                setRideDetails(details);
+                setIsLoading(false);
+            },
+            (error) => {
+                console.error("Error loading ride details:", error);
+                setError("Could not load ride details. Please try again.");
+                setIsLoading(false);
             }
-        };
-
-        fetchRideDetails();
+        );
     }, [rideId]);
+    const handleGoHome = () => {
+        router.replace("/(root)/(tabs)/home");
+    };
 
-    if (!rideDetails) {
+    if (isLoading) {
         return (
             <View style={styles.container}>
-                <Text>Loading ride details...</Text>
+                <ActivityIndicator size="large" color="#289dd2" />
+                <Text style={styles.loadingText}>Loading ride details...</Text>
+            </View>
+        );
+    }
+
+    if (error || !rideDetails) {
+        return (
+            <View style={styles.container}>
+                <Text style={styles.errorText}>{error || "Unable to load ride details"}</Text>
+                <CustomButton 
+                    title="Back to Home" 
+                    onPress={handleGoHome}
+                    bgVariant="primary"
+                    style={styles.homeButton}
+                />
             </View>
         );
     }
@@ -42,9 +59,7 @@ const RideCompleted = () => {
     return (
         <View style={styles.container}>
             <Image source={images.check} style={styles.checkImage} />
-            
             <Text style={styles.titleText}>Ride Completed</Text>
-            
             <View style={styles.rideDetailsContainer}>
                 <View style={styles.detailRow}>
                     <Text style={styles.detailLabel}>From:</Text>
@@ -63,14 +78,13 @@ const RideCompleted = () => {
                 <View style={styles.detailRow}>
                     <Text style={styles.detailLabel}>Fare:</Text>
                     <Text style={styles.detailValue}>
-                        ${(rideDetails.fare_price / 100).toFixed(2)}
+                        {formatFarePrice(rideDetails.fare_price)}
                     </Text>
                 </View>
             </View>
-
             <CustomButton 
                 title="Back to Home" 
-                onPress={() => router.replace("/(root)/(tabs)/home")}
+                onPress={handleGoHome}
                 bgVariant="primary"
                 style={styles.homeButton}
             />
@@ -95,6 +109,19 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontFamily: "DMSans-Bold",
         marginBottom: 20,
+    },
+    loadingText: {
+        marginTop: 10,
+        fontSize: 16,
+        fontFamily: "DMSans",
+        color: "#666",
+    },
+    errorText: {
+        fontSize: 16,
+        fontFamily: "DMSans",
+        color: "#FF3B30",
+        marginBottom: 20,
+        textAlign: "center",
     },
     rideDetailsContainer: {
         width: "100%",

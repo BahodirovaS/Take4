@@ -37,6 +37,13 @@ declare interface MarkerData {
   pets: boolean;
 }
 
+declare interface ProfileForm {
+  name: string;
+  email: string;
+  phoneNumber: string;
+  profilePhotoBase64: string;
+}
+
 declare interface Message {
   id: string;
   rideId?: string; 
@@ -80,7 +87,7 @@ declare interface Ride {
   };
 }
 
-interface RideRequest {
+declare interface RideRequest {
   id: string;
   scheduled_date: string;
   scheduled_time: string;
@@ -96,13 +103,26 @@ interface RideRequest {
   createdAt: Date;
 }
 
-interface ActiveRideData {
+declare interface ActiveRideData {
   rideId: string;
-  status: 'accepted' | 'arrived_at_pickup' | 'in_progress';
-  destination: string;
+  status: string;
+  destination?: string;
+  driver_id?: string;
+  driver_latitude?: number;
+  driver_longitude?: number;
 }
 
-interface ReservationStore {
+declare interface CompletedRideDetails {
+  origin_address: string;
+  destination_address: string;
+  ride_time: number;
+  fare_price: number;
+  status: string;
+  driver_id?: string;
+  user_id?: string;
+}
+
+declare interface ReservationStore {
   scheduledDate: string | null;
   scheduledTime: string | null;
   reservationId: string | null;

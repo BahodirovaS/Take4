@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, ActivityIndicator, SafeAreaView, TouchableOpacity } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
-import { doc, onSnapshot, collection, query, where, getDocs, Timestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import { useUser } from "@clerk/clerk-expo";
 import RideLayout from "@/components/RideLayout";
 import RequestLoading from "@/components/RequestLoading";
-import DriverInfo from "@/components/LiveDriver";
-import { useLocationStore } from "@/store";
 import LiveDriver from "@/components/LiveDriver";
+import { useLocationStore } from "@/store";
 import { Ionicons } from "@expo/vector-icons";
+import {
+    findActiveRide,
+    subscribeToRideUpdates,
+    fetchDriverDetails
+} from "@/lib/fetch";
 
 const ActiveRide = () => {
     const { user } = useUser();
@@ -23,117 +25,80 @@ const ActiveRide = () => {
     });
     const [driverName, setDriverName] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const { userAddress, destinationAddress } = useLocationStore();
+    const { destinationAddress } = useLocationStore();
+
 
     useEffect(() => {
-        const findActiveRide = async () => {
-            if (paramRideId) {
-                setRideId(paramRideId as string);
-                setIsLoading(false);
-                return;
-            }
-            if (!user?.id) {
-                setIsLoading(false);
-                return;
-            }
-            try {
-                const ridesRef = collection(db, "rideRequests");
-                const activeRidesQuery = query(
-                    ridesRef,
-                    where("user_id", "==", user.id),
-                    where("status", "in", ["requested", "accepted", "arrived_at_pickup", "in_progress"])
-                );
-                const querySnapshot = await getDocs(activeRidesQuery);
-                if (!querySnapshot.empty) {
-                    const rides = querySnapshot.docs.map(doc => ({
-                        id: doc.id,
-                        ...doc.data()
-                    }));
-                    rides.sort((a, b) => {
-                        const getTimestamp = (item: any) => {
-                            if (!item.createdAt) return 0;
-                            if (item.createdAt.toDate) {
-                                return item.createdAt.toDate().getTime();
-                            }
-                            if (item.createdAt instanceof Date) {
-                                return item.createdAt.getTime();
-                            }
-                            if (typeof item.createdAt === 'string') {
-                                return new Date(item.createdAt).getTime();
-                            }
-                            return 0;
-                        };
-                        return getTimestamp(b) - getTimestamp(a);
-                    });
-                    const activeRide = rides[0];
-                    setRideId(activeRide.id);
-                    router.setParams({ rideId: activeRide.id });
-                } else {
+        if (paramRideId) {
+            setRideId(paramRideId as string);
+            setIsLoading(false);
+            return;
+        }
+        if (!user?.id) {
+            setIsLoading(false);
+            return;
+        }
+        findActiveRide(
+            user.id,
+            (rideData: { id: string, status: string } | null) => {
+                if (rideData) {
+                    setRideId(rideData.id);
+                    router.setParams({ rideId: rideData.id });
                 }
-            } catch (error) {
-                console.error("Error finding active rides:", error);
-            } finally {
+                setIsLoading(false);
+            },
+            (error: any) => {
+                console.error("Error finding active ride:", error);
                 setIsLoading(false);
             }
-        };
-        findActiveRide();
+        );
     }, [user?.id, paramRideId]);
 
 
     useEffect(() => {
         if (!rideId) return;
-        const rideRef = doc(db, "rideRequests", rideId);
-        const unsubscribe = onSnapshot(rideRef, (snapshot) => {
-            const data = snapshot.data();
-            if (data) {
-                const { setDestinationLocation } = useLocationStore.getState();
-                if (data.destination_latitude && data.destination_longitude && data.destination_address) {
-                    setDestinationLocation({
-                        latitude: data.destination_latitude,
-                        longitude: data.destination_longitude,
-                        address: data.destination_address
-                    });
+        const unsubscribe = subscribeToRideUpdates(
+            rideId,
+            (
+                status: string,
+                newDriverId: string | null,
+                newDriverLocation: { latitude: number, longitude: number },
+                destinationInfo: { latitude: number, longitude: number, address: string } | null
+            ) => {
+                setRideStatus(status);
+
+                if (newDriverId) {
+                    setDriverId(newDriverId);
+                    setDriverLocation(newDriverLocation);
                 }
-                setRideStatus(data.status);
-                if (data.status === "completed") {
-                    router.replace({
-                        pathname: "/(root)/ride-completed",
-                        params: { rideId: rideId }
-                    });
-                }
-                if (data.driver_id &&
-                    (data.status === "accepted" ||
-                        data.status === "arrived_at_pickup" ||
-                        data.status === "in_progress")) {
-                    setDriverId(data.driver_id);
-                    setDriverLocation({
-                        latitude: data.driver_current_latitude || 0,
-                        longitude: data.driver_current_longitude || 0
-                    });
-                }
+            },
+            (completedRideId: string) => {
+                router.replace({
+                    pathname: "/(root)/ride-completed",
+                    params: { rideId: completedRideId }
+                });
+            },
+            (error: any) => {
+                console.error("Error with ride updates:", error);
             }
-        });
+        );
         return () => unsubscribe();
     }, [rideId]);
 
 
     useEffect(() => {
         if (!driverId) return;
-        const fetchDriverDetails = async () => {
-            try {
-                const driversRef = collection(db, "drivers");
-                const driverQuery = query(driversRef, where("clerkId", "==", driverId));
-                const querySnapshot = await getDocs(driverQuery);
-                if (!querySnapshot.empty) {
-                    const driverData = querySnapshot.docs[0].data();
-                    setDriverName(`${driverData.firstName}`);
-                } else {
+        fetchDriverDetails(
+            driverId,
+            (name: string | null) => {
+                if (name) {
+                    setDriverName(name);
                 }
-            } catch (error) {
+            },
+            (error: any) => {
                 console.error("Error fetching driver details:", error);
             }
-        };
-        fetchDriverDetails();
+        );
     }, [driverId]);
 
     const handleGoToHome = () => {
@@ -141,6 +106,21 @@ const ActiveRide = () => {
             pathname: '/(root)/(tabs)/home',
         });
     };
+
+
+    const getRideStatusTitle = () => {
+        if (rideStatus === "accepted" && driverName) {
+            return `${driverName} is on the way!`;
+        } else if (rideStatus === "arrived_at_pickup" && driverName) {
+            return `${driverName} is here!`;
+        } else if (rideStatus === "in_progress") {
+            return `Headed to ${destinationAddress}`;
+        } else if (rideStatus === "completed") {
+            return "Your ride is complete";
+        }
+        return "";
+    };
+
 
     if (isLoading) {
         return (
@@ -152,6 +132,7 @@ const ActiveRide = () => {
             </RideLayout>
         );
     }
+
 
     if (!rideId) {
         return (
@@ -177,13 +158,7 @@ const ActiveRide = () => {
                 <Text style={styles.topBarText}>Active Ride</Text>
             </View>
             <RideLayout
-                title={
-                    rideStatus === "accepted" && driverName ? `${driverName} is on the way!` :
-                        rideStatus === "arrived_at_pickup" && driverName ? `${driverName} is here!` :
-                            rideStatus === "in_progress" ? `Headed to ${destinationAddress}` :
-                                rideStatus === "completed" ? "Your ride is complete" :
-                                    ""
-                }
+                title={getRideStatusTitle()}
                 rideStatus={rideStatus}
                 driverLocation={driverLocation}
             >

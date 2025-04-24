@@ -52,7 +52,6 @@ const ReserveRide: React.FC = () => {
         setScheduledDateTime(formattedDate, formattedTime);
         
         if (isReschedule && reservationId) {
-            // Handle reschedule case
             setIsSubmitting(true);
             try {
                 const rideRef = doc(db, "rideRequests", reservationId);
@@ -63,7 +62,6 @@ const ReserveRide: React.FC = () => {
                     updated_at: new Date().getTime()
                 });
                 
-                // Clear the reservation ID after successful update
                 setReservationId(null);
                 
                 Alert.alert(

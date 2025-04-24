@@ -31,7 +31,6 @@ const ReserveBookRide: React.FC = () => {
         mileageAPI
     );
 
-    // Apply car size adjustment
     let adjustedPrice = price;
     if (driverDetails) {
         if (driverDetails.car_seats === 6) {

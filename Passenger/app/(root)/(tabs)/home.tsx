@@ -13,15 +13,14 @@ import {
     ScrollView
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
 import GoogleTextInput from "@/components/GoogleTextInput";
 import Map from "@/components/Map";
 import RideCard from "@/components/RideCard";
 import { icons, images } from "@/constants";
 import { useLocationStore } from "@/store";
 import { ActiveRideData, Ride } from "@/types/type";
-import { db } from "@/lib/firebase";
 import { Ionicons } from "@expo/vector-icons";
+import { fetchRideHistory, checkActiveRides, determineRideStage } from "@/lib/fetch";
 
 const Home = () => {
     const { user } = useUser();
@@ -31,63 +30,41 @@ const Home = () => {
     const [hasActiveRide, setHasActiveRide] = useState(false);
     const [activeRideData, setActiveRideData] = useState<ActiveRideData | null>(null);
 
-
     useEffect(() => {
         if (!user?.id) return;
-        const fetchRideHistory = async () => {
-            try {
-                setLoading(true);
-                const ridesRef = collection(db, "rideRequests");
-                const q = query(
-                    ridesRef,
-                    where("user_id", "==", user.id),
-                    where("status", "in", ["completed"])
-                );
-                const unsubscribe = onSnapshot(q, (snapshot) => {
-                    const rides = snapshot.docs.map((doc) => {
-                        const data = doc.data();
-                        return {
-                            id: doc.id,
-                            origin_address: data.origin_address,
-                            destination_address: data.destination_address,
-                            origin_latitude: data.origin_latitude,
-                            origin_longitude: data.origin_longitude,
-                            destination_latitude: data.destination_latitude,
-                            destination_longitude: data.destination_longitude,
-                            ride_time: data.ride_time,
-                            fare_price: data.fare_price,
-                            payment_status: data.payment_status,
-                            driver_id: data.driver_id,
-                            user_id: data.user_id,
-                            created_at: data.createdAt && typeof data.createdAt.toDate === 'function'
-                                ? data.createdAt.toDate().toISOString()
-                                : new Date().toISOString(),
-                            driver: {
-                                first_name: data.driver?.firstName || "",
-                                last_name: data.driver?.lastName || "",
-                                car_seats: data.driver?.carSeats || 0,
-                            },
-                            status: data.status
-                        } as Ride;
-                    });
-                    rides.sort((a, b) => {
-                        const timeA = new Date(a.created_at).getTime();
-                        const timeB = new Date(b.created_at).getTime();
-                        return timeB - timeA;
-                    });
-                    setRecentRides(rides);
-                    setLoading(false);
-                });
-                return unsubscribe;
-            } catch (error) {
+
+        setLoading(true);
+        const unsubscribe = fetchRideHistory(
+            user.id,
+            (rides) => {
+                setRecentRides(rides);
+                setLoading(false);
+            },
+            (error) => {
                 console.error("Error fetching ride history:", error);
                 setLoading(false);
             }
-        };
-        fetchRideHistory();
+        );
+
+        return unsubscribe;
     }, [user?.id]);
 
+    useEffect(() => {
+        if (!user?.id) return;
 
+        const unsubscribe = checkActiveRides(
+            user.id,
+            (hasRide, rideData) => {
+                setHasActiveRide(hasRide);
+                setActiveRideData(rideData);
+            },
+            (error) => {
+                console.error("Error checking active rides:", error);
+            }
+        );
+
+        return unsubscribe;
+    }, [user?.id]);
 
     const handleDestinationPress = (location: {
         latitude: number;
@@ -95,41 +72,26 @@ const Home = () => {
         address: string;
     }) => {
         setDestinationLocation(location);
-
         router.push("/(root)/find-ride");
     };
 
+    const navigateToActiveRide = () => {
+        if (!activeRideData) return;
 
-    useEffect(() => {
-        if (!user?.id) return;
-        const activeRidesQuery = query(
-            collection(db, "rideRequests"),
-            where("user_id", "==", user.id),
-            where("status", "in", ["accepted", "arrived_at_pickup", "in_progress"])
-        );
-        const unsubscribe = onSnapshot(activeRidesQuery, (snapshot) => {
-            if (!snapshot.empty) {
-                const rideDoc = snapshot.docs[0];
-                const rideData = rideDoc.data();
-                setHasActiveRide(true);
-                setActiveRideData({
-                    rideId: rideDoc.id,
-                    status: rideData.status,
-                    destination: rideData.destination_address
-                });
-            } else {
-                setHasActiveRide(false);
-                setActiveRideData(null);
+        router.push({
+            pathname: '/(root)/active-ride',
+            params: {
+                rideId: activeRideData.rideId,
+                rideStage: determineRideStage(activeRideData.status)
             }
         });
-        return unsubscribe;
-    }, [user?.id]);
-
+    };
 
     const renderRideHistory = () => {
         if (loading) {
             return <ActivityIndicator size="small" color="#000" />;
         }
+
         if (recentRides.length === 0) {
             return (
                 <View style={styles.emptyComponent}>
@@ -170,23 +132,10 @@ const Home = () => {
                                 Welcome {user?.firstName}👋
                             </Text>
                         </View>
-
                         {hasActiveRide && activeRideData && (
                             <TouchableOpacity
                                 style={styles.activeRideBanner}
-                                onPress={() => {
-                                    router.push({
-                                        pathname: '/(root)/active-ride',
-                                        params: {
-                                            rideId: activeRideData.rideId,
-                                            rideStage: activeRideData.status === 'accepted'
-                                                ? 'to_pickup'
-                                                : (activeRideData.status === 'arrived_at_pickup'
-                                                    ? 'to_destination'
-                                                    : 'to_destination')
-                                        }
-                                    });
-                                }}
+                                onPress={navigateToActiveRide}
                             >
                                 <View style={styles.bannerIconContainer}>
                                     <Ionicons name="car" size={20} color="#fff" />
@@ -202,22 +151,18 @@ const Home = () => {
                                 <Ionicons name="chevron-forward" size={20} color="#fff" />
                             </TouchableOpacity>
                         )}
-
                         <GoogleTextInput
                             icon={icons.search}
                             containerStyle={styles.searchInput}
                             handlePress={handleDestinationPress}
                         />
-
                         <>
                             <Text style={styles.sectionTitle}>Your current location</Text>
                             <View style={styles.mapContainer}>
                                 <Map showLocationButton={true} />
                             </View>
                         </>
-
                         <Text style={styles.sectionTitle}>Ride History</Text>
-
                         {renderRideHistory()}
                     </>
                 )}

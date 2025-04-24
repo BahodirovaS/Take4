@@ -4,21 +4,18 @@ import {
   Text,
   FlatList,
   StyleSheet,
-  TouchableOpacity,
   Alert,
   Image,
   SafeAreaView,
   ActivityIndicator
 } from 'react-native';
-import { useAuth, useUser } from "@clerk/clerk-expo";
-import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, deleteDoc, doc } from "firebase/firestore";
+import { useUser } from "@clerk/clerk-expo";
 import { useLocationStore, useReservationStore } from "@/store";
 import { RideRequest } from '@/types/type';
-import { icons, images } from "@/constants";
-import { formatDate } from "@/lib/utils";
+import { images } from "@/constants";
 import ReservationCard from '@/components/ReservationCard';
 import { router } from 'expo-router';
+import { fetchScheduledRides, cancelRide } from '@/lib/fetch';
 
 const Reservations = () => {
   const [rides, setRides] = useState<RideRequest[]>([]);
@@ -28,55 +25,61 @@ const Reservations = () => {
   const { clearReservation, setReservationId } = useReservationStore();
 
   useEffect(() => {
-    fetchScheduledRides();
+    loadScheduledRides();
   }, [user]);
 
-  const fetchScheduledRides = async () => {
+  const loadScheduledRides = async () => {
     if (!user?.id) {
       setIsLoading(false);
       setFetchComplete(true);
       return;
     }
 
-    try {
-      const q = query(
-        collection(db, "rideRequests"),
-        where("user_id", "==", user.id),
-        where("status", "==", "scheduled")
-      );
+    setIsLoading(true);
+    const { rides: scheduledRides, error } = await fetchScheduledRides(user.id);
 
-      const querySnapshot = await getDocs(q);
-      const scheduledRides: RideRequest[] = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as RideRequest));
-
-      setRides(scheduledRides);
-      setIsLoading(false);
-      setFetchComplete(true);
-    } catch (error) {
-      console.error("Error fetching scheduled rides:", error);
+    if (error) {
       Alert.alert('Error', 'Failed to fetch scheduled rides');
-      setIsLoading(false);
-      setFetchComplete(true);
+    } else {
+      setRides(scheduledRides);
     }
+
+    setIsLoading(false);
+    setFetchComplete(true);
   };
 
-  const cancelRide = async (rideId: string) => {
-    try {
-      await deleteDoc(doc(db, "rideRequests", rideId));
+  const handleCancelRide = async (rideId: string) => {
+    const { success, error } = await cancelRide(rideId);
+
+    if (success) {
       setRides(prevRides => prevRides.filter(ride => ride.id !== rideId));
       clearReservation();
-
       Alert.alert('Success', 'Ride reservation cancelled');
-    } catch (error) {
-      console.error("Error cancelling ride:", error);
+    } else {
       Alert.alert('Error', 'Failed to cancel ride');
     }
   };
 
-  const rescheduleRide = (ride: RideRequest) => {
+  const confirmCancelRide = (rideId: string) => {
+    Alert.alert(
+      'Cancel Ride',
+      'Are you sure you want to cancel this ride?',
+      [
+        {
+          text: 'No',
+          style: 'cancel'
+        },
+        {
+          text: 'Yes',
+          onPress: () => handleCancelRide(rideId)
+        }
+      ]
+    );
+  };
+
+  const handleRescheduleRide = (ride: RideRequest) => {
     setReservationId(ride.id);
+
     useLocationStore.getState().setUserLocation({
       latitude: ride.origin_latitude,
       longitude: ride.origin_longitude,
@@ -96,26 +99,38 @@ const Reservations = () => {
     return (
       <ReservationCard
         ride={item}
-        onCancel={() => {
-          Alert.alert(
-            'Cancel Ride',
-            'Are you sure you want to cancel this ride?',
-            [
-              {
-                text: 'No',
-                style: 'cancel'
-              },
-              {
-                text: 'Yes',
-                onPress: () => cancelRide(item.id)
-              }
-            ]
-          );
-        }}
-        onReschedule={() => rescheduleRide(item)}
+        onCancel={() => confirmCancelRide(item.id)}
+        onReschedule={() => handleRescheduleRide(item)}
       />
     );
   };
+
+  const renderEmptyState = () => (
+    <View style={styles.emptyContainer}>
+      {fetchComplete && rides.length === 0 ? (
+        <>
+          <Image
+            source={images.calendar}
+            style={styles.image}
+            alt="No scheduled rides"
+            resizeMode="contain"
+          />
+          <Text style={styles.emptyText}>No scheduled rides</Text>
+        </>
+      ) : isLoading ? (
+        <ActivityIndicator size="small" color="#000" />
+      ) : null}
+    </View>
+  );
+
+  const renderHeader = () => (
+    <View>
+      <Text style={styles.headerText}>Scheduled Rides</Text>
+      <View style={styles.header}>
+        <Image source={images.icon} style={styles.carIcon} />
+      </View>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -124,31 +139,8 @@ const Reservations = () => {
         renderItem={renderRideItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
-        ListEmptyComponent={() => (
-          <View style={styles.emptyContainer}>
-            {fetchComplete && rides.length === 0 ? (
-              <>
-                <Image
-                  source={images.calendar}
-                  style={styles.image}
-                  alt="No scheduled rides"
-                  resizeMode="contain"
-                />
-                <Text style={styles.emptyText}>No scheduled rides</Text>
-              </>
-            ) : isLoading ? (
-              <ActivityIndicator size="small" color="#000" />
-            ) : null}
-          </View>
-        )}
-        ListHeaderComponent={
-          <View>
-            <Text style={styles.headerText}>Scheduled Rides</Text>
-            <View style={styles.header}>
-              <Image source={images.icon} style={styles.carIcon} />
-            </View>
-          </View>
-        }
+        ListEmptyComponent={renderEmptyState}
+        ListHeaderComponent={renderHeader}
       />
     </SafeAreaView>
   );

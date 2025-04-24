@@ -10,20 +10,26 @@ import {
     TouchableOpacity,
     StyleSheet
 } from "react-native";
-import { collection, addDoc, query, where, orderBy, onSnapshot, doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import { useUser } from "@clerk/clerk-expo";
 import { Message, Ride } from "@/types/type";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import CustomButton from "@/components/CustomButton";
+import { 
+    fetchRideDetails, 
+    subscribeToMessages, 
+    sendMessage,
+    getShortDestination
+} from "@/lib/fetch";
 
 const Chat = () => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
     const [rideDetails, setRideDetails] = useState<Partial<Ride> | null>(null);
+    
     const { user } = useUser();
     const router = useRouter();
+    
     const { 
         otherPersonId, 
         otherPersonName, 
@@ -36,75 +42,82 @@ const Chat = () => {
         context?: string;
     }>();
 
-
     useEffect(() => {
         if (rideId) {
-            const fetchRideDetails = async () => {
-                try {
-                    const rideDoc = await getDoc(doc(db, "rideRequests", rideId));
-                    if (rideDoc.exists()) {
-                        const data = rideDoc.data();
-                        setRideDetails({
-                            id: rideDoc.id,
-                            origin_address: data.origin_address,
-                            destination_address: data.destination_address,
-                            status: data.status,
-                        });
-                    }
-                } catch (error) {
-                    console.error("Error fetching ride details:", error);
+            fetchRideDetails(
+                rideId,
+                (details) => {
+                    setRideDetails(details);
+                },
+                (error) => {
+                    console.error("Error loading ride details:", error);
                 }
-            };
-            
-            fetchRideDetails();
+            );
         }
     }, [rideId]);
 
     useEffect(() => {
-        if (!user?.id || !otherPersonId) return;
-        const q = query(
-            collection(db, "messages"),
-            where("senderId", "in", [user.id, otherPersonId]),
-            where("recipientId", "in", [user.id, otherPersonId]),
-            orderBy("timestamp", "desc")
+        const unsubscribe = subscribeToMessages(
+            user?.id,
+            otherPersonId,
+            (newMessages) => {
+                setMessages(newMessages);
+            },
+            (error) => {
+                console.error("Error loading messages:", error);
+            }
         );
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const messagesData = snapshot.docs.map((doc) => ({
-                id: doc.id,
-                ...doc.data()
-            } as Message));
-            setMessages(messagesData);
-        });
 
         return unsubscribe;
     }, [user?.id, otherPersonId]);
 
-    const sendMessage = async () => {
-        if (!input.trim()) return;
-        try {
-            await addDoc(collection(db, "messages"), {
-                text: input,
-                senderId: user?.id || "guest",
-                senderName: user?.firstName || "Guest",
-                recipientId: otherPersonId,
-                recipientName: otherPersonName,
-                timestamp: new Date(),
-                rideId: rideId || null, 
-                context: context || "general"
-            });
-            setInput("");
-        } catch (error) {
-            console.error("Error sending message: ", error);
-        }
+    const handleSendMessage = () => {
+        sendMessage(
+            input,
+            user?.id,
+            user?.firstName,
+            otherPersonId,
+            otherPersonName,
+            rideId,
+            context,
+            () => {
+                setInput("");
+            },
+            (error) => {
+                console.error("Error sending message:", error);
+            }
+        );
     };
 
     const handleGoBack = () => {
-        
         if (context === "active_ride" && rideId) {
+            router.back();
+        } else {
             router.back();
         }
     };
+
+    const renderMessage = ({ item }: { item: Message }) => (
+        <View
+            style={[
+                styles.messageContainer,
+                item.senderId === user?.id
+                    ? styles.myMessage
+                    : styles.otherMessage,
+            ]}
+        >
+            <Text
+                style={[
+                    styles.message,
+                    item.senderId === user?.id
+                        ? styles.myMessageText
+                        : styles.otherMessageText,
+                ]}
+            >
+                {item.text}
+            </Text>
+        </View>
+    );
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -122,7 +135,7 @@ const Chat = () => {
                         )}
                         {rideDetails && (
                             <Text style={styles.rideInfo}>
-                                Ride to {rideDetails.destination_address?.split(',')[0]}
+                                Ride to {getShortDestination(rideDetails.destination_address)}
                             </Text>
                         )}
                     </View>
@@ -134,35 +147,14 @@ const Chat = () => {
                             {rideDetails.status === 'in_progress' 
                                 ? 'Active ride to: ' 
                                 : 'Ride to: '}
-                            {rideDetails.destination_address?.split(',')[0]}
+                            {getShortDestination(rideDetails.destination_address)}
                         </Text>
                     </View>
                 )}
-                
                 <FlatList
                     data={messages}
                     keyExtractor={(item) => item.id}
-                    renderItem={({ item }) => (
-                        <View
-                            style={[
-                                styles.messageContainer,
-                                item.senderId === user?.id
-                                    ? styles.myMessage
-                                    : styles.otherMessage,
-                            ]}
-                        >
-                            <Text
-                                style={[
-                                    styles.message,
-                                    item.senderId === user?.id
-                                        ? styles.myMessageText
-                                        : styles.otherMessageText,
-                                ]}
-                            >
-                                {item.text}
-                            </Text>
-                        </View>
-                    )}
+                    renderItem={renderMessage}
                     inverted
                 />
                 <View style={styles.inputWrapper}>
@@ -176,7 +168,7 @@ const Chat = () => {
                         <CustomButton
                             title={"Send"}
                             bgVariant={"primary"}
-                            onPress={sendMessage}
+                            onPress={handleSendMessage}
                             style={styles.sendButton}
                         />
                     </View>
@@ -253,7 +245,6 @@ const styles = StyleSheet.create({
     },
     message: {
         flexShrink: 1,
-        color: "#ffffff",
         fontSize: 18,
         marginLeft: 5,
         marginRight: 5
@@ -261,12 +252,10 @@ const styles = StyleSheet.create({
     myMessageText: {
         color: "#ffffff",
         fontFamily: "DMSans",
-
     },
     otherMessageText: {
         color: "#333",
         fontFamily: "DMSans",
-
     },
     inputWrapper: {
         justifyContent: "flex-end",

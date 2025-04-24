@@ -1,230 +1,150 @@
 import { useAuth, useUser } from "@clerk/clerk-expo";
-import { Image, ScrollView, Text, View, StyleSheet, Button, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard, Alert, TouchableOpacity } from "react-native";
+import {
+    Image,
+    ScrollView,
+    Text,
+    View,
+    StyleSheet,
+    KeyboardAvoidingView,
+    TouchableWithoutFeedback,
+    Keyboard,
+    Alert,
+    TouchableOpacity
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import InputField from "@/components/InputField";
 import { useEffect, useState } from "react";
-import { collection, query, where, getDocs, doc, updateDoc, addDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import * as ImagePicker from "expo-image-picker";
-import * as FileSystem from "expo-file-system";
-import * as Location from "expo-location";
 import { router } from "expo-router";
 import { useLocationStore } from "@/store";
 import CustomButton from "@/components/CustomButton";
 import { icons } from "@/constants";
-
+import { ProfileForm } from "@/types/type"
+import {
+    fetchPassengerProfile,
+    updatePassengerProfile,
+    selectProfileImage,
+    getCurrentLocation,
+    formatPhoneNumber
+} from "@/lib/fetch";
 
 const Profile = () => {
     const { user } = useUser();
     const { signOut } = useAuth();
-    const { setUserLocation, setDestinationLocation } = useLocationStore();
+    const { setUserLocation } = useLocationStore();
     const [hasPermission, setHasPermission] = useState<boolean>(false);
+    const [form, setForm] = useState<ProfileForm>({
+        name: "",
+        email: "",
+        phoneNumber: "",
+        profilePhotoBase64: "",
+    });
+    const [passengerDocId, setPassengerDocId] = useState<string | null>(null);
+    const [uploading, setUploading] = useState(false);
+
+
+    useEffect(() => {
+        const setupLocation = async () => {
+            const { location, hasPermission: permission } = await getCurrentLocation();
+            setHasPermission(permission);
+            if (location) {
+                setUserLocation(location);
+            }
+        };
+        setupLocation();
+    }, []);
+
+
+    useEffect(() => {
+        const loadPassengerProfile = async () => {
+            if (!user) return;
+            try {
+                setForm((prevForm) => ({
+                    ...prevForm,
+                    name: `${user?.firstName || ""} ${user?.lastName || ""}`.trim(),
+                    email: user?.primaryEmailAddress?.emailAddress || "",
+                }));
+                const { data, docId, error } = await fetchPassengerProfile(user.id);
+                if (error) {
+                    Alert.alert("Error", "An error occurred while loading passenger information.");
+                    return;
+                }
+                if (docId) {
+                    setPassengerDocId(docId);
+                }
+                if (data) {
+                    setForm({
+                        name: `${user?.firstName || ""} ${user?.lastName || ""}`.trim(),
+                        email: user?.primaryEmailAddress?.emailAddress || "",
+                        phoneNumber: data.phoneNumber,
+                        profilePhotoBase64: data.profilePhotoBase64,
+                    });
+                }
+            } catch (error) {
+                console.error("Error in profile setup:", error);
+                Alert.alert("Error", "An error occurred while setting up your profile.");
+            }
+        };
+        loadPassengerProfile();
+    }, [user]);
 
 
     const handleSignOut = () => {
         signOut();
         router.replace("/(auth)/sign-up");
     };
-    useEffect(() => {
-        (async () => {
-            let { status } = await Location.requestForegroundPermissionsAsync();
-            if (status !== "granted") {
-                setHasPermission(false);
-                return;
-            }
-            let location = await Location.getCurrentPositionAsync({});
-            const address = await Location.reverseGeocodeAsync({
-                latitude: location.coords?.latitude!,
-                longitude: location.coords?.longitude!,
-            });
-            setUserLocation({
-                latitude: location.coords?.latitude,
-                longitude: location.coords?.longitude,
-                address: `${address[0].name}, ${address[0].region}`,
-            });
-        })();
-    }, []);
 
-
-    const [form, setForm] = useState({
-        name: "",
-        email: "",
-        phoneNumber: "",
-        profilePhotoBase64: "",
-    });
-
-    const [passengerDocId, setPassengerDocId] = useState<string | null>(null);
-    const [uploading, setUploading] = useState(false);
-
-
-    useEffect(() => {
-        const fetchPassengerInfo = async () => {
-            if (user) {
-                try {
-
-                    setForm((prevForm) => ({
-                        ...prevForm,
-                        name: `${user?.firstName || ""} ${user?.lastName || ""}`.trim(),
-                        email: user?.primaryEmailAddress?.emailAddress || "",
-                    }));
-
-
-                    const usersRef = collection(db, "passengers");
-                    const q = query(usersRef, where("clerkId", "==", user.id));
-                    const querySnapshot = await getDocs(q);
-
-                    if (!querySnapshot.empty) {
-
-                        const userDoc = querySnapshot.docs[0];
-                        const userData = userDoc.data();
-
-                        setPassengerDocId(userDoc.id);
-
-                        setForm({
-                            name: `${user?.firstName || ""} ${user?.lastName || ""}`.trim(),
-                            email: user?.primaryEmailAddress?.emailAddress || "",
-                            phoneNumber: userData.phoneNumber || "",
-                            profilePhotoBase64: userData.profilePhotoBase64 || "",
-                        });
-                    } else {
-
-                        try {
-                            const newUserRef = await addDoc(collection(db, "users"), {
-                                firstName: user?.firstName || "",
-                                lastName: user?.lastName || "",
-                                email: user?.primaryEmailAddress?.emailAddress || "",
-                                clerkId: user.id,
-                                phoneNumber: "",
-                                isDriver: false,
-                                createdAt: new Date()
-                            });
-                            setPassengerDocId(newUserRef.id);
-                        } catch (createError) {
-                            console.error("Error creating new passenger document:", createError);
-                            Alert.alert("Error", "Failed to set up passenger profile.");
-                        }
-                    }
-                } catch (error) {
-                    console.error("Error fetching passenger info:", error);
-                    Alert.alert("Error", "An error occurred while loading passenger information.");
-                }
-            }
-        };
-
-        fetchPassengerInfo();
-    }, [user]);
 
     const pickImage = async () => {
-        try {
-
-            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-            if (status !== 'granted') {
-                Alert.alert('Permission Required', 'We need permission to access your photos');
-                return;
-            }
-
-
-            const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ['images'],
-                allowsEditing: true,
-                aspect: [1, 1],
-                quality: 0.5,
-                base64: true,
-            });
-
-            if (!result.canceled) {
-                setUploading(true);
-
-                try {
-                    let base64Image;
-
-
-                    if (result.assets[0].base64) {
-                        base64Image = result.assets[0].base64;
-                    } else {
-
-
-                        const fileUri = result.assets[0].uri;
-                        const fileContent = await FileSystem.readAsStringAsync(fileUri, {
-                            encoding: FileSystem.EncodingType.Base64,
-                        });
-                        base64Image = fileContent;
-                    }
-
-
-                    const imageSizeInBytes = base64Image.length * 0.75;
-                    const imageSizeInMB = imageSizeInBytes / (1024 * 1024);
-
-                    if (imageSizeInMB > 1) {
-                        Alert.alert(
-                            "Image Too Large",
-                            "Please select a smaller image (under 1MB)",
-                            [{ text: "OK" }]
-                        );
-                        setUploading(false);
-                        return;
-                    }
-
-
-                    setForm(prevForm => ({
-                        ...prevForm,
-                        profilePhotoBase64: base64Image
-                    }));
-
-                } catch (error) {
-                    console.error("Error processing image:", error);
-                    Alert.alert("Error", "Failed to process image");
-                } finally {
-                    setUploading(false);
-                }
-            }
-        } catch (error) {
-            console.error("Error picking image:", error);
+        setUploading(true);
+        const { base64Image, error } = await selectProfileImage();
+        if (base64Image) {
+            setForm(prevForm => ({
+                ...prevForm,
+                profilePhotoBase64: base64Image
+            }));
+        } else if (error && error.message !== 'Permission denied') {
             Alert.alert("Error", "Failed to select image");
-            setUploading(false);
         }
+        setUploading(false);
     };
 
+
     const onSubmit = async () => {
-        try {
-            if (!user) {
-                return Alert.alert("Error", "User not found. Please log in again.");
-            }
-
-            const { phoneNumber, profilePhotoBase64 } = form;
-
-            if (!phoneNumber) {
-                return Alert.alert("Error", "Please enter your phone number.");
-            }
-
-            const passengerData = {
+        if (!user) {
+            return Alert.alert("Error", "User not found. Please log in again.");
+        }
+        const { phoneNumber, profilePhotoBase64 } = form;
+        if (!phoneNumber) {
+            return Alert.alert("Error", "Please enter your phone number.");
+        }
+        const { success, newDocId, error } = await updatePassengerProfile(
+            passengerDocId,
+            user.id,
+            {
                 phoneNumber,
                 profilePhotoBase64,
             }
-
-            if (passengerDocId) {
-
-                await updateDoc(doc(db, "passengers", passengerDocId), passengerData);
-            } else {
-
-                const docRef = await addDoc(collection(db, "passengers"), {
-                    ...passengerData,
-                    createdAt: new Date()
-                });
-                setPassengerDocId(docRef.id);
+        );
+        if (success) {
+            if (newDocId) {
+                setPassengerDocId(newDocId);
             }
             Alert.alert("Success", "Information updated successfully.");
-        } catch (err) {
-            console.error("Submission Error:", err);
+        } else {
             Alert.alert("Error", "An error occurred. Please try again.");
         }
     };
 
+
+    const handlePhoneNumberChange = (value: string) => {
+        const formattedNumber = formatPhoneNumber(value);
+        setForm({ ...form, phoneNumber: formattedNumber });
+    };
+
+
     const profileImageSource = form.profilePhotoBase64
         ? { uri: `data:image/jpeg;base64,${form.profilePhotoBase64}` }
         : { uri: user?.externalAccounts[0]?.imageUrl ?? user?.imageUrl };
-
 
     return (
         <SafeAreaView style={styles.container}>
@@ -236,7 +156,6 @@ const Profile = () => {
                 <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                     <ScrollView contentContainerStyle={styles.scrollViewContent}>
                         <Text style={styles.headerText}>My profile</Text>
-
                         <View style={styles.profileImageContainer}>
                             <TouchableOpacity onPress={pickImage} disabled={uploading}>
                                 <Image
@@ -254,7 +173,6 @@ const Profile = () => {
                             </TouchableOpacity>
                             <Text style={styles.tapToChangeText}>Tap to change photo</Text>
                         </View>
-
                         <View style={styles.infoContainer}>
                             <View style={styles.infoContent}>
                                 <InputField
@@ -291,16 +209,9 @@ const Profile = () => {
                                     inputStyle={styles.input}
                                     editable={true}
                                     value={form.phoneNumber}
-                                    onChangeText={(value) => {
-                                        let formattedValue = value.replace(/\D/g, '');
-                                        if (formattedValue.length > 3 && formattedValue.length <= 6) {
-                                            formattedValue = `${formattedValue.slice(0, 3)}-${formattedValue.slice(3)}`;
-                                        } else if (formattedValue.length > 6) {
-                                            formattedValue = `${formattedValue.slice(0, 3)}-${formattedValue.slice(3, 6)}-${formattedValue.slice(6, 10)}`;
-                                        }
-                                        setForm({ ...form, phoneNumber: formattedValue });
-                                    }}
+                                    onChangeText={handlePhoneNumberChange}
                                 />
+
                                 <CustomButton
                                     title="Update Phone Number"
                                     onPress={onSubmit}
@@ -309,7 +220,7 @@ const Profile = () => {
                                 />
                             </View>
                         </View>
-                        <CustomButton 
+                        <CustomButton
                             title="Log Out"
                             onPress={handleSignOut}
                             bgVariant="danger"
