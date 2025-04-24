@@ -234,6 +234,7 @@ export const setupLocationTracking = async (
   }
 };
 
+
 /**
 * Updates ride status to 'arrived_at_pickup'
 */
@@ -250,6 +251,8 @@ export const markArrivedAtPickup = async (rideId: string) => {
   }
 };
 
+
+
 /**
 * Updates ride status to 'in_progress'
 */
@@ -265,6 +268,8 @@ export const startRide = async (rideId: string) => {
       return false;
   }
 };
+
+
 
 /**
 * Completes a ride and adds it to completedRides collection
@@ -321,6 +326,8 @@ export const completeRide = async (
   }
 };
 
+
+
 /**
  * Fetches and subscribes to user's current location
  */
@@ -357,6 +364,8 @@ export const getUserLocation = async (
   }
 };
 
+
+
 /**
  * Fetches driver status and subscribes to changes
  */
@@ -386,6 +395,8 @@ export const getDriverStatus = (
   }
 };
 
+
+
 /**
  * Updates the driver's online status
  */
@@ -404,6 +415,8 @@ export const updateDriverStatus = async (
     return false;
   }
 };
+
+
 
 /**
  * Fetches and subscribes to ride history
