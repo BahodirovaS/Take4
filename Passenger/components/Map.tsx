@@ -93,8 +93,8 @@ const Map = ({
         mapType="mutedStandard"
         showsPointsOfInterest={false}
         initialRegion={{
-          latitude: userLatitude || 37.78825,
-          longitude: userLongitude || -122.4324,
+          latitude: userLatitude || 42.347023,
+          longitude: userLongitude || -71.081924,
           latitudeDelta: 0.0922,
           longitudeDelta: 0.0421,
         }}

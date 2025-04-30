@@ -42,10 +42,19 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": "https://uber.dev/"
+      },
+      "eas": {
+        "projectId": "01b635ee-68ab-4ff3-9603-cee892648f09"
+      }
     }
   }
 }
