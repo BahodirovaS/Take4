@@ -75,6 +75,7 @@ declare interface Ride {
   destination_longitude: number;
   ride_time: number;
   fare_price: number;
+  tip_amount?: string | number;
   payment_status: string;
   driver_id: number;
   user_id: string;
@@ -120,6 +121,8 @@ declare interface CompletedRideDetails {
   status: string;
   driver_id?: string;
   user_id?: string;
+  rating: number;
+  tip_amount: string;
 }
 
 declare interface ReservationStore {

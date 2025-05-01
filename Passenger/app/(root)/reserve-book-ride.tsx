@@ -7,14 +7,18 @@ import RideLayout from "@/components/RideLayout";
 import { icons } from "@/constants";
 import { formatTime } from "@/lib/utils";
 import { useDriverStore, useLocationStore, useReservationStore } from "@/store";
-import { PriceCalculator } from "@/lib/price";
+import { usePriceCalculator } from "@/lib/price";
 
 const ReserveBookRide: React.FC = () => {
     const mileageAPI = process.env.EXPO_PUBLIC_DIRECTIONS_API_KEY!;
     const { user } = useUser();
-    const {
-        userAddress,
-        destinationAddress
+    const { 
+        userLatitude, 
+        userLongitude, 
+        destinationLatitude, 
+        destinationLongitude, 
+        userAddress, 
+        destinationAddress 
     } = useLocationStore();
     const { drivers, selectedDriver } = useDriverStore();
     const { scheduledDate, scheduledTime } = useReservationStore();
@@ -25,9 +29,9 @@ const ReserveBookRide: React.FC = () => {
 
     const driverClerkId = driverDetails?.clerk_id
 
-    const { price, time } = PriceCalculator(
-        userAddress!,
-        destinationAddress!,
+    const { price, time } = usePriceCalculator(
+        { latitude: userLatitude!, longitude: userLongitude! },
+        { latitude: destinationLatitude!, longitude: destinationLongitude! },
         mileageAPI
     );
 

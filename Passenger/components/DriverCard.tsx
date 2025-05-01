@@ -5,7 +5,7 @@ import { formatTime } from "@/lib/utils";
 import { DriverCardProps } from "@/types/type";
 import { useUser } from "@clerk/clerk-expo";
 import { useLocationStore } from "@/store";
-import { PriceCalculator } from "@/lib/price";
+import { usePriceCalculator } from "@/lib/price";
 
 const DriverCard = ({ item, selected, setSelected }: DriverCardProps) => {
   const roundedMinutes = Math.round(item.time! * 10) / 10;
@@ -27,11 +27,11 @@ const DriverCard = ({ item, selected, setSelected }: DriverCardProps) => {
 
   const mileageAPI = process.env.EXPO_PUBLIC_DIRECTIONS_API_KEY!;
   const { user } = useUser();
-  const { userAddress, destinationAddress } = useLocationStore();
+  const { userLatitude, userLongitude, destinationLatitude, destinationLongitude } = useLocationStore();
 
-  const { price } = PriceCalculator(
-    userAddress!,
-    destinationAddress!,
+  const { price } = usePriceCalculator(
+    { latitude: userLatitude!, longitude: userLongitude! },
+    { latitude: destinationLatitude!, longitude: destinationLongitude! },
     mileageAPI
   );
 

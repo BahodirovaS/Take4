@@ -1,3 +1,4 @@
+// Payment.tsx - Modified for initial payment (without tip)
 import { useAuth } from "@clerk/clerk-expo";
 import { useStripe } from "@stripe/stripe-react-native";
 import { router } from "expo-router";
@@ -17,6 +18,7 @@ interface EnhancedPaymentProps extends PaymentProps {
   isScheduled?: boolean;
   scheduledDate?: string;
   scheduledTime?: string;
+  driverCommissionRate?: number;
 }
 
 const Payment: React.FC<EnhancedPaymentProps> = ({
@@ -28,6 +30,7 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
   isScheduled = false,
   scheduledDate,
   scheduledTime,
+  driverCommissionRate = 0.80,
 }) => {
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const {
@@ -44,7 +47,6 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
   const [success, setSuccess] = useState<boolean>(false);
   const [rideId, setRideId] = useState<string | null>(null);
 
-
   const buttonTitle = isScheduled ? "Pay & Confirm Reservation" : "Confirm Ride";
   const modalTitle = isScheduled ? "Reservation Confirmed" : "Booking placed successfully";
   const modalText = isScheduled
@@ -52,7 +54,9 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
     : "Thank you for your booking. Your reservation has been successfully placed. Please proceed with your trip.";
   const buttonText = isScheduled ? "View My Rides" : "View Ride Status";
 
-  // Explicitly type the redirectPath
+  const driverShare = (parseFloat(amount) * driverCommissionRate).toFixed(2);
+  const companyShare = (parseFloat(amount) * (1 - driverCommissionRate)).toFixed(2);
+
   const redirectPath = isScheduled
     ? "/(root)/(tabs)/resos"
     : {
@@ -96,7 +100,8 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
                 name: fullName || email.split("@")[0],
                 email: email,
                 amount: amount,
-                paymentMethodId: paymentMethod.id,
+                driverCommissionRate: driverCommissionRate,
+                driver_id: driver_id
               }),
             }
           );
@@ -125,10 +130,14 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
                 destination_longitude: destinationLongitude,
                 ride_time: rideTime.toFixed(0),
                 fare_price: Math.round(parseFloat(amount) * 100),
+                driver_share: Math.round(parseFloat(driverShare) * 100),
+                company_share: Math.round(parseFloat(companyShare) * 100),
                 payment_status: "paid",
                 user_id: userId,
                 driver_id: driver_id,
                 createdAt: new Date(),
+                payment_intent_id: paymentIntent.id,
+                payment_method_id: paymentMethod.id,
               };
 
               if (isScheduled && scheduledDate && scheduledTime) {
@@ -175,7 +184,6 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
                   return;
                 }
               } else {
-                // This is a real-time ride
                 Object.assign(rideData, {
                   status: "requested",
                 });
@@ -195,7 +203,6 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
     });
 
     if (!error) {
-      // setLoading(true);
     }
   };
 

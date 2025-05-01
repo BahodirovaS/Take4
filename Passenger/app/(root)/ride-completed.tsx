@@ -1,9 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, Image, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, Image, ActivityIndicator, TextInput, TouchableOpacity, Alert } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { images } from "@/constants";
 import CustomButton from "@/components/CustomButton";
-import { CompletedRideDetails } from "@/types/type"
+import { CompletedRideDetails } from "@/types/type";
+import { useStripe } from "@stripe/stripe-react-native";
+import { AirbnbRating } from "react-native-ratings";
+import { ReactNativeModal } from "react-native-modal";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { fetchAPI } from "@/lib/fetch";
 import { 
   fetchCompletedRideDetails, 
   formatFarePrice,  
@@ -11,15 +17,40 @@ import {
 
 const RideCompleted = () => {
     const { rideId } = useLocalSearchParams();
+    const { initPaymentSheet, presentPaymentSheet } = useStripe();
     const [rideDetails, setRideDetails] = useState<CompletedRideDetails | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+    const [showTipping, setShowTipping] = useState<boolean>(true);
+    const [rating, setRating] = useState<number>(5);
+    const [tipAmount, setTipAmount] = useState<string>("0");
+    const [success, setSuccess] = useState<boolean>(false);
+    const [driverName, setDriverName] = useState<string>("your driver");
+
+    const tipOptions = ["0", "2", "5", "10"];
 
     useEffect(() => {
         fetchCompletedRideDetails(
             rideId as string,
-            (details) => {
+            async (details) => {
                 setRideDetails(details);
+                if (details.rating > 0 || (details.tip_amount && parseFloat(details.tip_amount) > 0)) {
+                    setShowTipping(false);
+                }
+                if (details.driver_id) {
+                    try {
+                        const driverRef = doc(db, "drivers", details.driver_id);
+                        const driverSnap = await getDoc(driverRef);
+                        
+                        if (driverSnap.exists()) {
+                            const driverData = driverSnap.data();
+                            setDriverName(driverData.name || "your driver");
+                        }
+                    } catch (err) {
+                        console.error("Error fetching driver details:", err);
+                    }
+                }
+                
                 setIsLoading(false);
             },
             (error) => {
@@ -29,8 +60,138 @@ const RideCompleted = () => {
             }
         );
     }, [rideId]);
+
     const handleGoHome = () => {
         router.replace("/(root)/(tabs)/home");
+    };
+    const skipTipping = async () => {
+        try {
+            if (!rideId) return;
+            const rideRef = doc(db, "rideRequests", rideId as string);
+            await updateDoc(rideRef, {
+                rating: rating,
+                rated_at: new Date(),
+                
+            });
+            setSuccess(true);
+        } catch (error) {
+            console.error("Error updating ride:", error);
+            Alert.alert("Error", "Could not save your rating");
+        }
+    };
+
+    const processTip = async () => {
+        if (parseFloat(tipAmount) <= 0) {
+            return skipTipping();
+        }
+        try {
+            if (!rideId || !rideDetails) return;
+            const tipAmountCents = Math.round(parseFloat(tipAmount) * 100);
+            const rideRef = doc(db, "rideRequests", rideId as string);
+            await updateDoc(rideRef, {
+                rating: rating,
+                tip_amount: tipAmount,
+                rated_at: new Date(),
+                tipped_at: new Date(),
+            });
+            setSuccess(true);
+            
+        } catch (error) {
+            console.error("Error processing tip:", error);
+            Alert.alert("Error", "Could not process tip");
+        }
+    };
+
+    
+    const handleRating = (rating: number) => {
+        setRating(rating);
+    };
+
+    
+    const handleSuccessButtonPress = () => {
+        setSuccess(false);
+        handleGoHome();
+    };
+
+    
+    const TipButton = ({ amount, isSelected, onPress }: { amount: string, isSelected: boolean, onPress: () => void }) => (
+        <TouchableOpacity 
+            style={[
+                styles.tipButton,
+                isSelected ? styles.selectedTipButton : null
+            ]} 
+            onPress={onPress}
+        >
+            <Text style={[
+                styles.tipButtonText,
+                isSelected ? styles.selectedTipText : null
+            ]}>
+                ${amount}
+            </Text>
+        </TouchableOpacity>
+    );
+
+    
+    const renderTipping = () => {
+        return (
+            <View style={styles.tippingContainer}>
+                <Text style={styles.tipTitle}>How was your ride with {driverName}?</Text>
+                
+                <View style={styles.ratingContainer}>
+                    <AirbnbRating
+                        count={5}
+                        defaultRating={rating}
+                        size={30}
+                        onFinishRating={handleRating}
+                        showRating={false}
+                    />
+                    <Text style={styles.ratingText}>
+                        {rating === 5 ? "Excellent!" : 
+                        rating === 4 ? "Great!" : 
+                        rating === 3 ? "Good" : 
+                        rating === 2 ? "Okay" : "Poor"}
+                    </Text>
+                </View>
+                
+                <View style={styles.tipSection}>
+                    <Text style={styles.tipSectionTitle}>Add a tip for {driverName}</Text>
+                    <View style={styles.tipOptionsContainer}>
+                        {tipOptions.map((option) => (
+                            <TipButton
+                                key={option}
+                                amount={option}
+                                isSelected={tipAmount === option}
+                                onPress={() => setTipAmount(option)}
+                            />
+                        ))}
+                    </View>
+                    
+                    <View style={styles.customTipContainer}>
+                        <Text style={styles.customTipLabel}>Custom Tip:</Text>
+                        <TextInput
+                            style={styles.customTipInput}
+                            value={!tipOptions.includes(tipAmount) ? tipAmount : ''}
+                            onChangeText={(text) => {
+                                
+                                const filtered = text.replace(/[^0-9.]/g, '');
+                                setTipAmount(filtered);
+                            }}
+                            keyboardType="numeric"
+                            placeholder="Enter custom amount"
+                        />
+                    </View>
+                </View>
+                
+                <View style={styles.tipButtonContainer}>
+                    <CustomButton
+                        title={`Submit Rating & ${parseFloat(tipAmount) > 0 ? `$${tipAmount} Tip` : 'No Tip'}`}
+                        onPress={processTip}
+                        bgVariant="primary"
+                        style={styles.submitButton}
+                    />
+                </View>
+            </View>
+        );
     };
 
     if (isLoading) {
@@ -56,6 +217,61 @@ const RideCompleted = () => {
         );
     }
 
+    
+    if (!showTipping) {
+        return (
+            <View style={styles.container}>
+                <Image source={images.check} style={styles.checkImage} />
+                <Text style={styles.titleText}>Ride Completed</Text>
+                <View style={styles.rideDetailsContainer}>
+                    <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>From:</Text>
+                        <Text style={styles.detailValue}>{rideDetails.origin_address}</Text>
+                    </View>
+                    <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>To:</Text>
+                        <Text style={styles.detailValue}>{rideDetails.destination_address}</Text>
+                    </View>
+                    <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Ride Time:</Text>
+                        <Text style={styles.detailValue}>
+                            {rideDetails.ride_time} minutes
+                        </Text>
+                    </View>
+                    <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Fare:</Text>
+                        <Text style={styles.detailValue}>
+                            {formatFarePrice(rideDetails.fare_price)}
+                        </Text>
+                    </View>
+                    {rideDetails.tip_amount && parseFloat(rideDetails.tip_amount) > 0 && (
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>Tip:</Text>
+                            <Text style={styles.detailValue}>
+                                ${parseFloat(rideDetails.tip_amount).toFixed(2)}
+                            </Text>
+                        </View>
+                    )}
+                    {rideDetails.rating > 0 && (
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>Your Rating:</Text>
+                            <Text style={styles.detailValue}>
+                                {rideDetails.rating} / 5
+                            </Text>
+                        </View>
+                    )}
+                </View>
+                <CustomButton 
+                    title="Back to Home" 
+                    onPress={handleGoHome}
+                    bgVariant="primary"
+                    style={styles.homeButton}
+                />
+            </View>
+        );
+    }
+
+    
     return (
         <View style={styles.container}>
             <Image source={images.check} style={styles.checkImage} />
@@ -82,12 +298,28 @@ const RideCompleted = () => {
                     </Text>
                 </View>
             </View>
-            <CustomButton 
-                title="Back to Home" 
-                onPress={handleGoHome}
-                bgVariant="primary"
-                style={styles.homeButton}
-            />
+            
+            {renderTipping()}
+            
+            {/* Success Modal */}
+            <ReactNativeModal
+                isVisible={success}
+                onBackdropPress={() => setSuccess(false)}
+            >
+                <View style={styles.modalContainer}>
+                    <Image source={images.check} style={styles.modalCheckImage} />
+                    <Text style={styles.modalTitle}>Thank You!</Text>
+                    <Text style={styles.modalText}>
+                        Your {parseFloat(tipAmount) > 0 ? 'rating and tip have' : 'rating has'} been submitted successfully.
+                    </Text>
+                    <CustomButton
+                        title="Done"
+                        onPress={handleSuccessButtonPress}
+                        bgVariant="primary"
+                        style={styles.doneButton}
+                    />
+                </View>
+            </ReactNativeModal>
         </View>
     );
 };
@@ -97,12 +329,13 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: "white",
         alignItems: "center",
-        justifyContent: "center",
+        justifyContent: "flex-start",
         padding: 20,
     },
     checkImage: {
-        width: 120,
-        height: 120,
+        width: 100,
+        height: 100,
+        marginTop: 30,
         marginBottom: 20,
     },
     titleText: {
@@ -145,6 +378,123 @@ const styles = StyleSheet.create({
     },
     homeButton: {
         width: "100%",
+    },
+    
+    
+    tippingContainer: {
+        width: "100%",
+        backgroundColor: "#F5F5F5",
+        borderRadius: 10,
+        padding: 15,
+        marginBottom: 20,
+    },
+    tipTitle: {
+        fontSize: 18,
+        fontFamily: "DMSans-Bold",
+        textAlign: "center",
+        marginBottom: 15,
+    },
+    ratingContainer: {
+        alignItems: "center",
+        marginBottom: 20,
+    },
+    ratingText: {
+        fontSize: 16,
+        fontFamily: "DMSans",
+        marginTop: 8,
+    },
+    tipSection: {
+        marginBottom: 15,
+    },
+    tipSectionTitle: {
+        fontSize: 16,
+        fontFamily: "DMSans-Bold",
+        marginBottom: 10,
+    },
+    tipOptionsContainer: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginBottom: 12,
+    },
+    tipButton: {
+        flex: 1,
+        marginHorizontal: 4,
+        backgroundColor: "#FFFFFF",
+        borderWidth: 1,
+        borderColor: "#EEEEEE",
+        padding: 10,
+        borderRadius: 8,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    tipButtonText: {
+        fontSize: 14,
+        fontFamily: "DMSans",
+        color: "#000000",
+    },
+    selectedTipButton: {
+        backgroundColor: "#289dd2",
+        borderColor: "#289dd2",
+    },
+    selectedTipText: {
+        color: "#FFFFFF",
+    },
+    customTipContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 10,
+    },
+    customTipLabel: {
+        fontSize: 14,
+        fontFamily: "DMSans",
+        width: 100,
+    },
+    customTipInput: {
+        flex: 1,
+        borderWidth: 1,
+        borderColor: "#EEEEEE",
+        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        backgroundColor: "#FFFFFF",
+    },
+    tipButtonContainer: {
+        marginTop: 10,
+    },
+    skipButton: {
+        marginBottom: 10,
+        backgroundColor: "#F5F5F5",
+    },
+    submitButton: {
+        marginBottom: 5,
+    },
+    
+    
+    modalContainer: {
+        backgroundColor: "white",
+        padding: 24,
+        borderRadius: 16,
+        alignItems: "center",
+    },
+    modalCheckImage: {
+        width: 70,
+        height: 70,
+        marginBottom: 16,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontFamily: "DMSans-Bold",
+        marginBottom: 8,
+    },
+    modalText: {
+        fontSize: 16,
+        textAlign: "center",
+        marginBottom: 20,
+        color: "#666",
+        fontFamily: "DMSans",
+    },
+    doneButton: {
+        width: 180,
     },
 });
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { collection, query, where, onSnapshot, orderBy, getDocs, addDoc, updateDoc, doc, deleteDoc, getDoc } from "firebase/firestore";
+import { collection, query, where, onSnapshot, orderBy, getDocs, addDoc, updateDoc, doc, deleteDoc, getDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { ActiveRideData, Ride, ProfileForm, RideRequest, Message, CompletedRideDetails, MarkerData } from "@/types/type";
 import * as ImagePicker from "expo-image-picker";
@@ -71,6 +71,7 @@ export const useFetch = <T>(url: string, options?: RequestInit) => {
   return { data, loading, error, refetch: fetchData };
 };
 
+
 /**
  * Fetches and subscribes to passenger's ride history
  */
@@ -103,6 +104,11 @@ export const fetchRideHistory = (
           payment_status: data.payment_status,
           driver_id: data.driver_id,
           user_id: data.user_id,
+          tip_amount: data.tip_amount || 0,
+          rating: data.rating || 0,
+          driver_share: data.driver_share || 0,
+          company_share: data.company_share || 0,
+          total_amount: data.total_amount || data.fare_price,
           created_at: data.createdAt && typeof data.createdAt.toDate === 'function'
             ? data.createdAt.toDate().toISOString()
             : new Date().toISOString(),
