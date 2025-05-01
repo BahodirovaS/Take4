@@ -12,10 +12,14 @@ import { usePriceCalculator } from "@/lib/price";
 const BookRide: React.FC = () => {
     const mileageAPI = process.env.EXPO_PUBLIC_DIRECTIONS_API_KEY!;
     const { user } = useUser();
-    const { userLatitude, userLongitude, destinationLatitude, destinationLongitude } = useLocationStore();
-    const { drivers, selectedDriver } = useDriverStore();
-
-
+    const {
+        userLatitude,
+        userLongitude,
+        destinationLatitude,
+        destinationLongitude,
+        userAddress,
+        destinationAddress
+    } = useLocationStore(); const { drivers, selectedDriver } = useDriverStore();
     const driverDetails = drivers?.find(
         (driver) => driver.clerk_id === selectedDriver
     );
