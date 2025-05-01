@@ -14,6 +14,8 @@ import {
   fetchCompletedRideDetails, 
   formatFarePrice,  
 } from "@/lib/fetch";
+import { processTipPayment } from "@/lib/tipService";
+
 
 const RideCompleted = () => {
     const { rideId } = useLocalSearchParams();
@@ -80,27 +82,15 @@ const RideCompleted = () => {
         }
     };
 
-    const processTip = async () => {
-        if (parseFloat(tipAmount) <= 0) {
-            return skipTipping();
-        }
-        try {
-            if (!rideId || !rideDetails) return;
-            const tipAmountCents = Math.round(parseFloat(tipAmount) * 100);
-            const rideRef = doc(db, "rideRequests", rideId as string);
-            await updateDoc(rideRef, {
-                rating: rating,
-                tip_amount: tipAmount,
-                rated_at: new Date(),
-                tipped_at: new Date(),
-            });
-            setSuccess(true);
-            
-        } catch (error) {
-            console.error("Error processing tip:", error);
-            Alert.alert("Error", "Could not process tip");
-        }
-    };
+    const processTip = () => {
+        processTipPayment({
+          rideId: rideId as string,
+          rideData: rideDetails,
+          tipAmount,
+          rating,
+          setSuccess
+        });
+      };
 
     
     const handleRating = (rating: number) => {

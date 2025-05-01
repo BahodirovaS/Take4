@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TextInput, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
   Image,
   SafeAreaView,
   ActivityIndicator,
@@ -17,7 +17,7 @@ import { AirbnbRating } from "react-native-ratings";
 import { useUser } from "@clerk/clerk-expo";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { ReactNativeModal } from "react-native-modal";
-
+import { processTipPayment } from "@/lib/tipService";
 import CustomButton from "@/components/CustomButton";
 import { images } from "@/constants";
 import { fetchAPI } from "@/lib/fetch";
@@ -27,19 +27,18 @@ const Tipping = () => {
   const { user } = useUser();
   const { rideId } = useLocalSearchParams();
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
-  
+
   const [rating, setRating] = useState<number>(5);
   const [tipAmount, setTipAmount] = useState<string>("0");
   const [success, setSuccess] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [rideData, setRideData] = useState<any>(null);
   const [driverName, setDriverName] = useState<string>("your driver");
-  
+
   // Predefined tip options
   const tipOptions = ["0", "2", "5", "10"];
 
   useEffect(() => {
-    // Fetch ride details when component mounts
     const fetchRideDetails = async () => {
       try {
         if (!rideId) {
@@ -47,20 +46,17 @@ const Tipping = () => {
           router.back();
           return;
         }
-
         const rideRef = doc(db, "rideRequests", rideId as string);
         const rideSnap = await getDoc(rideRef);
-        
+
         if (rideSnap.exists()) {
           const data = rideSnap.data();
           setRideData(data);
-          
-          // Fetch driver name if we have driver_id
           if (data.driver_id) {
             try {
               const driverRef = doc(db, "drivers", data.driver_id);
               const driverSnap = await getDoc(driverRef);
-              
+
               if (driverSnap.exists()) {
                 const driverData = driverSnap.data();
                 setDriverName(driverData.name || "your driver");
@@ -73,7 +69,6 @@ const Tipping = () => {
           Alert.alert("Error", "Ride not found");
           router.back();
         }
-        
         setLoading(false);
       } catch (error) {
         console.error("Error fetching ride:", error);
@@ -81,130 +76,35 @@ const Tipping = () => {
         setLoading(false);
       }
     };
-    
+
     fetchRideDetails();
   }, [rideId]);
 
-  // Process tip payment
-  const processTip = async () => {
-    
-    await initializePaymentSheet();
-    const { error } = await presentPaymentSheet();
-
-    if (error) {
-      Alert.alert(`Error code: ${error.code}`, error.message);
-    } else {
-      setSuccess(true);
-    }
+  const processTip = () => {
+    processTipPayment({
+      rideId: rideId as string,
+      rideData: rideData,
+      tipAmount,
+      rating,
+      setSuccess
+    });
   };
 
-  const initializePaymentSheet = async () => {
-    try {
-      if (!rideId || !rideData) return;
-      
-      if (!rideData.payment_method_id || !rideData.customer_id) {
-        Alert.alert("Error", "Payment information not found");
-        return;
-      }
-      
-      // Calculate driver's tip amount (100% of tip goes to driver)
-      const tipAmountCents = Math.round(parseFloat(tipAmount) * 100);
-      
-      const { error } = await initPaymentSheet({
-        merchantDisplayName: "Example, Inc.",
-        intentConfiguration: {
-          mode: {
-            amount: tipAmountCents,
-            currencyCode: "usd",
-          },
-          confirmHandler: async (
-            paymentMethod,
-            shouldSavePaymentMethod,
-            intentCreationCallback
-          ) => {
-            // Create a new payment intent for the tip
-            const { paymentIntent, customer } = await fetchAPI(
-              "/(api)/(stripe)/create-tip",
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  rideId: rideId,
-                  tipAmount: tipAmount,
-                  customer_id: rideData.customer_id,
-                  driver_id: rideData.driver_id,
-                }),
-              }
-            );
-
-            if (paymentIntent.client_secret) {
-              const { result } = await fetchAPI("/(api)/(stripe)/pay", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  payment_method_id: rideData.payment_method_id, // Use the payment method from the original ride
-                  payment_intent_id: paymentIntent.id,
-                  customer_id: rideData.customer_id,
-                  client_secret: paymentIntent.client_secret,
-                }),
-              });
-
-              if (result.client_secret) {
-                // Update the ride with tip and rating information
-                const rideRef = doc(db, "rideRequests", rideId as string);
-                await updateDoc(rideRef, {
-                  tip_amount: tipAmountCents,
-                  tip_payment_intent_id: paymentIntent.id,
-                  rating: rating,
-                  driver_share: rideData.driver_share + tipAmountCents, // Add tip to driver's share
-                  total_amount: rideData.fare_price + tipAmountCents,
-                  tipped_at: new Date(),
-                  rated_at: new Date(),
-                });
-
-                intentCreationCallback({
-                  clientSecret: result.client_secret,
-                });
-              }
-            }
-          },
-        },
-        returnURL: "myapp://ride-complete",
-      });
-
-      if (error) {
-        console.error("Error initializing payment sheet:", error);
-        Alert.alert("Error", "Could not process tip payment");
-      }
-    } catch (error) {
-      console.error("Error in initializePaymentSheet:", error);
-      Alert.alert("Error", "An unexpected error occurred");
-    }
-  };
-
-  // Handle rating submission
   const handleRating = (rating: number) => {
     setRating(rating);
   };
 
-  // Handle success button press
   const handleSuccessButtonPress = () => {
     setSuccess(false);
-    // Navigate to home or ride history
     router.replace("/(root)/(tabs)/home");
   };
 
-  // Custom tip button
   const TipButton = ({ amount, isSelected, onPress }: { amount: string, isSelected: boolean, onPress: () => void }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[
         styles.tipButton,
         isSelected ? styles.selectedTipButton : null
-      ]} 
+      ]}
       onPress={onPress}
     >
       <Text style={[
@@ -216,7 +116,6 @@ const Tipping = () => {
     </TouchableOpacity>
   );
 
-  // Handle navigation back
   const handleGoBack = () => {
     router.push("/(root)/(tabs)/home");
   };
@@ -243,11 +142,11 @@ const Tipping = () => {
         </TouchableOpacity>
         <Text style={styles.topBarText}>Rate & Tip</Text>
       </View>
-      
+
       <View style={styles.contentContainer}>
         <View style={styles.card}>
           <Text style={styles.title}>How was your ride with {driverName}?</Text>
-          
+
           <View style={styles.ratingContainer}>
             <AirbnbRating
               count={5}
@@ -257,13 +156,13 @@ const Tipping = () => {
               showRating={false}
             />
             <Text style={styles.ratingText}>
-              {rating === 5 ? "Excellent!" : 
-               rating === 4 ? "Great!" : 
-               rating === 3 ? "Good" : 
-               rating === 2 ? "Okay" : "Poor"}
+              {rating === 5 ? "Excellent!" :
+                rating === 4 ? "Great!" :
+                  rating === 3 ? "Good" :
+                    rating === 2 ? "Okay" : "Poor"}
             </Text>
           </View>
-          
+
           <View style={styles.tipContainer}>
             <Text style={styles.tipTitle}>Add a tip for {driverName}</Text>
             <View style={styles.tipOptionsContainer}>
@@ -276,7 +175,7 @@ const Tipping = () => {
                 />
               ))}
             </View>
-            
+
             <View style={styles.customTipContainer}>
               <Text style={styles.customTipLabel}>Custom Tip:</Text>
               <TextInput
@@ -290,7 +189,7 @@ const Tipping = () => {
                 placeholder="Enter custom amount"
               />
             </View>
-            
+
             <View style={styles.rideDetailsContainer}>
               <Text style={styles.fareText}>
                 Fare: ${rideData ? (rideData.fare_price / 100).toFixed(2) : '0.00'}
@@ -300,8 +199,6 @@ const Tipping = () => {
               )}
             </View>
           </View>
-          
-          {/* Buttons */}
           <View style={styles.buttonContainer}>
             <CustomButton
               title={`Submit Rating & ${parseFloat(tipAmount) > 0 ? `$${tipAmount} Tip` : 'No Tip'}`}
@@ -311,8 +208,6 @@ const Tipping = () => {
           </View>
         </View>
       </View>
-      
-      {/* Success Modal */}
       <ReactNativeModal
         isVisible={success}
         onBackdropPress={() => setSuccess(false)}
