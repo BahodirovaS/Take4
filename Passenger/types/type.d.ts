@@ -123,6 +123,9 @@ declare interface CompletedRideDetails {
   user_id?: string;
   rating: number;
   tip_amount: string;
+  customer_id?: string;
+  payment_method_id?: string;
+  driver_share?: number;
 }
 
 declare interface ReservationStore {

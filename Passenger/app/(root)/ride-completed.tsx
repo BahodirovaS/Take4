@@ -9,7 +9,6 @@ import { AirbnbRating } from "react-native-ratings";
 import { ReactNativeModal } from "react-native-modal";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { fetchAPI } from "@/lib/fetch";
 import { 
   fetchCompletedRideDetails, 
   formatFarePrice,  

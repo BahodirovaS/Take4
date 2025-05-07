@@ -1,7 +1,6 @@
-import React from "react";
-import { View, Image, StyleSheet, StyleProp, ViewStyle } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, Image, StyleSheet } from "react-native";
 import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
-
 import { icons } from "@/constants";
 import { GoogleInputProps } from "@/types/type";
 
@@ -14,12 +13,32 @@ const GoogleTextInput = ({
   textInputBackgroundColor,
   handlePress,
 }: GoogleInputProps) => {
+  // Add state to control rendering
+  const [isReady, setIsReady] = useState(false);
+  
+  // Delay rendering to ensure proper initialization
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsReady(true);
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!isReady) {
+    return <View style={[styles.container, containerStyle]} />;
+  }
+
   return (
     <View style={[styles.container, containerStyle]}>
       <GooglePlacesAutocomplete
         fetchDetails={true}
         placeholder="Search"
         debounce={200}
+        enablePoweredByContainer={false}
+        minLength={2}
+        predefinedPlaces={[]}
+        keyboardShouldPersistTaps="always"
         styles={{
           textInputContainer: {
             ...styles.textInputContainer,
@@ -31,18 +50,32 @@ const GoogleTextInput = ({
           listView: {
             ...styles.listView,
             backgroundColor: textInputBackgroundColor || "white",
+            zIndex: 9999,
+          },
+          row: {
+            backgroundColor: textInputBackgroundColor || "white",
+            padding: 13,
+            height: 44,
+            flexDirection: 'row',
+          },
+          separator: {
+            height: 0.5,
+            backgroundColor: '#c8c7cc',
           },
         }}
         onPress={(data, details = null) => {
-          handlePress({
-            latitude: details?.geometry.location.lat!,
-            longitude: details?.geometry.location.lng!,
-            address: data.description,
-          });
+          if (details && details.geometry && details.geometry.location) {
+            handlePress({
+              latitude: details.geometry.location.lat,
+              longitude: details.geometry.location.lng,
+              address: data.description,
+            });
+          }
         }}
         query={{
           key: googlePlacesApiKey,
           language: "en",
+          types: "",
         }}
         renderLeftButton={() => (
           <View style={styles.iconContainer}>
@@ -56,6 +89,7 @@ const GoogleTextInput = ({
         textInputProps={{
           placeholderTextColor: "gray",
           placeholder: initialLocation ?? "Where do you want to go?",
+          autoCorrect: false,
         }}
       />
     </View>
@@ -69,6 +103,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     zIndex: 50,
     borderRadius: 20,
+    minHeight: 50,
   },
   textInputContainer: {
     alignItems: "center",
@@ -83,6 +118,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
     width: "100%",
     borderRadius: 200,
+    height: 40,
   },
   listView: {
     position: "relative",
@@ -90,7 +126,7 @@ const styles = StyleSheet.create({
     width: "100%",
     borderRadius: 10,
     shadowColor: "#d4d4d4",
-    zIndex: 99,
+    zIndex: 9999,
   },
   iconContainer: {
     justifyContent: "center",
