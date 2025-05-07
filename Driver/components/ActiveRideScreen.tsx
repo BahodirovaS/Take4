@@ -330,7 +330,7 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
                             onPress={handleArriveAtPickup}
                             style={styles.customActionButton}
                         />
-                    ) : rideStage === 'to_pickup' && ride.status === 'arrived_at_pickup' ? (
+                    ) : ride.status === 'arrived_at_pickup' ? (
                         <CustomButton
                             title="Start Ride"
                             bgVariant="success"
