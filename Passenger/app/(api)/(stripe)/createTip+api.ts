@@ -6,6 +6,21 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { rideId, tipAmount, customer_id, driver_id, payment_method_id } = body;
     
+
+    console.log("API received:", { 
+      rideId: body.rideId, 
+      tipAmount: body.tipAmount,
+      customer_id: body.customer_id, 
+      driver_id: body.driver_id, 
+      payment_method_id: body.payment_method_id 
+    });
+    
+    if (!body.rideId) console.log("Missing rideId");
+    if (!body.tipAmount) console.log("Missing tipAmount");
+    if (!body.customer_id) console.log("Missing customer_id");
+    if (!body.driver_id) console.log("Missing driver_id");
+    if (!body.payment_method_id) console.log("Missing payment_method_id");
+    
     if (!rideId || !tipAmount || !customer_id || !driver_id || !payment_method_id) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
         status: 400,
@@ -20,6 +35,7 @@ export async function POST(request: Request) {
         message: "No tip amount, skipping payment" 
       }));
     }
+    
     
     const paymentIntent = await stripe.paymentIntents.create({
       amount: tipAmountCents,

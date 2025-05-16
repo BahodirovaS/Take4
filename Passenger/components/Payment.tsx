@@ -1,4 +1,3 @@
-// Payment.tsx - Modified for initial payment (without tip)
 import { useAuth } from "@clerk/clerk-expo";
 import { useStripe } from "@stripe/stripe-react-native";
 import { router } from "expo-router";
@@ -139,6 +138,7 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
                 createdAt: new Date(),
                 payment_intent_id: paymentIntent.id,
                 payment_method_id: paymentMethod.id,
+                stripe_id: customer
               };
 
               if (isScheduled && scheduledDate && scheduledTime) {

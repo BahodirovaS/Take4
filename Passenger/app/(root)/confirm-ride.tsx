@@ -32,7 +32,6 @@ const ConfirmRide = () => {
     }
   };
 
-  // Check if a driver is selected
   const isDriverSelected = selectedDriver !== null && selectedDriver !== undefined;
 
   return (
@@ -102,7 +101,7 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   button: {
-    // Your existing button styles
+    //  existing button styles
   },
   disabledButton: {
     opacity: 0.6,

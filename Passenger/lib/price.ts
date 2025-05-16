@@ -13,7 +13,7 @@ export const usePriceCalculator = (
   const basePrice = 2.5; // Increased base price
   const perMileRate = 1.0;
   const perMinuteRate = 0.1;
-  const minimumPrice = 5.0; // Set minimum price for any ride
+  const minimumPrice = 5.0;
   const fixedPickupTime = 5; // time in minutes
   
   useEffect(() => {

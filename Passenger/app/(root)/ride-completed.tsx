@@ -5,11 +5,16 @@ import { images } from "@/constants";
 import CustomButton from "@/components/CustomButton";
 import { CompletedRideDetails } from "@/types/type";
 import { useStripe } from "@stripe/stripe-react-native";
+import { AirbnbRating } from "react-native-ratings";
 import { ReactNativeModal } from "react-native-modal";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { formatFarePrice, fetchDriverDetails } from "@/lib/fetch";
+import { 
+  fetchCompletedRideDetails, 
+  formatFarePrice,  
+} from "@/lib/fetch";
 import { processTipPayment } from "@/lib/tipService";
+
 
 const RideCompleted = () => {
     const { rideId } = useLocalSearchParams();
@@ -26,50 +31,36 @@ const RideCompleted = () => {
     const tipOptions = ["0", "2", "5", "10"];
 
     useEffect(() => {
-        const fetchRideDetails = async () => {
-            if (!rideId) {
-                setError("No ride ID provided");
-                setIsLoading(false);
-                return;
-            }
-            try {
-                const rideDocRef = doc(db, "rideRequests", rideId as string);
-                const rideSnapshot = await getDoc(rideDocRef);
-                
-                if (!rideSnapshot.exists()) {
-                    setError("Ride not found");
-                    setIsLoading(false);
-                    return;
-                }
-                
-                const details = rideSnapshot.data() as CompletedRideDetails;
+        fetchCompletedRideDetails(
+            rideId as string,
+            async (details) => {
                 setRideDetails(details);
                 if (details.rating > 0 || (details.tip_amount && parseFloat(details.tip_amount) > 0)) {
                     setShowTipping(false);
                 }
-                
                 if (details.driver_id) {
-                    fetchDriverDetails(
-                        details.driver_id,
-                        (driverName) => {
-                            setDriverName(driverName || "your driver");
-                        },
-                        (error) => {
-                            console.error("Error fetching driver details:", error);
+                    try {
+                        const driverRef = doc(db, "drivers", details.driver_id);
+                        const driverSnap = await getDoc(driverRef);
+                        
+                        if (driverSnap.exists()) {
+                            const driverData = driverSnap.data();
+                            setDriverName(driverData.name || "your driver");
                         }
-                    );
+                    } catch (err) {
+                        console.error("Error fetching driver details:", err);
+                    }
                 }
+                
                 setIsLoading(false);
-            } catch (err) {
-                console.error("Error loading ride details:", err);
+            },
+            (error) => {
+                console.error("Error loading ride details:", error);
                 setError("Could not load ride details. Please try again.");
                 setIsLoading(false);
             }
-        };
-        
-        fetchRideDetails();
+        );
     }, [rideId]);
-
 
     const handleGoHome = () => {
         router.replace("/(root)/(tabs)/home");
@@ -83,8 +74,8 @@ const RideCompleted = () => {
           rating,
           setSuccess
         });
-    };
-
+      };
+    
     const handleSuccessButtonPress = () => {
         setSuccess(false);
         handleGoHome();
@@ -107,6 +98,7 @@ const RideCompleted = () => {
         </TouchableOpacity>
     );
 
+    
     const renderTipping = () => {
         return (
             <View style={styles.tippingContainer}>
@@ -129,6 +121,7 @@ const RideCompleted = () => {
                             style={styles.customTipInput}
                             value={!tipOptions.includes(tipAmount) ? tipAmount : ''}
                             onChangeText={(text) => {
+                                
                                 const filtered = text.replace(/[^0-9.]/g, '');
                                 setTipAmount(filtered);
                             }}
@@ -140,7 +133,7 @@ const RideCompleted = () => {
                 
                 <View style={styles.tipButtonContainer}>
                     <CustomButton
-                        title={`Submit ${parseFloat(tipAmount) > 0 ? `$${tipAmount} Tip` : 'No Tip'}`}
+                        title={`Submit Rating & ${parseFloat(tipAmount) > 0 ? `$${tipAmount} Tip` : 'No Tip'}`}
                         onPress={processTip}
                         bgVariant="primary"
                         style={styles.submitButton}
@@ -172,52 +165,7 @@ const RideCompleted = () => {
             </View>
         );
     }
-
-    if (!showTipping) {
-        return (
-            <View style={styles.container}>
-                <Image source={images.check} style={styles.checkImage} />
-                <Text style={styles.titleText}>Ride Completed</Text>
-                <View style={styles.rideDetailsContainer}>
-                    <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>From:</Text>
-                        <Text style={styles.detailValue}>{rideDetails.origin_address}</Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>To:</Text>
-                        <Text style={styles.detailValue}>{rideDetails.destination_address}</Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Ride Time:</Text>
-                        <Text style={styles.detailValue}>
-                            {rideDetails.ride_time} minutes
-                        </Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Fare:</Text>
-                        <Text style={styles.detailValue}>
-                            {formatFarePrice(rideDetails.fare_price)}
-                        </Text>
-                    </View>
-                    {rideDetails.tip_amount && parseFloat(rideDetails.tip_amount) > 0 && (
-                        <View style={styles.detailRow}>
-                            <Text style={styles.detailLabel}>Tip:</Text>
-                            <Text style={styles.detailValue}>
-                                ${parseFloat(rideDetails.tip_amount).toFixed(2)}
-                            </Text>
-                        </View>
-                    )}
-                </View>
-                <CustomButton 
-                    title="Back to Home" 
-                    onPress={handleGoHome}
-                    bgVariant="primary"
-                    style={styles.homeButton}
-                />
-            </View>
-        );
-    }
-
+    
     return (
         <View style={styles.container}>
             <Image source={images.check} style={styles.checkImage} />
@@ -255,7 +203,7 @@ const RideCompleted = () => {
                     <Image source={images.check} style={styles.modalCheckImage} />
                     <Text style={styles.modalTitle}>Thank You!</Text>
                     <Text style={styles.modalText}>
-                        Your tip has been submitted successfully.
+                        Your {parseFloat(tipAmount)} has been sent.
                     </Text>
                     <CustomButton
                         title="Done"
@@ -339,15 +287,6 @@ const styles = StyleSheet.create({
         textAlign: "center",
         marginBottom: 15,
     },
-    ratingContainer: {
-        alignItems: "center",
-        marginBottom: 20,
-    },
-    ratingText: {
-        fontSize: 16,
-        fontFamily: "DMSans",
-        marginTop: 8,
-    },
     tipSection: {
         marginBottom: 15,
     },
@@ -413,7 +352,6 @@ const styles = StyleSheet.create({
     submitButton: {
         marginBottom: 5,
     },
-    
     modalContainer: {
         backgroundColor: "white",
         padding: 24,

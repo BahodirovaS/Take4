@@ -1,6 +1,6 @@
 
 import { fetchAPI } from "@/lib/fetch";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Alert } from "react-native";
 
@@ -23,9 +23,9 @@ export async function processTipPayment({
       return;
     }
     
-    if (parseFloat(tipAmount) <= 0) {
-      
-      const rideRef = doc(db, "rideRequests", rideId as string);
+    const tipAmountFloat = parseFloat(tipAmount);
+    if (isNaN(tipAmountFloat) || tipAmountFloat <= 0) {
+      const rideRef = doc(db, "rideRequests", rideId);
       await updateDoc(rideRef, {
         rating: rating,
         rated_at: new Date(),
@@ -34,9 +34,36 @@ export async function processTipPayment({
       return;
     }
     
+    if (!rideData.payment_method_id) {
+      Alert.alert("Error", "Payment method information is missing");
+      return;
+    }
+    let stripeCustomerId = null;    
+    if (rideData.user_id) {
+      console.log("Fetching Stripe customer ID for user:", rideData.user_id);
+      try {
+        const userDocRef = doc(db, "users", rideData.user_id);
+        const userDoc = await getDoc(userDocRef);
+        
+        if (userDoc.exists()) {
+          stripeCustomerId = userDoc.data().stripe_customer_id;
+          console.log("Found stripe_customer_id:", stripeCustomerId);
+        } else {
+          console.error("User document not found");
+        }
+      } catch (err) {
+        console.error("Error fetching user document:", err);
+      }
+    }
     
+    if (!stripeCustomerId) {
+      Alert.alert("Error", "Customer payment information not found. Please update your payment method.");
+      return;
+    }
+    console.log("Using stored customer ID:", rideData.customer_id);
+
     const response = await fetchAPI(
-      "/(api)/(stripe)/create-tip",
+      "/(api)/(stripe)/createTip",
       {
         method: "POST",
         headers: {
@@ -44,34 +71,53 @@ export async function processTipPayment({
         },
         body: JSON.stringify({
           rideId: rideId,
-          tipAmount: tipAmount,
-          customer_id: rideData.customer_id,
+          tipAmount: tipAmountFloat.toFixed(2),
+          customer_id: stripeCustomerId,
           driver_id: rideData.driver_id,
           payment_method_id: rideData.payment_method_id
         }),
       }
     );
     
-    if (response.success) {
+    const requestData = {
+      rideId: rideId,
+      tipAmount: tipAmountFloat.toFixed(2),
+      customer_id: rideData.user_id,
+      driver_id: rideData.driver_id,
+      payment_method_id: rideData.payment_method_id
+    };
+    console.log("Sending request data:", JSON.stringify(requestData, null, 2));
+
+    if (response?.success) {
+      const tipAmountCents = Math.round(tipAmountFloat * 100);
+      const rideRef = doc(db, "rideRequests", rideId);
       
-      const tipAmountCents = Math.round(parseFloat(tipAmount) * 100);
-      const rideRef = doc(db, "rideRequests", rideId as string);
+      const driverShare = rideData.driver_share || 0;
+      const farePrice = rideData.fare_price || 0;
+      
       await updateDoc(rideRef, {
-        tip_amount: tipAmountCents,
+        tip_amount: tipAmount,
         tip_payment_intent_id: response.paymentIntent?.id,
         rating: rating,
-        driver_share: rideData.driver_share + tipAmountCents,
-        total_amount: rideData.fare_price + tipAmountCents,
+        driver_share: driverShare + tipAmountCents,
+        total_amount: farePrice + tipAmountCents,
         tipped_at: new Date(),
         rated_at: new Date(),
       });
-      
       setSuccess(true);
     } else {
-      Alert.alert("Error", response.error || "Failed to process tip payment");
+      const errorMessage = response?.error || "Failed to process tip payment";
+      console.error("Payment error:", errorMessage);
+      Alert.alert("Payment Failed", errorMessage);
     }
   } catch (error) {
     console.error("Error processing tip:", error);
-    Alert.alert("Payment Failed", "There was an issue processing your payment. Please try again.");
+    
+    let errorMessage = "There was an issue processing your payment. Please try again.";
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+    
+    Alert.alert("Payment Failed", errorMessage);
   }
 }

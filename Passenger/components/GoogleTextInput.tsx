@@ -13,10 +13,8 @@ const GoogleTextInput = ({
   textInputBackgroundColor,
   handlePress,
 }: GoogleInputProps) => {
-  // Add state to control rendering
   const [isReady, setIsReady] = useState(false);
   
-  // Delay rendering to ensure proper initialization
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsReady(true);

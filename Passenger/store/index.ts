@@ -59,7 +59,6 @@ export const useDriverStore = create<DriverStore>((set) => ({
     try {
       const driversRef = collection(db, "drivers");
       
-      // You might want to add specific query conditions if needed
       const q = query(driversRef, where("status", "==", true));
       
       const querySnapshot = await getDocs(q);
@@ -67,7 +66,7 @@ export const useDriverStore = create<DriverStore>((set) => ({
       const drivers: MarkerData[] = querySnapshot.docs.map(doc => {
         const driverData = doc.data();
         return {
-          id: Number(doc.id), // Convert Firestore doc ID to number
+          id: Number(doc.id),
           clerk_id: driverData.clerkId || '',
           first_name: driverData.firstName || '',
           last_name: driverData.lastName || '',
@@ -87,7 +86,7 @@ export const useDriverStore = create<DriverStore>((set) => ({
       set({ drivers });
     } catch (error) {
       console.error("Error fetching drivers:", error);
-      set({ drivers: [] }); // Ensure drivers is an empty array on error
+      set({ drivers: [] });
     }
   },
 

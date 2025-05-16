@@ -5,7 +5,8 @@ import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import "react-native-reanimated";
 import { LogBox } from "react-native";
-
+import { useLocationStore } from "@/store";
+import * as Location from "expo-location";
 import { tokenCache } from "@/lib/auth";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -22,6 +23,25 @@ if (!publishableKey) {
 LogBox.ignoreLogs(["Clerk:"]);
 
 export default function RootLayout() {
+
+    useEffect(() => {
+      const initializeLocation = async () => {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const location = await Location.getCurrentPositionAsync();
+          let address = "Current Location";
+          const { setUserLocation } = useLocationStore.getState();
+          setUserLocation({
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+            address
+          });
+        }
+      };
+      
+      initializeLocation();
+    }, []);
+
   const [loaded] = useFonts({
     "DMSans-Bold": require("../assets/fonts/DMSans-Bold.ttf"),
     "DMSans-ExtraBold": require("../assets/fonts/DMSans-ExtraBold.ttf"),

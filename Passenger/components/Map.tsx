@@ -101,7 +101,6 @@ const Map = ({
         showsUserLocation={true}
         userInterfaceStyle="light"
       >
-        {/* User location marker */}
         <Marker
           key="user"
           coordinate={{
@@ -112,7 +111,6 @@ const Map = ({
           image={icons.marker}
         />
 
-        {/* Destination marker */}
         {destinationLatitude && destinationLongitude && (
           <Marker
             key="destination"
@@ -125,7 +123,6 @@ const Map = ({
           />
         )}
 
-        {/* Driver marker - only shown when ride is accepted */}
         {rideStatus === "accepted" && driverLocation && driverLocation.latitude && driverLocation.longitude && (
           <Marker
             key="driver"
@@ -144,7 +141,6 @@ const Map = ({
           </Marker>
         )}
 
-        {/* When ride is accepted, show route from driver to user location */}
         {rideStatus === "accepted" && driverLocation && driverLocation.latitude && driverLocation.longitude && (
           <MapViewDirections
             origin={{
@@ -158,11 +154,10 @@ const Map = ({
             apikey={directionsAPI!}
             strokeColor="#0286FF"
             strokeWidth={2}
-            lineDashPattern={[5, 4]} // Dashed line for driver route
+            lineDashPattern={[5, 4]} 
           />
         )}
 
-        {/* When ride is arrived_at_pickup or in normal state, show route from user to destination */}
         {(rideStatus === "arrived_at_pickup" || rideStatus === "in_progress" || !rideStatus) && destinationLatitude && destinationLongitude && (
           <MapViewDirections
             origin={{

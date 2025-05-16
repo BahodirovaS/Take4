@@ -24,7 +24,7 @@ export const fetchAPI = async (url: string, options?: RequestInit) => {
   const timeoutId = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT);
   try {
       const response = await fetch(url, { ...updatedOptions, signal: controller.signal });
-      clearTimeout(timeoutId); // Clear timeout on successful response
+      clearTimeout(timeoutId);
       if (!response.ok) {
           const errorText = await response.text();
           throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
@@ -121,7 +121,6 @@ export const fetchRideHistory = (
         } as Ride;
       });
       
-      // Sort by created_at date, most recent first
       rides.sort((a, b) => {
         const timeA = new Date(a.created_at).getTime();
         const timeB = new Date(b.created_at).getTime();

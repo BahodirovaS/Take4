@@ -64,7 +64,6 @@ const SignUp = () => {
                 code: verification.code,
             });
             if (completeSignUp.status === "complete") {
-                // Create a new user record in Firestore instead of calling the API
                 try {
                     await addDoc(collection(db, "passengers"), {
                         firstName: form.firstName,

@@ -37,7 +37,6 @@ const LiveDriver: React.FC<ExtendedDriverInfoProps> = ({
                 setEta(estimatedTime);
                 setLoading(false);
             },
-            // Error callback
             (error) => {
                 console.error("Error fetching driver:", error);
                 setError("Could not load driver information");
