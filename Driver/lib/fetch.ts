@@ -24,14 +24,13 @@ export const fetchAPI = async (url: string, options?: RequestInit) => {
   try {
       const response = await fetch(url, { ...updatedOptions, signal: controller.signal });
 
-      clearTimeout(timeoutId); // Clear timeout on successful response
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
           const errorText = await response.text();
           throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
-      // Return the parsed JSON response directly
       return await response.json();
   } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
@@ -313,7 +312,7 @@ export const completeRide = async (
           payment_status: "paid",
           driver_id: ride?.driver_id,
           user_id: ride?.user_id,
-          rideRequestId: rideId, // Reference to original ride request
+          rideRequestId: rideId,
           created_at: new Date(),
           completed_at: new Date()
       };
@@ -463,7 +462,6 @@ export const getRideHistory = (
         } as Ride;
       });
 
-      // Sort by created_at date, most recent first
       rides.sort((a, b) => {
         const timeA = new Date(a.created_at).getTime();
         const timeB = new Date(b.created_at).getTime();

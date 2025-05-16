@@ -11,7 +11,8 @@ import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import RideRequestBottomSheet from "@/components/RideRequest";
 import { Ride } from "@/types/type";
-
+import { useLocationStore } from "@/store";
+import * as Location from "expo-location";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -79,6 +80,25 @@ const RideRequestListener: React.FC = () => {
 };
 
 export default function RootLayout() {
+
+  useEffect(() => {
+    const initializeLocation = async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const location = await Location.getCurrentPositionAsync();
+        let address = "Current Location";
+        const { setUserLocation } = useLocationStore.getState();
+        setUserLocation({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+          address
+        });
+      }
+    };
+    
+    initializeLocation();
+  }, []);
+
   const [loaded] = useFonts({
     "DMSans-Bold": require("../assets/fonts/DMSans-Bold.ttf"),
     "DMSans-ExtraBold": require("../assets/fonts/DMSans-ExtraBold.ttf"),

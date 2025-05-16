@@ -39,19 +39,14 @@ export const googleOAuth = async (startOAuthFlow: any) => {
 
         const userEmail = signUp.emailAddress;
 
-        // Check if driver exists in Firestore
         const driversRef = collection(db, "drivers");
         const q = query(driversRef, where("email", "==", userEmail));
         const querySnapshot = await getDocs(q);
         
         const driverExists = !querySnapshot.empty;
-        
-        // We'll still create the driver record, but we'll note whether they were pre-registered
-        // This gives flexibility for both pre-registered and new sign-ups
         const isNewDriver = !driverExists;
 
         if (signUp.createdUserId) {
-          // If a new user was created, update driver record with Clerk ID
           if (querySnapshot.docs.length > 0) {
             const driverDocId = querySnapshot.docs[0].id;
             await updateDoc(doc(db, "drivers", driverDocId), {
@@ -61,7 +56,6 @@ export const googleOAuth = async (startOAuthFlow: any) => {
               updatedAt: new Date()
             });
           } else {
-            // Create a new driver record in the drivers collection
             await addDoc(collection(db, "drivers"), {
               firstName: signUp.firstName || "",
               lastName: signUp.lastName || "",
@@ -80,7 +74,6 @@ export const googleOAuth = async (startOAuthFlow: any) => {
               createdAt: new Date()
             });
             
-            // Also create a user record in the users collection for reference
             await addDoc(collection(db, "users"), {
               firstName: signUp.firstName || "",
               lastName: signUp.lastName || "",

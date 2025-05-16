@@ -14,10 +14,8 @@ const DriverMap = ({ showLocationButton }: { showLocationButton?: boolean }) => 
     destinationLatitude,
     destinationLongitude,
   } = useLocationStore();
-
   const mapRef = useRef<MapView>(null);
   const [mapCentered, setMapCentered] = useState(false);
-
   const coordinates: LatLng[] = [
     {
       latitude: userLatitude!,

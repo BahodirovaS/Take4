@@ -134,7 +134,6 @@ const DriverInfo = () => {
             return Alert.alert("Error", "Please fill out all required fields.");
         }
 
-        // Save profile
         const { success, newDocId, error } = await saveDriverProfile(user.id, form, driverDocId);
 
         if (success) {
@@ -147,7 +146,6 @@ const DriverInfo = () => {
         }
     };
 
-    // Format phone number with dashes
     const formatPhoneNumber = (value: string) => {
         let formattedValue = value.replace(/\D/g, '');
         if (formattedValue.length > 3 && formattedValue.length <= 6) {

@@ -49,14 +49,12 @@ const RideRequestBottomSheet: React.FC = () => {
   const backdropOpacity = useSharedValue(0);
   const isSnappedToTop = useSharedValue(false);
 
-  // Fetch passenger information when ride changes
   useEffect(() => {
     const fetchPassengerInfo = async () => {
       if (!ride || !ride.user_id) return;
       
       setLoading(true);
       try {
-        // Query passengers collection where clerk_id matches the ride.user_id
         const passengersQuery = query(
           collection(db, "passengers"),
           where("clerkId", "==", ride.user_id),

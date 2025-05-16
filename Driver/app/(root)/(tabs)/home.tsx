@@ -41,7 +41,6 @@ const Home = () => {
     const [hasActiveRide, setHasActiveRide] = useState(false);
     const [activeRideData, setActiveRideData] = useState<ActiveRideData | null>(null);
 
-    // Fetch user location
     useEffect(() => {
         const fetchLocation = async () => {
             const location = await getUserLocation(locationData => {
@@ -51,7 +50,6 @@ const Home = () => {
         fetchLocation();
     }, []);
 
-    // Fetch driver status
     useEffect(() => {
         if (!user?.id) return;
 
@@ -71,7 +69,6 @@ const Home = () => {
         return unsubscribe;
     }, [user?.id]);
 
-    // Fetch ride history
     useEffect(() => {
         if (!user?.id) return;
 
@@ -91,7 +88,6 @@ const Home = () => {
         return unsubscribe;
     }, [user?.id]);
 
-    // Check for active rides
     useEffect(() => {
         if (!user?.id) return;
         
@@ -130,7 +126,6 @@ const Home = () => {
         }
     };
 
-    // Render ride history section
     const renderRideHistory = () => {
         if (loading) {
             return <ActivityIndicator size="small" color="#000" />;
@@ -166,7 +161,6 @@ const Home = () => {
         );
     };
     
-    // Navigate to active ride screen
     const navigateToActiveRide = () => {
         if (!activeRideData) return;
         
