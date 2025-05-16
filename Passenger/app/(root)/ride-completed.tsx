@@ -5,16 +5,11 @@ import { images } from "@/constants";
 import CustomButton from "@/components/CustomButton";
 import { CompletedRideDetails } from "@/types/type";
 import { useStripe } from "@stripe/stripe-react-native";
-import { AirbnbRating } from "react-native-ratings";
 import { ReactNativeModal } from "react-native-modal";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { 
-  fetchCompletedRideDetails, 
-  formatFarePrice,  
-} from "@/lib/fetch";
+import { formatFarePrice, fetchDriverDetails } from "@/lib/fetch";
 import { processTipPayment } from "@/lib/tipService";
-
 
 const RideCompleted = () => {
     const { rideId } = useLocalSearchParams();
@@ -31,54 +26,53 @@ const RideCompleted = () => {
     const tipOptions = ["0", "2", "5", "10"];
 
     useEffect(() => {
-        fetchCompletedRideDetails(
-            rideId as string,
-            async (details) => {
+        const fetchRideDetails = async () => {
+            if (!rideId) {
+                setError("No ride ID provided");
+                setIsLoading(false);
+                return;
+            }
+            try {
+                const rideDocRef = doc(db, "rideRequests", rideId as string);
+                const rideSnapshot = await getDoc(rideDocRef);
+                
+                if (!rideSnapshot.exists()) {
+                    setError("Ride not found");
+                    setIsLoading(false);
+                    return;
+                }
+                
+                const details = rideSnapshot.data() as CompletedRideDetails;
                 setRideDetails(details);
                 if (details.rating > 0 || (details.tip_amount && parseFloat(details.tip_amount) > 0)) {
                     setShowTipping(false);
                 }
-                if (details.driver_id) {
-                    try {
-                        const driverRef = doc(db, "drivers", details.driver_id);
-                        const driverSnap = await getDoc(driverRef);
-                        
-                        if (driverSnap.exists()) {
-                            const driverData = driverSnap.data();
-                            setDriverName(driverData.name || "your driver");
-                        }
-                    } catch (err) {
-                        console.error("Error fetching driver details:", err);
-                    }
-                }
                 
+                if (details.driver_id) {
+                    fetchDriverDetails(
+                        details.driver_id,
+                        (driverName) => {
+                            setDriverName(driverName || "your driver");
+                        },
+                        (error) => {
+                            console.error("Error fetching driver details:", error);
+                        }
+                    );
+                }
                 setIsLoading(false);
-            },
-            (error) => {
-                console.error("Error loading ride details:", error);
+            } catch (err) {
+                console.error("Error loading ride details:", err);
                 setError("Could not load ride details. Please try again.");
                 setIsLoading(false);
             }
-        );
+        };
+        
+        fetchRideDetails();
     }, [rideId]);
+
 
     const handleGoHome = () => {
         router.replace("/(root)/(tabs)/home");
-    };
-    const skipTipping = async () => {
-        try {
-            if (!rideId) return;
-            const rideRef = doc(db, "rideRequests", rideId as string);
-            await updateDoc(rideRef, {
-                rating: rating,
-                rated_at: new Date(),
-                
-            });
-            setSuccess(true);
-        } catch (error) {
-            console.error("Error updating ride:", error);
-            Alert.alert("Error", "Could not save your rating");
-        }
     };
 
     const processTip = () => {
@@ -89,20 +83,13 @@ const RideCompleted = () => {
           rating,
           setSuccess
         });
-      };
-
-    
-    const handleRating = (rating: number) => {
-        setRating(rating);
     };
 
-    
     const handleSuccessButtonPress = () => {
         setSuccess(false);
         handleGoHome();
     };
 
-    
     const TipButton = ({ amount, isSelected, onPress }: { amount: string, isSelected: boolean, onPress: () => void }) => (
         <TouchableOpacity 
             style={[
@@ -120,30 +107,11 @@ const RideCompleted = () => {
         </TouchableOpacity>
     );
 
-    
     const renderTipping = () => {
         return (
             <View style={styles.tippingContainer}>
-                <Text style={styles.tipTitle}>How was your ride with {driverName}?</Text>
-                
-                <View style={styles.ratingContainer}>
-                    <AirbnbRating
-                        count={5}
-                        defaultRating={rating}
-                        size={30}
-                        onFinishRating={handleRating}
-                        showRating={false}
-                    />
-                    <Text style={styles.ratingText}>
-                        {rating === 5 ? "Excellent!" : 
-                        rating === 4 ? "Great!" : 
-                        rating === 3 ? "Good" : 
-                        rating === 2 ? "Okay" : "Poor"}
-                    </Text>
-                </View>
-                
                 <View style={styles.tipSection}>
-                    <Text style={styles.tipSectionTitle}>Add a tip for {driverName}</Text>
+                    <Text style={styles.tipSectionTitle}>Enjoyed the ride? Add a tip for {driverName}</Text>
                     <View style={styles.tipOptionsContainer}>
                         {tipOptions.map((option) => (
                             <TipButton
@@ -161,7 +129,6 @@ const RideCompleted = () => {
                             style={styles.customTipInput}
                             value={!tipOptions.includes(tipAmount) ? tipAmount : ''}
                             onChangeText={(text) => {
-                                
                                 const filtered = text.replace(/[^0-9.]/g, '');
                                 setTipAmount(filtered);
                             }}
@@ -173,7 +140,7 @@ const RideCompleted = () => {
                 
                 <View style={styles.tipButtonContainer}>
                     <CustomButton
-                        title={`Submit Rating & ${parseFloat(tipAmount) > 0 ? `$${tipAmount} Tip` : 'No Tip'}`}
+                        title={`Submit ${parseFloat(tipAmount) > 0 ? `$${tipAmount} Tip` : 'No Tip'}`}
                         onPress={processTip}
                         bgVariant="primary"
                         style={styles.submitButton}
@@ -206,7 +173,6 @@ const RideCompleted = () => {
         );
     }
 
-    
     if (!showTipping) {
         return (
             <View style={styles.container}>
@@ -241,14 +207,6 @@ const RideCompleted = () => {
                             </Text>
                         </View>
                     )}
-                    {rideDetails.rating > 0 && (
-                        <View style={styles.detailRow}>
-                            <Text style={styles.detailLabel}>Your Rating:</Text>
-                            <Text style={styles.detailValue}>
-                                {rideDetails.rating} / 5
-                            </Text>
-                        </View>
-                    )}
                 </View>
                 <CustomButton 
                     title="Back to Home" 
@@ -260,7 +218,6 @@ const RideCompleted = () => {
         );
     }
 
-    
     return (
         <View style={styles.container}>
             <Image source={images.check} style={styles.checkImage} />
@@ -290,7 +247,6 @@ const RideCompleted = () => {
             
             {renderTipping()}
             
-            {/* Success Modal */}
             <ReactNativeModal
                 isVisible={success}
                 onBackdropPress={() => setSuccess(false)}
@@ -299,7 +255,7 @@ const RideCompleted = () => {
                     <Image source={images.check} style={styles.modalCheckImage} />
                     <Text style={styles.modalTitle}>Thank You!</Text>
                     <Text style={styles.modalText}>
-                        Your {parseFloat(tipAmount) > 0 ? 'rating and tip have' : 'rating has'} been submitted successfully.
+                        Your tip has been submitted successfully.
                     </Text>
                     <CustomButton
                         title="Done"
@@ -320,6 +276,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "flex-start",
         padding: 20,
+        paddingTop: 50,
     },
     checkImage: {
         width: 100,
@@ -368,7 +325,6 @@ const styles = StyleSheet.create({
     homeButton: {
         width: "100%",
     },
-    
     
     tippingContainer: {
         width: "100%",
@@ -457,7 +413,6 @@ const styles = StyleSheet.create({
     submitButton: {
         marginBottom: 5,
     },
-    
     
     modalContainer: {
         backgroundColor: "white",

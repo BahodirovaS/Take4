@@ -134,6 +134,7 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
                 company_share: Math.round(parseFloat(companyShare) * 100),
                 payment_status: "paid",
                 user_id: userId,
+                user_name: fullName,
                 driver_id: driver_id,
                 createdAt: new Date(),
                 payment_intent_id: paymentIntent.id,
