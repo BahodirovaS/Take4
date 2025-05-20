@@ -212,7 +212,7 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
 
     if (isScheduled) {
       clearReservation();
-      router.replace("/(root)/(tabs)/resos");
+      router.push("/(root)/(tabs)/resos");
     } else {
       router.push({
         pathname: "/(root)/active-ride",
