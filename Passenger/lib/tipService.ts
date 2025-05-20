@@ -1,4 +1,3 @@
-
 import { fetchAPI } from "@/lib/fetch";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -38,30 +37,29 @@ export async function processTipPayment({
       Alert.alert("Error", "Payment method information is missing");
       return;
     }
-    let stripeCustomerId = null;    
-    if (rideData.user_id) {
-      console.log("Fetching Stripe customer ID for user:", rideData.user_id);
-      try {
-        const userDocRef = doc(db, "users", rideData.user_id);
-        const userDoc = await getDoc(userDocRef);
-        
-        if (userDoc.exists()) {
-          stripeCustomerId = userDoc.data().stripe_customer_id;
-          console.log("Found stripe_customer_id:", stripeCustomerId);
-        } else {
-          console.error("User document not found");
-        }
-      } catch (err) {
-        console.error("Error fetching user document:", err);
-      }
+    
+    let stripeCustomerId = rideData.stripe_id;
+    
+    if (!stripeCustomerId) {
+      stripeCustomerId = rideData.customer_id;
+      console.log("Using stored customer ID:", stripeCustomerId);
     }
     
     if (!stripeCustomerId) {
       Alert.alert("Error", "Customer payment information not found. Please update your payment method.");
       return;
     }
-    console.log("Using stored customer ID:", rideData.customer_id);
-
+    
+    const requestData = {
+      rideId: rideId,
+      tipAmount: tipAmountFloat.toFixed(2),
+      customer_id: stripeCustomerId,
+      driver_id: rideData.driver_id,
+      payment_method_id: rideData.payment_method_id
+    };
+    
+    console.log("Sending request data:", JSON.stringify(requestData, null, 2));
+    
     const response = await fetchAPI(
       "/(api)/(stripe)/createTip",
       {
@@ -69,42 +67,33 @@ export async function processTipPayment({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          rideId: rideId,
-          tipAmount: tipAmountFloat.toFixed(2),
-          customer_id: stripeCustomerId,
-          driver_id: rideData.driver_id,
-          payment_method_id: rideData.payment_method_id
-        }),
+        body: JSON.stringify(requestData),
       }
     );
     
-    const requestData = {
-      rideId: rideId,
-      tipAmount: tipAmountFloat.toFixed(2),
-      customer_id: rideData.user_id,
-      driver_id: rideData.driver_id,
-      payment_method_id: rideData.payment_method_id
-    };
-    console.log("Sending request data:", JSON.stringify(requestData, null, 2));
-
     if (response?.success) {
-      const tipAmountCents = Math.round(tipAmountFloat * 100);
-      const rideRef = doc(db, "rideRequests", rideId);
-      
-      const driverShare = rideData.driver_share || 0;
-      const farePrice = rideData.fare_price || 0;
-      
-      await updateDoc(rideRef, {
-        tip_amount: tipAmount,
-        tip_payment_intent_id: response.paymentIntent?.id,
-        rating: rating,
-        driver_share: driverShare + tipAmountCents,
-        total_amount: farePrice + tipAmountCents,
-        tipped_at: new Date(),
-        rated_at: new Date(),
-      });
-      setSuccess(true);
+      try {
+        const tipAmountCents = Math.round(tipAmountFloat * 100);
+        const rideRef = doc(db, "rideRequests", rideId);
+        
+        const driverShare = rideData.driver_share || 0;
+        const farePrice = rideData.fare_price || 0;
+        
+        await updateDoc(rideRef, {
+          tip_amount: tipAmount,
+          tip_payment_intent_id: response.paymentIntent?.id,
+          rating: rating,
+          driver_share: driverShare + tipAmountCents,
+          total_amount: farePrice + tipAmountCents,
+          tipped_at: new Date(),
+          rated_at: new Date(),
+        });
+        
+        setSuccess(true);
+      } catch (updateError) {
+        console.error("Error updating ride record:", updateError);
+        Alert.alert("Error", "Payment processed but failed to update ride record");
+      }
     } else {
       const errorMessage = response?.error || "Failed to process tip payment";
       console.error("Payment error:", errorMessage);

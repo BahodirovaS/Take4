@@ -63,7 +63,7 @@ const RideCompleted = () => {
     }, [rideId]);
 
     const handleGoHome = () => {
-        router.replace("/(root)/(tabs)/home");
+        router.push("/(root)/(tabs)/home");
     };
 
     const processTip = () => {
@@ -203,7 +203,7 @@ const RideCompleted = () => {
                     <Image source={images.check} style={styles.modalCheckImage} />
                     <Text style={styles.modalTitle}>Thank You!</Text>
                     <Text style={styles.modalText}>
-                        Your {parseFloat(tipAmount)} has been sent.
+                        Your ${parseFloat(tipAmount)} tip has been sent.
                     </Text>
                     <CustomButton
                         title="Done"
