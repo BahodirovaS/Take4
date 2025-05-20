@@ -6,3 +6,6 @@ Attribute:
 - muhammad_usman for no rides
 - Freepik for stripe
 - Pixel perfect for paypal
+
+Crash moments:
+- when driver accepts ride and it goes to the active ride screen
