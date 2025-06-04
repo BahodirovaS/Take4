@@ -178,7 +178,7 @@ const DriverInfo = () => {
                 >
                     <Text
                         style={styles.title}>
-                        My Profile
+                        My Cabbage Profile
                     </Text>
                     <View style={styles.profileImageContainer}>
                         <TouchableOpacity onPress={pickImage} disabled={uploading}>
@@ -282,7 +282,7 @@ const DriverInfo = () => {
                                 <CustomButton
                                     title={form.pets ? 'Yes' : 'No'}
                                     onPress={() => setForm({ ...form, pets: !form.pets })}
-                                    bgVariant={form.pets ? "success" : "danger"}
+                                    bgVariant={form.pets ? "primary" : "danger"}
                                     style={styles.petsButton}
                                 />
                             </View>
@@ -420,7 +420,7 @@ const styles = StyleSheet.create({
         fontFamily: "DMSans-SemiBold",
     },
     carSeatSelected: {
-        backgroundColor: "#AED6EB",
+        backgroundColor: "#edc985",
     },
     carSeatUnselected: {
         backgroundColor: "#f3f4f6",

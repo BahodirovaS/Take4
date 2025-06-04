@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Driver",
+    "name": "Cabbage Driver",
     "slug": "Driver",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -10,11 +10,16 @@
     "splash": {
       "image": "./assets/images/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#2A4D76"
+      "backgroundColor": "#3f7564"
     },
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ridepal.take4.driver",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -32,15 +37,6 @@
         "expo-router",
         {
           "origin": "https://uber.dev/"
-        }
-      ],
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
         }
       ],
       "expo-web-browser"

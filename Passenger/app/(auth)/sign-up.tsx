@@ -125,7 +125,7 @@ const SignUp = () => {
                     <View style={styles.container}>
                         <View style={styles.header}>
                             <Image source={images.icon} style={styles.carIcon} />
-                            <Text style={styles.headerTitle}>RidePal Passenger</Text>
+                            <Text style={styles.headerTitle}>Cabbage</Text>
                         </View>
                         <View style={styles.createContainer}>
                             <Text style={styles.createText}>Create Your Account</Text>

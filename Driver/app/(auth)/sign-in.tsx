@@ -47,8 +47,8 @@ const SignIn = () => {
         <ScrollView style={styles.container}>
             <View style={styles.container}>
                 <View style={styles.header}>
-                    <Image source={images.icon} style={styles.carIcon} />
-                    <Text style={styles.headerTitle}>RidePal Driver</Text>
+                    <Image source={images.favicon} style={styles.carIcon} />
+                    <Text style={styles.headerTitle}>Cabbage Driver</Text>
                 </View>
                 <View style={styles.welcomeContainer}>
                     <Text style={styles.welcomeText}>Welcome Back 👋</Text>
@@ -105,14 +105,16 @@ const styles = StyleSheet.create({
         width: "100%",
     },
     carIcon: {
-        width: 30,
-        height: 30,
+        width: 40,
+        height: 40,
         marginRight: 10,
+        borderRadius: 9999,
     },
     headerTitle: {
         fontSize: 24,
         fontFamily: "DMSans-SemiBold",
         color: "black",
+        paddingTop: 5,
     },
     welcomeContainer: {
         position: "relative",
@@ -143,13 +145,13 @@ const styles = StyleSheet.create({
         alignSelf: "center",
     },
     link: {
-        fontSize: 18,
+        fontSize: 20,
         textAlign: "center",
         color: "#6B7280",
         marginTop: 40,
     },
     linkText: {
-        color: "#289dd2",
+        color: "#edc985",
     },
 });
 

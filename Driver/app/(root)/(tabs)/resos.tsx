@@ -132,7 +132,7 @@ const Reservations = () => {
     <View>
       <Text style={styles.headerText}>Scheduled Rides</Text>
       <View style={styles.header}>
-        <Image source={images.icon} style={styles.carIcon} />
+        <Image source={images.favicon} style={styles.carIcon} />
       </View>
     </View>
   );
@@ -185,6 +185,7 @@ const styles = StyleSheet.create({
   carIcon: {
     width: 50,
     height: 50,
+    borderRadius: 9999
   },
   headerText: {
     fontSize: 30,

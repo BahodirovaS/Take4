@@ -14,7 +14,9 @@
     },
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "buildIdentifier": "com.ridepal.take4.passenger",
+      "buildNumber": 1
     },
     "android": {
       "adaptiveIcon": {
