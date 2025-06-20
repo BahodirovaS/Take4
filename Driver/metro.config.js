@@ -1,9 +1,7 @@
 const { getDefaultConfig } = require('expo/metro-config');
-
-/** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname);
 
-// Add this line to fix the Firebase auth issue
-config.resolver.unstable_enablePackageExports = false;
+config.resolver.platforms = ['native', 'ios', 'android'];
+config.resolver.resolverMainFields = ['react-native', 'browser', 'main'];
 
 module.exports = config;
