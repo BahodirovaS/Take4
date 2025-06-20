@@ -185,7 +185,7 @@ const RideRequestBottomSheet: React.FC = () => {
               <Text style={styles.title}>New Ride Request!</Text>
 
               <View style={styles.infoContainer}>
-                <Text style={styles.label}>Name:</Text>
+                <Text style={styles.label}>Passenger Name:</Text>
                 {loading ? (
                   <View style={styles.loadingContainer}>
                     <ActivityIndicator size="small" color="#0000ff" />
@@ -196,10 +196,10 @@ const RideRequestBottomSheet: React.FC = () => {
                   </Text>
                 )}
 
-                <Text style={styles.label}>Pickup:</Text>
+                <Text style={styles.label}>Pickup Location:</Text>
                 <Text style={styles.value}>{ride.origin_address}</Text>
 
-                <Text style={styles.label}>Dropoff:</Text>
+                <Text style={styles.label}>Dropoff Location:</Text>
                 <Text style={styles.value}>{ride.destination_address}</Text>
 
                 <Text style={styles.label}>Ride Time:</Text>
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   label: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "600",
     marginTop: 10,
     color: '#666',

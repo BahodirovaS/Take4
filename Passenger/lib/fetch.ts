@@ -150,7 +150,7 @@ export const checkActiveRides = (
     const activeRidesQuery = query(
       collection(db, "rideRequests"),
       where("user_id", "==", userId),
-      where("status", "in", ["accepted", "arrived_at_pickup", "in_progress"])
+      where("status", "in", ["requested", "accepted", "arrived_at_pickup", "in_progress"])
     );
     
     const unsubscribe = onSnapshot(activeRidesQuery, (snapshot) => {

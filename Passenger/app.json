@@ -1,16 +1,16 @@
 {
   "expo": {
-    "name": "Passenger",
+    "name": "Cabbage",
     "slug": "Passenger",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/favicon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/images/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#2A4D76"
+      "backgroundColor": "#3f7564"
     },
     "newArchEnabled": true,
     "ios": {
@@ -34,15 +34,6 @@
         "expo-router",
         {
           "origin": "https://uber.dev/"
-        }
-      ],
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
         }
       ],
       "expo-secure-store"

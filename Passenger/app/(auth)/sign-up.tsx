@@ -124,7 +124,7 @@ const SignUp = () => {
                 <ScrollView style={styles.container}>
                     <View style={styles.container}>
                         <View style={styles.header}>
-                            <Image source={images.icon} style={styles.carIcon} />
+                            <Image source={images.favicon} style={styles.carIcon} />
                             <Text style={styles.headerTitle}>Cabbage</Text>
                         </View>
                         <View style={styles.createContainer}>
@@ -250,6 +250,7 @@ const styles = StyleSheet.create({
         width: 30,
         height: 30,
         marginRight: 10,
+        borderRadius: 15,
     },
     headerTitle: {
         fontSize: 24,

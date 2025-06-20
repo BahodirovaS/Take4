@@ -57,9 +57,7 @@ export async function processTipPayment({
       driver_id: rideData.driver_id,
       payment_method_id: rideData.payment_method_id
     };
-    
-    console.log("Sending request data:", JSON.stringify(requestData, null, 2));
-    
+        
     const response = await fetchAPI(
       "/(api)/(stripe)/createTip",
       {

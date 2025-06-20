@@ -1,5 +1,4 @@
 import { useUser } from "@clerk/clerk-expo";
-import { useAuth } from "@clerk/clerk-expo";
 import { router } from "expo-router";
 import { useState, useEffect } from "react";
 import React from "react";
@@ -16,6 +15,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import DriverMap from "@/components/DriverMap";
+import HomeMap from "@/components/HomeMap";
 import RideCard from "@/components/RideCard";
 import { icons, images } from "@/constants";
 import { useLocationStore } from "@/store";
@@ -221,7 +221,7 @@ const Home = () => {
 
                         <Text style={styles.sectionTitle}>Your current location</Text>
                         <View style={styles.mapContainer}>
-                            <DriverMap showLocationButton={true} />
+                            <HomeMap showLocationButton={true} />
                         </View>
                         
                         <Text style={styles.sectionTitle}>Ride History</Text>

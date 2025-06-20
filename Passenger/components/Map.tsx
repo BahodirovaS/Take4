@@ -213,10 +213,12 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 10,
     right: 10,
-    backgroundColor: "#7bc1ea",
+    backgroundColor: "#edc985",
     paddingVertical: 10,
     paddingHorizontal: 10,
     borderRadius: 50,
+    borderWidth: 1,
+    borderColor: "#fffff",
     zIndex: 10,
     transform: [{ rotate: "315deg" }]
   },

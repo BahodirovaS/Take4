@@ -18,8 +18,6 @@ export async function POST(request: Request) {
         status: 400,
       });
     }
-
-    console.log("NAME", name)
     
     const fareAmount = parseFloat(amount);
     const tipAmountValue = parseFloat(tipAmount);

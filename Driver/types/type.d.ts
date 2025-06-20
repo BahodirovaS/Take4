@@ -135,7 +135,7 @@ declare interface Message {
 
 declare interface ButtonProps extends TouchableOpacityProps {
   title: string;
-  bgVariant?: "primary" | "secondary" | "danger" | "outline" | "success";
+  bgVariant?: "primary" | "secondary" | "tertiary" | "danger" | "outline" | "success";
   textVariant?: "primary" | "default" | "secondary" | "danger" | "success";
   size?: "small" | "medium" | "large";
   IconLeft?: React.ComponentType<any>;

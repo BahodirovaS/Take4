@@ -110,9 +110,9 @@ const styles = StyleSheet.create({
   buttonLarge: {
     padding: 16,
   },
-  bgPrimary: { backgroundColor: "#289dd2" },
+  bgPrimary: { backgroundColor: "#3f7564" },
   bgSecondary: { backgroundColor: "#6B7280" },
-  bgDanger: { backgroundColor: "#E53935" },
+  bgDanger: { backgroundColor: "#D9534F" },
   bgSuccess: { backgroundColor: "#2E7D32" },
   bgOutline: {
     backgroundColor: "transparent",

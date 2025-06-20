@@ -307,17 +307,19 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
                 <View style={styles.buttonContainer}>
                     <CustomButton
                         title="Navigate"
-                        bgVariant="primary"
+                        bgVariant="tertiary"
+                        textVariant="primary"
                         onPress={openGoogleMapsNavigation}
-                        IconLeft={() => <Ionicons name="navigate" size={20} color="white" marginRight="5" />}
+                        IconLeft={() => <Ionicons name="navigate" size={20} color="black" marginRight="5" />}
                         style={styles.navigationButton}
                     />
 
                     <CustomButton
                         title="Message"
-                        bgVariant="secondary"
+                        bgVariant="tertiary"
+                        textVariant="primary"
                         onPress={handleMessagePassenger}
-                        IconLeft={() => <Ionicons name="chatbubble-ellipses-outline" size={20} color="white" marginRight="5" />}
+                        IconLeft={() => <Ionicons name="chatbubble-ellipses-outline" size={20} color="black" marginRight="5" />}
                         style={styles.messageButton}
                     />
                 </View>
@@ -326,21 +328,21 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
                     {rideStage === 'to_pickup' && ride.status !== 'arrived_at_pickup' ? (
                         <CustomButton
                             title="Arrived at Pickup"
-                            bgVariant="success"
+                            bgVariant="primary"
                             onPress={handleArriveAtPickup}
                             style={styles.customActionButton}
                         />
                     ) : ride.status === 'arrived_at_pickup' ? (
                         <CustomButton
                             title="Start Ride"
-                            bgVariant="success"
+                            bgVariant="primary"
                             onPress={handleStartRide}
                             style={styles.customActionButton}
                         />
                     ) : (
                         <CustomButton
                             title="Complete Ride"
-                            bgVariant="success"
+                            bgVariant="primary"
                             onPress={handleCompleteRide}
                             style={styles.customActionButton}
                         />

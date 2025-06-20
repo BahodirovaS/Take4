@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   },
   costValue: {
     fontFamily: "DMSans-Bold",
-    color: "#289dd2",
+    color: "#3f7564",
   },
   paymentPaid: {
     color: "green",

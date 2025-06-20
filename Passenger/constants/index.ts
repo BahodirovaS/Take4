@@ -32,6 +32,7 @@ import noResult from "@/assets/images/no-result.png";
 import resos from "@/assets/images/resos.png"
 import car from "@/assets/icons/car.png"
 import icon from "@/assets/images/icon.png"
+import favicon from "@/assets/images/favicon.png"
 import calendar from "@/assets/images/calendar.png"
 import noRides from "@/assets/images/no-rides.png"
 import stripe from "@/assets/images/stripe.png"
@@ -47,6 +48,7 @@ export const images = {
   noRides,
   stripe,
   paypal,
+  favicon,
 };
 
 export const icons = {

@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import GoogleTextInput from "@/components/GoogleTextInput";
 import Map from "@/components/Map";
+import HomeMap from "@/components/HomeMap";
 import RideCard from "@/components/RideCard";
 import { icons, images } from "@/constants";
 import { useLocationStore } from "@/store";
@@ -159,7 +160,7 @@ const Home = () => {
                         <>
                             <Text style={styles.sectionTitle}>Your current location</Text>
                             <View style={styles.mapContainer}>
-                                <Map showLocationButton={true} />
+                                <HomeMap showLocationButton={true} />
                             </View>
                         </>
                         <Text style={styles.sectionTitle}>Ride History</Text>
@@ -222,7 +223,7 @@ const styles = StyleSheet.create({
         marginVertical: 20,
     },
     activeRideBanner: {
-        backgroundColor: '#289dd2',
+        backgroundColor: '#3f7564',
         padding: 12,
         marginVertical: 10,
         borderRadius: 15,

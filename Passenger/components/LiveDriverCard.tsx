@@ -101,12 +101,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   driverName: {
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: "DMSans-SemiBold",
     marginBottom: 4,
   },
   carInfo: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: "DMSans",
     color: "#666",
   },
@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   etaValue: {
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: "DMSans-Bold",
   },
   contactContainer: {
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
   contactHeader: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: "DMSans-SemiBold",
     marginBottom: 12,
     color: "#333",
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   contactLabel: {
-    fontSize: 12,
+    fontSize: 15,
     fontFamily: "DMSans",
     color: "#333",
   },

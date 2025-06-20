@@ -6,6 +6,8 @@ const getBgVariantStyle = (variant: ButtonProps["bgVariant"]): ViewStyle => {
   switch (variant) {
     case "secondary":
       return styles.bgSecondary;
+    case "tertiary":
+      return styles.bgTertiary;
     case "danger":
       return styles.bgDanger;
     case "success":
@@ -112,6 +114,7 @@ const styles = StyleSheet.create({
   },
   bgPrimary: { backgroundColor: "#3f7564" },
   bgSecondary: { backgroundColor: "#6B7280" },
+  bgTertiary: {backgroundColor: "#edc985"},
   bgDanger: { backgroundColor: "#D9534F" },
   bgSuccess: { backgroundColor: "#2E7D32" },
   bgOutline: {

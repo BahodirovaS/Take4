@@ -3,7 +3,7 @@ import BottomSheet, {
   BottomSheetScrollView,
   BottomSheetView,
 } from "@gorhom/bottom-sheet";
-import { router } from "expo-router";
+import { router, usePathname } from "expo-router";
 import { Image, Text, TouchableOpacity, View, StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
@@ -26,15 +26,29 @@ const RideLayout: React.FC<RideLayoutProps> = ({
   driverLocation 
 }) => {
   const bottomSheetRef = useRef<BottomSheet>(null);
+  const pathname = usePathname();
 
   const defaultSnapPoints = rideStatus === "in_progress" 
   ? ["35%"]
   : ["55%", "80%"]
 
+  const handleBackPress = () => {
+    if (pathname.includes('book-ride')) {
+      router.push('/(root)/confirm-ride');
+    } else if (pathname.includes('confirm-ride')) {
+      router.push('/(root)/find-ride');
+    } else if (pathname.includes('find-ride')) {
+      router.push('/(root)/(tabs)/home');
+    } else {
+      // Fallback - go to home or use router.back()
+      router.push('/(root)/(tabs)/home');
+    }
+  };
+  
   return (
     <GestureHandlerRootView style={styles.container}>
       <View style={styles.mainContainer}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
           <Image source={icons.backArrow} resizeMode="contain" style={styles.backArrow} />
         </TouchableOpacity>
         <Map 
