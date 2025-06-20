@@ -4,7 +4,7 @@
     "slug": "Passenger",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/favicon.png",
+    "icon": "./assets/images/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "splash": {
@@ -15,19 +15,14 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "buildIdentifier": "com.ridepal.take4.passenger",
-      "buildNumber": 1
+      "bundleIdentifier": "com.ridepal.take4.passenger",
+      "buildNumber": "1"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       }
-    },
-    "web": {
-      "bundler": "metro",
-      "output": "server",
-      "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
       [
@@ -36,7 +31,8 @@
           "origin": "https://uber.dev/"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
