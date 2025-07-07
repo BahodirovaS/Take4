@@ -74,10 +74,15 @@ declare interface Ride {
   destination_longitude: number;
   ride_time: number;
   fare_price: number;
+  driver_share?: number;
+  tip_amount?: string | number;
   payment_status: string;
   driver_id: string;
   user_id: string;
-  created_at: string;
+  user_name: string;
+  created_at: any;
+  tipped_at?: any;
+  rated_at?: any;
   status: string;
   driver: {
     first_name: string;
@@ -227,4 +232,22 @@ declare interface ChatMessage {
   messagePreview: string;
   avatar: string;
   timestamp: string;
+}
+
+declare interface Payment {
+  id: string;
+  amount: number;
+  driverShare: number;
+  createdAt: Date;
+  rideId: string;
+  passengerName: string;
+  status: string;
+  type: 'ride' | 'tip';
+}
+
+declare interface WalletData {
+  totalEarnings: number;
+  availableBalance: number;
+  pendingBalance: number;
+  recentPayments: Payment[];
 }

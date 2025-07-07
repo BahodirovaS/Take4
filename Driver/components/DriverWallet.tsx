@@ -12,43 +12,12 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { useAuth } from '@clerk/clerk-expo';
-import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { fetchAPI } from '@/lib/fetch';
 import CustomButton from '@/components/CustomButton';
 import { Ionicons } from '@expo/vector-icons';
+import { Ride, WalletData, Payment } from '@/types/type';
 
-interface RideData {
-  id: string;
-  driver_share?: number;
-  fare_price?: number;
-  tip_amount?: string;
-  createdAt?: any;
-  tipped_at?: any;
-  rated_at?: any;
-  user_name?: string;
-  payment_status?: string;
-  driver_id?: string;
-  [key: string]: any;
-}
-
-interface Payment {
-  id: string;
-  amount: number;
-  driverShare: number;
-  createdAt: Date;
-  rideId: string;
-  passengerName: string;
-  status: string;
-  type: 'ride' | 'tip';
-}
-
-interface WalletData {
-  totalEarnings: number;
-  availableBalance: number;
-  pendingBalance: number;
-  recentPayments: Payment[];
-}
 
 const DriverWallet: React.FC = () => {
   const { userId } = useAuth();
@@ -60,7 +29,6 @@ const DriverWallet: React.FC = () => {
   });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [transferring, setTransferring] = useState(false);
 
   useEffect(() => {
     fetchWalletData();
@@ -70,26 +38,18 @@ const DriverWallet: React.FC = () => {
     try {
       setLoading(true);
       
-      // Simplest possible query - only filter by driver_id
       const ridesQuery = query(
         collection(db, 'rideRequests'),
         where('driver_id', '==', userId)
       );
       
       const ridesSnapshot = await getDocs(ridesQuery);
-      const allRides: RideData[] = ridesSnapshot.docs.map(doc => ({
+      const allRides: Ride[] = ridesSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-      }));
+      } as Ride));
 
-      // Filter and sort in JavaScript
-      const rides = allRides
-        .filter(ride => ride.payment_status === 'paid')
-        .sort((a, b) => {
-          const dateA = a.createdAt?.toDate() || new Date(a.createdAt);
-          const dateB = b.createdAt?.toDate() || new Date(b.createdAt);
-          return dateB.getTime() - dateA.getTime();
-        });
+      const rides = allRides.filter(ride => ride.payment_status === 'paid');
 
       const totalEarnings = rides.reduce((sum, ride) => sum + (ride.driver_share || 0), 0);
 
@@ -97,15 +57,28 @@ const DriverWallet: React.FC = () => {
 
       rides.forEach(ride => {
         const baseFarePrice = ride.fare_price || 0;
-        const tipAmountCents = ride.tip_amount ? parseFloat(ride.tip_amount) * 100 : 0;
+        const tipAmountCents = ride.tip_amount ? parseFloat(ride.tip_amount.toString()) * 100 : 0;
         const baseDriverShare = (ride.driver_share || 0) - tipAmountCents;
 
         if (baseDriverShare > 0) {
+          let rideDate;
+          const createdAt = (ride as any).createdAt;
+          
+          if (createdAt?.toDate) {
+            rideDate = createdAt.toDate();
+          } else if (createdAt?.seconds) {
+            rideDate = new Date(createdAt.seconds * 1000);
+          } else if (createdAt?._seconds) {
+            rideDate = new Date(createdAt._seconds * 1000);
+          } else {
+            rideDate = new Date();
+          }
+          
           recentPayments.push({
             id: ride.id,
             amount: baseFarePrice / 100,
             driverShare: baseDriverShare / 100,
-            createdAt: ride.createdAt?.toDate() || new Date(ride.createdAt),
+            createdAt: rideDate,
             rideId: ride.id,
             passengerName: ride.user_name || 'Unknown',
             status: 'completed',
@@ -113,13 +86,19 @@ const DriverWallet: React.FC = () => {
           });
         }
 
-        if (ride.tip_amount && parseFloat(ride.tip_amount) > 0) {
-          const tipAmount = parseFloat(ride.tip_amount);
+        if (ride.tip_amount && parseFloat(ride.tip_amount.toString()) > 0) {
+          const tipAmount = parseFloat(ride.tip_amount.toString());
+          const createdAt = (ride as any).createdAt;
+          
           recentPayments.push({
             id: `${ride.id}_tip`,
             amount: tipAmount,
             driverShare: tipAmount,
-            createdAt: ride.tipped_at?.toDate() || ride.rated_at?.toDate() || ride.createdAt?.toDate() || new Date(ride.createdAt),
+            createdAt: ride.tipped_at?.toDate ? ride.tipped_at.toDate() : 
+                      ride.rated_at?.toDate ? ride.rated_at.toDate() :
+                      createdAt?.toDate ? createdAt.toDate() : 
+                      createdAt?.seconds ? new Date(createdAt.seconds * 1000) :
+                      new Date(),
             rideId: ride.id,
             passengerName: ride.user_name || 'Unknown',
             status: 'completed',
@@ -151,94 +130,44 @@ const DriverWallet: React.FC = () => {
     fetchWalletData();
   };
 
-  const handleInstantTransfer = async () => {
-    if (walletData.availableBalance < 0.50) {
-      Alert.alert('Insufficient Balance', 'You need at least $0.50 to make a transfer.');
-      return;
-    }
-
+  const handleInstantTransfer = () => {
     Alert.alert(
-      'Transfer Request',
-      `Request a transfer of ${walletData.availableBalance.toFixed(2)} to your bank account? We'll process this within 24 hours.`,
+      'Transfer Money',
+      'To transfer your earnings to your bank account, you\'ll be redirected to your Stripe dashboard where you can manage transfers securely.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Request Transfer',
-          onPress: async () => {
-            try {
-              setTransferring(true);
-              
-              const transferData = {
-                driver_id: userId,
-                amount: walletData.availableBalance.toFixed(2),
-                type: 'instant',
-                requested_at: new Date(),
-                status: 'requested'
-              };
-
-              await fetchAPI('/(api)/transfer-request', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(transferData),
-              });
-
-              Alert.alert('Success', 'Transfer request submitted! We\'ll process it within 24 hours.');
-              
-            } catch (error) {
-              console.error('Transfer request error:', error);
-              Alert.alert('Error', 'Failed to submit transfer request. Please try again.');
-            } finally {
-              setTransferring(false);
-            }
-          },
+          text: 'Open Stripe Dashboard',
+          onPress: () => openStripeDashboard(),
         },
       ]
     );
   };
 
-  const handleStandardTransfer = async () => {
-    if (walletData.availableBalance < 1.00) {
-      Alert.alert('Insufficient Balance', 'You need at least $1.00 to make a transfer.');
-      return;
-    }
-
+  const handleStandardTransfer = () => {
     Alert.alert(
-      'Transfer Request',
-      `Request a transfer of ${walletData.availableBalance.toFixed(2)} to your bank account? This will take 3-5 business days and is free.`,
+      'Transfer Money',
+      'To transfer your earnings to your bank account, you\'ll be redirected to your Stripe dashboard where you can manage transfers securely.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Request Transfer',
-          onPress: async () => {
-            try {
-              setTransferring(true);
-              
-              const transferData = {
-                driver_id: userId,
-                amount: walletData.availableBalance.toFixed(2),
-                type: 'standard',
-                requested_at: new Date(),
-                status: 'requested'
-              };
+          text: 'Open Stripe Dashboard',
+          onPress: () => openStripeDashboard(),
+        },
+      ]
+    );
+  };
 
-              await fetchAPI('/(api)/transfer-request', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(transferData),
-              });
-
-              Alert.alert('Success', 'Transfer request submitted! We\'ll process it within 3-5 business days.');
-              
-            } catch (error) {
-              console.error('Transfer request error:', error);
-              Alert.alert('Error', 'Failed to submit transfer request. Please try again.');
-            } finally {
-              setTransferring(false);
-            }
+  const openStripeDashboard = () => {
+    Alert.alert(
+      'Stripe Dashboard',
+      'This will open your personal Stripe Express dashboard where you can:\n\n• View your balance\n• Transfer money to your bank\n• Update bank account details\n• View transaction history',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Open Dashboard',
+          onPress: () => {
+            Linking.openURL('https://dashboard.stripe.com/express');
           },
         },
       ]
@@ -247,11 +176,16 @@ const DriverWallet: React.FC = () => {
 
   const openBankingInfo = () => {
     Alert.alert(
-      'Bank Account Information',
-      'To set up direct bank transfers, please contact support with your bank account details. We\'ll help you get set up for automatic transfers.',
+      'Bank Account Setup',
+      'Set up your bank account through Stripe Express to receive payments securely.',
       [
-        { text: 'Contact Support', onPress: () => Linking.openURL('mailto:support@yourapp.com') },
-        { text: 'Cancel', style: 'cancel' }
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Set Up with Stripe',
+          onPress: () => {
+            Linking.openURL('https://dashboard.stripe.com/express');
+          },
+        },
       ]
     );
   };
@@ -284,103 +218,101 @@ const DriverWallet: React.FC = () => {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
       >
-      <View style={styles.balanceCard}>
-        <Text style={styles.balanceTitle}>Your Earnings</Text>
-        <Text style={styles.totalEarnings}>
-          ${walletData.totalEarnings.toFixed(2)}
-        </Text>
-        
-        <View style={styles.balanceRow}>
-          <View style={styles.balanceItem}>
-            <Text style={styles.balanceLabel}>Available</Text>
-            <Text style={styles.availableAmount}>
-              ${walletData.availableBalance.toFixed(2)}
-            </Text>
-          </View>
-          <View style={styles.balanceItem}>
-            <Text style={styles.balanceLabel}>Pending</Text>
-            <Text style={styles.pendingAmount}>
-              ${walletData.pendingBalance.toFixed(2)}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.transferSection}>
-        <Text style={styles.sectionTitle}>Transfer to Bank</Text>
-        
-        <View style={styles.transferOptions}>
-          <TouchableOpacity
-            style={styles.transferOption}
-            onPress={handleInstantTransfer}
-            disabled={transferring || walletData.availableBalance < 0.50}
-          >
-            <View style={styles.transferOptionContent}>
-              <Ionicons name="flash" size={24} color="#3f7564" />
-              <View style={styles.transferOptionText}>
-                <Text style={styles.transferOptionTitle}>Instant Transfer</Text>
-                <Text style={styles.transferOptionSubtitle}>
-                  1.5% fee • Processed within 24 hours
-                </Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.transferOption}
-            onPress={handleStandardTransfer}
-            disabled={transferring || walletData.availableBalance < 1.00}
-          >
-            <View style={styles.transferOptionContent}>
-              <Ionicons name="calendar" size={24} color="#2E7D32" />
-              <View style={styles.transferOptionText}>
-                <Text style={styles.transferOptionTitle}>Standard Transfer</Text>
-                <Text style={styles.transferOptionSubtitle}>
-                  Free • 3-5 business days
-                </Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        <CustomButton
-          title="Set Up Bank Account"
-          onPress={openBankingInfo}
-          style={styles.manageButton}
-        />
-      </View>
-
-      <View style={styles.paymentsSection}>
-        <Text style={styles.sectionTitle}>Recent Payments</Text>
-        
-        {walletData.recentPayments.length === 0 ? (
-          <Text style={styles.noPaymentsText}>No payments yet</Text>
-        ) : (
-          walletData.recentPayments.map((payment) => (
-            <View key={payment.id} style={styles.paymentItem}>
-              <View style={styles.paymentIcon}>
-                <Ionicons
-                  name={payment.type === 'tip' ? 'heart' : 'car'}
-                  size={20}
-                  color="#3f7564"
-                />
-              </View>
-              <View style={styles.paymentInfo}>
-                <Text style={styles.paymentTitle}>
-                  {payment.type === 'tip' ? 'Tip' : 'Ride'} • {payment.passengerName}
-                </Text>
-                <Text style={styles.paymentDate}>
-                  {formatDate(payment.createdAt)}
-                </Text>
-              </View>
-              <Text style={styles.paymentAmount}>
-                +${payment.driverShare.toFixed(2)}
+        <View style={styles.balanceCard}>
+          <Text style={styles.balanceTitle}>Your Earnings</Text>
+          <Text style={styles.totalEarnings}>
+            ${walletData.totalEarnings.toFixed(2)}
+          </Text>
+          
+          <View style={styles.balanceRow}>
+            <View style={styles.balanceItem}>
+              <Text style={styles.balanceLabel}>Available</Text>
+              <Text style={styles.availableAmount}>
+                ${walletData.availableBalance.toFixed(2)}
               </Text>
             </View>
-          ))
-        )}
-      </View>
-    </ScrollView>
+            <View style={styles.balanceItem}>
+              <Text style={styles.balanceLabel}>Pending</Text>
+              <Text style={styles.pendingAmount}>
+                ${walletData.pendingBalance.toFixed(2)}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.transferSection}>
+          <Text style={styles.sectionTitle}>Transfer to Bank</Text>
+          
+          <View style={styles.transferOptions}>
+            <TouchableOpacity
+              style={styles.transferOption}
+              onPress={handleInstantTransfer}
+            >
+              <View style={styles.transferOptionContent}>
+                <Ionicons name="flash" size={24} color="#3f7564" />
+                <View style={styles.transferOptionText}>
+                  <Text style={styles.transferOptionTitle}>Instant Transfer</Text>
+                  <Text style={styles.transferOptionSubtitle}>
+                    Available immediately via Stripe
+                  </Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.transferOption}
+              onPress={handleStandardTransfer}
+            >
+              <View style={styles.transferOptionContent}>
+                <Ionicons name="calendar" size={24} color="#2E7D32" />
+                <View style={styles.transferOptionText}>
+                  <Text style={styles.transferOptionTitle}>Standard Transfer</Text>
+                  <Text style={styles.transferOptionSubtitle}>
+                    1-2 business days via Stripe
+                  </Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          <CustomButton
+            title="Set Up Bank Account"
+            onPress={openBankingInfo}
+            style={styles.manageButton}
+          />
+        </View>
+
+        <View style={styles.paymentsSection}>
+          <Text style={styles.sectionTitle}>Recent Payments</Text>
+          
+          {walletData.recentPayments.length === 0 ? (
+            <Text style={styles.noPaymentsText}>No payments yet</Text>
+          ) : (
+            walletData.recentPayments.map((payment) => (
+              <View key={payment.id} style={styles.paymentItem}>
+                <View style={styles.paymentIcon}>
+                  <Ionicons
+                    name={payment.type === 'tip' ? 'heart' : 'car'}
+                    size={20}
+                    color="#3f7564"
+                  />
+                </View>
+                <View style={styles.paymentInfo}>
+                  <Text style={styles.paymentTitle}>
+                    {payment.type === 'tip' ? 'Tip' : 'Ride'} • {payment.passengerName}
+                  </Text>
+                  <Text style={styles.paymentDate}>
+                    {formatDate(payment.createdAt)}
+                  </Text>
+                </View>
+                <Text style={styles.paymentAmount}>
+                  +${payment.driverShare.toFixed(2)}
+                </Text>
+              </View>
+            ))
+          )}
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -503,7 +435,7 @@ const styles = StyleSheet.create({
   paymentsSection: {
     backgroundColor: 'white',
     margin: 16,
-    marginBottom: 75,
+    marginBottom: 65,
     padding: 20,
     borderRadius: 12,
     shadowColor: '#000',

@@ -6,6 +6,8 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { driver_id, amount, type } = body;
 
+    console.log(driver_id, amount, type)
+    
     if (!driver_id || !amount || !type) {
       return new Response(
         JSON.stringify({ error: "Missing required fields" }),
