@@ -54,6 +54,16 @@ export default function Layout() {
                 }}
             />
             <Tabs.Screen
+                name="wallet"
+                options={{
+                    title: "Wallet",
+                    headerShown: false,
+                    tabBarIcon: ({ focused }) => (
+                        <TabIcon source={icons.wallet} focused={focused} />
+                    ),
+                }}
+            />
+            <Tabs.Screen
                 name="profile"
                 options={{
                     title: "Profile",

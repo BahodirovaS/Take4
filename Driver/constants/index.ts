@@ -25,6 +25,7 @@ import settings from "@/assets/icons/settings.png"
 import star from "@/assets/icons/star.png";
 import target from "@/assets/icons/target.png";
 import to from "@/assets/icons/to.png";
+import wallet from "@/assets/icons/wallet.png"
 import check from "@/assets/images/check.png";
 import message from "@/assets/images/message.png";
 import noResult from "@/assets/images/no-result.png";
@@ -77,5 +78,6 @@ export const icons = {
   star,
   target,
   to,
+  wallet,
 };
 
