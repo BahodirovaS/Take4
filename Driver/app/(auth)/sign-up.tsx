@@ -10,10 +10,12 @@ import {
     StyleSheet,
     Text,
     View,
+    Linking,
 } from "react-native";
 import { ReactNativeModal } from "react-native-modal";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { fetchAPI } from "@/lib/fetch";
 
 import CustomButton from "@/components/CustomButton";
 import InputField from "@/components/InputField";
@@ -24,6 +26,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const SignUp = () => {
     const { isLoaded, signUp, setActive } = useSignUp();
     const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [showStripeOnboardingModal, setShowStripeOnboardingModal] = useState(false);
+    const [stripeOnboardingUrl, setStripeOnboardingUrl] = useState("");
 
     const [form, setForm] = useState({
         firstName: "",
@@ -57,6 +61,30 @@ const SignUp = () => {
         }
     };
 
+    const createStripeOnboardingLink = async (userId: string) => {
+        try {
+            const response = await fetchAPI('/(api)/(stripe)/onboard-driver', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    driver_id: userId,
+                    email: form.email,
+                }),
+            });
+
+            if (response.success) {
+                return response.url;
+            } else {
+                throw new Error(response.error || 'Failed to create onboarding link');
+            }
+        } catch (error) {
+            console.error('Error creating Stripe onboarding:', error);
+            return null;
+        }
+    };
+
     const onPressVerify = async () => {
         if (!isLoaded) return;
         try {
@@ -64,13 +92,19 @@ const SignUp = () => {
                 code: verification.code,
             });
             if (completeSignUp.status === "complete") {
-                // Create a new driver record in Firestore instead of calling the API
                 try {
+                    const userId = completeSignUp.createdUserId;
+                    
+                    if (!userId) {
+                        throw new Error("Failed to get user ID from signup");
+                    }
+
+                    // Create driver record in Firestore
                     await addDoc(collection(db, "drivers"), {
                         firstName: form.firstName,
                         lastName: form.lastName,
                         email: form.email,
-                        clerkId: completeSignUp.createdUserId,
+                        clerkId: userId,
                         phoneNumber: "",
                         address: "",
                         dob: "",
@@ -80,19 +114,29 @@ const SignUp = () => {
                         vInsurance: "",
                         pets: false,
                         carSeats: 4,
-                        status: false, // Default to offline
-                        createdAt: new Date()
+                        status: false,
+                        createdAt: new Date(),
+                        // Stripe Connect fields
+                        stripe_connect_account_id: null,
+                        onboarding_completed: false,
                     });
 
-                    // Create a user record in users collection for reference (optional)
+                    // Create user record for reference
                     await addDoc(collection(db, "users"), {
                         firstName: form.firstName,
                         lastName: form.lastName,
                         email: form.email,
-                        clerkId: completeSignUp.createdUserId,
+                        clerkId: userId,
                         isDriver: true,
                         createdAt: new Date()
                     });
+
+                    // Create Stripe Connect onboarding link
+                    const onboardingUrl = await createStripeOnboardingLink(userId);
+                    
+                    if (onboardingUrl) {
+                        setStripeOnboardingUrl(onboardingUrl);
+                    }
 
                     await setActive({ session: completeSignUp.createdSessionId });
                     setVerification({
@@ -125,13 +169,27 @@ const SignUp = () => {
         }
     };
 
+    const handleStripeOnboarding = () => {
+        if (stripeOnboardingUrl) {
+            Linking.openURL(stripeOnboardingUrl);
+            setShowStripeOnboardingModal(false);
+            setShowSuccessModal(false);
+            router.push(`/(root)/(tabs)/home`);
+        }
+    };
+
+    const skipStripeOnboarding = () => {
+        setShowStripeOnboardingModal(false);
+        setShowSuccessModal(false);
+        router.push(`/(root)/(tabs)/home`);
+    };
+
     return (
         <KeyboardAvoidingView
             style={{ flex: 1 }}
             behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
             <SafeAreaView style={styles.safeArea}>
-
                 <ScrollView style={styles.container}>
                     <View style={styles.container}>
                         <View style={styles.header}>
@@ -144,21 +202,18 @@ const SignUp = () => {
                         <View style={styles.formContainer}>
                             <InputField
                                 label="First Name"
-                                // placeholder="Enter first name"
                                 icon={icons.person}
                                 value={form.firstName}
                                 onChangeText={(value) => setForm({ ...form, firstName: value })}
                             />
                             <InputField
                                 label="Last Name"
-                                // placeholder="Enter last name"
                                 icon={icons.person}
                                 value={form.lastName}
                                 onChangeText={(value) => setForm({ ...form, lastName: value })}
                             />
                             <InputField
                                 label="Email"
-                                // placeholder="Enter email"
                                 icon={icons.email}
                                 textContentType="emailAddress"
                                 value={form.email}
@@ -166,7 +221,6 @@ const SignUp = () => {
                             />
                             <InputField
                                 label="Password"
-                                // placeholder="Enter password"
                                 icon={icons.lock}
                                 secureTextEntry={true}
                                 textContentType="password"
@@ -183,6 +237,8 @@ const SignUp = () => {
                                 Already have an account? <Text style={styles.linkHighlight}>Log In</Text>
                             </Link>
                         </View>
+
+                        {/* Email Verification Modal */}
                         <ReactNativeModal
                             isVisible={verification.state === "pending"}
                             onModalHide={() => {
@@ -216,7 +272,16 @@ const SignUp = () => {
                                 />
                             </View>
                         </ReactNativeModal>
-                        <ReactNativeModal isVisible={showSuccessModal}>
+
+                        {/* Success Modal */}
+                        <ReactNativeModal 
+                            isVisible={showSuccessModal}
+                            onModalHide={() => {
+                                if (stripeOnboardingUrl) {
+                                    setShowStripeOnboardingModal(true);
+                                }
+                            }}
+                        >
                             <View style={styles.modalContainer}>
                                 <Image
                                     source={images.check}
@@ -227,13 +292,39 @@ const SignUp = () => {
                                     You have successfully verified your account.
                                 </Text>
                                 <CustomButton
-                                    title="Browse Home"
+                                    title="Continue"
                                     onPress={() => {
                                         setShowSuccessModal(false);
-                                        router.push(`/(root)/(tabs)/home`);
                                     }}
                                     style={styles.browseButton}
                                 />
+                            </View>
+                        </ReactNativeModal>
+
+                        {/* Stripe Onboarding Modal */}
+                        <ReactNativeModal isVisible={showStripeOnboardingModal}>
+                            <View style={styles.modalContainer}>
+                                <Image
+                                    source={images.icon}
+                                    style={styles.stripeIcon}
+                                />
+                                <Text style={styles.stripeTitle}>Set Up Your Payments</Text>
+                                <Text style={styles.stripeDescription}>
+                                    To receive payments from rides, you'll need to set up your bank account through Stripe. This is secure and takes just a few minutes.
+                                </Text>
+                                <View style={styles.stripeButtons}>
+                                    <CustomButton
+                                        title="Set Up Now"
+                                        onPress={handleStripeOnboarding}
+                                        style={styles.setupButton}
+                                    />
+                                    <CustomButton
+                                        title="Skip for Now"
+                                        onPress={skipStripeOnboarding}
+                                        bgVariant="outline"
+                                        style={styles.skipButton}
+                                    />
+                                </View>
                             </View>
                         </ReactNativeModal>
                     </View>
@@ -242,7 +333,6 @@ const SignUp = () => {
         </KeyboardAvoidingView>
     );
 };
-
 
 const styles = StyleSheet.create({
     safeArea: {
@@ -347,6 +437,35 @@ const styles = StyleSheet.create({
     },
     browseButton: {
         marginTop: 20,
+    },
+    stripeIcon: {
+        width: 80,
+        height: 80,
+        alignSelf: "center",
+        marginBottom: 20,
+    },
+    stripeTitle: {
+        fontFamily: "DMSans-Bold",
+        fontSize: 22,
+        textAlign: "center",
+        marginBottom: 10,
+    },
+    stripeDescription: {
+        fontFamily: "DMSans",
+        fontSize: 16,
+        color: "#666",
+        textAlign: "center",
+        marginBottom: 30,
+        lineHeight: 22,
+    },
+    stripeButtons: {
+        gap: 12,
+    },
+    setupButton: {
+        backgroundColor: "#3f7564",
+    },
+    skipButton: {
+        marginTop: 0,
     },
 });
 

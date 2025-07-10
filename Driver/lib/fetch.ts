@@ -145,6 +145,7 @@ export const subscribeToRideDetails = (
                   destination_latitude: data.destination_latitude,
                   destination_longitude: data.destination_longitude,
                   user_id: data.user_id,
+                  user_name: data.user_name,
                   ride_time: data.ride_time,
                   fare_price: data.fare_price,
                   payment_status: data.payment_status,

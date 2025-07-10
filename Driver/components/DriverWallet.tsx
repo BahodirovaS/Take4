@@ -17,7 +17,7 @@ import { db } from '@/lib/firebase';
 import CustomButton from '@/components/CustomButton';
 import { Ionicons } from '@expo/vector-icons';
 import { Ride, WalletData, Payment } from '@/types/type';
-
+import { fetchAPI, fetchDriverInfo } from '@/lib/fetch';
 
 const DriverWallet: React.FC = () => {
   const { userId } = useAuth();
@@ -29,18 +29,71 @@ const DriverWallet: React.FC = () => {
   });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [onboardingCompleted, setOnboardingCompleted] = useState(false);
+  const [checkingOnboarding, setCheckingOnboarding] = useState(true);
+  const [driverEmail, setDriverEmail] = useState<string>('');
 
   useEffect(() => {
-    fetchWalletData();
+    if (userId) {
+      fetchDriverEmail();
+      checkOnboardingStatus();
+      fetchWalletData();
+    }
   }, [userId]);
 
+  const fetchDriverEmail = async () => {
+    if (!userId) return;
+    
+    try {
+      const { driverData, error } = await fetchDriverInfo(userId);
+      if (driverData && driverData.email) {
+        setDriverEmail(driverData.email);
+      } else {
+        console.log('No email found for driver');
+      }
+    } catch (error) {
+      console.error('Error fetching driver email:', error);
+    }
+  };
+
+  const checkOnboardingStatus = async () => {
+    try {
+      setCheckingOnboarding(true);
+      console.log('Checking onboarding status for driver:', userId);
+      
+      const response = await fetchAPI('/(api)/(stripe)/check-driver-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          driver_id: userId,
+        }),
+      });
+
+      console.log('Onboarding status response:', response);
+      setOnboardingCompleted(response.onboarding_completed || false);
+    } catch (error) {
+      console.error('Error checking onboarding status:', error);
+      setOnboardingCompleted(false);
+    } finally {
+      setCheckingOnboarding(false);
+    }
+  };
+
   const fetchWalletData = async () => {
+    if (!userId) {
+      console.log('No userId available for fetching wallet data');
+      return;
+    }
+
     try {
       setLoading(true);
       
       const ridesQuery = query(
         collection(db, 'rideRequests'),
-        where('driver_id', '==', userId)
+        where('driver_id', '==', userId),
+        where('payment_status', '==', 'paid')
       );
       
       const ridesSnapshot = await getDocs(ridesQuery);
@@ -49,13 +102,24 @@ const DriverWallet: React.FC = () => {
         ...doc.data(),
       } as Ride));
 
-      const rides = allRides.filter(ride => ride.payment_status === 'paid');
+      const pendingRides = allRides.filter(ride => 
+        ride.status === 'accepted' || 
+        ride.status === 'arrived_at_pickup' || 
+        ride.status === 'in_progress'
+      );
+      
+      const completedRides = allRides.filter(ride => 
+        ride.status === 'completed' || 
+        ride.status === 'rated'
+      );
 
-      const totalEarnings = rides.reduce((sum, ride) => sum + (ride.driver_share || 0), 0);
+      const pendingEarnings = pendingRides.reduce((sum, ride) => sum + (ride.driver_share || 0), 0);
+      const availableEarnings = completedRides.reduce((sum, ride) => sum + (ride.driver_share || 0), 0);
+      const totalEarnings = pendingEarnings + availableEarnings;
 
       const recentPayments: Payment[] = [];
 
-      rides.forEach(ride => {
+      allRides.forEach(ride => {
         const baseFarePrice = ride.fare_price || 0;
         const tipAmountCents = ride.tip_amount ? parseFloat(ride.tip_amount.toString()) * 100 : 0;
         const baseDriverShare = (ride.driver_share || 0) - tipAmountCents;
@@ -73,6 +137,11 @@ const DriverWallet: React.FC = () => {
           } else {
             rideDate = new Date();
           }
+
+          let paymentStatus = 'pending';
+          if (ride.status === 'completed' || ride.status === 'rated') {
+            paymentStatus = 'completed';
+          }
           
           recentPayments.push({
             id: ride.id,
@@ -81,12 +150,13 @@ const DriverWallet: React.FC = () => {
             createdAt: rideDate,
             rideId: ride.id,
             passengerName: ride.user_name || 'Unknown',
-            status: 'completed',
+            status: paymentStatus,
             type: 'ride' as const,
           });
         }
 
-        if (ride.tip_amount && parseFloat(ride.tip_amount.toString()) > 0) {
+        if (ride.tip_amount && parseFloat(ride.tip_amount.toString()) > 0 && 
+           (ride.status === 'completed' || ride.status === 'rated')) {
           const tipAmount = parseFloat(ride.tip_amount.toString());
           const createdAt = (ride as any).createdAt;
           
@@ -112,8 +182,8 @@ const DriverWallet: React.FC = () => {
 
       setWalletData({
         totalEarnings: totalEarnings / 100,
-        availableBalance: totalEarnings / 100,
-        pendingBalance: 0,
+        availableBalance: availableEarnings / 100,
+        pendingBalance: pendingEarnings / 100,
         recentPayments: limitedPayments,
       });
     } catch (error) {
@@ -127,67 +197,80 @@ const DriverWallet: React.FC = () => {
 
   const handleRefresh = () => {
     setRefreshing(true);
+    fetchDriverEmail();
+    checkOnboardingStatus();
     fetchWalletData();
   };
 
-  const handleInstantTransfer = () => {
-    Alert.alert(
-      'Transfer Money',
-      'To transfer your earnings to your bank account, you\'ll be redirected to your Stripe dashboard where you can manage transfers securely.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Open Stripe Dashboard',
-          onPress: () => openStripeDashboard(),
+  const openStripeDashboard = async () => {
+    try {
+      const response = await fetchAPI('/(api)/(stripe)/express-dashboard', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-      ]
-    );
+        body: JSON.stringify({
+          driver_id: userId,
+        }),
+      });
+
+      if (response.success && response.url) {
+        Linking.openURL(response.url);
+      } else {
+        Alert.alert('Error', 'Unable to open Stripe dashboard. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error opening Stripe dashboard:', error);
+      Alert.alert('Error', 'Failed to open dashboard. Please check your connection.');
+    }
   };
 
-  const handleStandardTransfer = () => {
-    Alert.alert(
-      'Transfer Money',
-      'To transfer your earnings to your bank account, you\'ll be redirected to your Stripe dashboard where you can manage transfers securely.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Open Stripe Dashboard',
-          onPress: () => openStripeDashboard(),
+  const openBankingInfo = async () => {
+    try {
+      const emailToUse = driverEmail || 'driver@email.com';
+      
+      const response = await fetchAPI('/api/stripe/onboard-driver', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-      ]
-    );
-  };
+        body: JSON.stringify({
+          driver_id: userId,
+          email: emailToUse,
+        }),
+      });
 
-  const openStripeDashboard = () => {
-    Alert.alert(
-      'Stripe Dashboard',
-      'This will open your personal Stripe Express dashboard where you can:\n\n• View your balance\n• Transfer money to your bank\n• Update bank account details\n• View transaction history',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Open Dashboard',
-          onPress: () => {
-            Linking.openURL('https://dashboard.stripe.com/express');
-          },
-        },
-      ]
-    );
-  };
-
-  const openBankingInfo = () => {
-    Alert.alert(
-      'Bank Account Setup',
-      'Set up your bank account through Stripe Express to receive payments securely.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Set Up with Stripe',
-          onPress: () => {
-            Linking.openURL('https://dashboard.stripe.com/express');
-          },
-        },
-      ]
-    );
+      if (response.success && response.url) {
+        Alert.alert(
+          'Bank Account Setup',
+          'You\'ll be redirected to Stripe to set up your bank account. After completing the setup:\n\n1. Close the browser\n2. Return to this app\n3. Pull down to refresh\n\nThis ensures your payments are processed securely.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Continue to Stripe',
+              onPress: async () => {
+                // Open Stripe onboarding
+                await Linking.openURL(response.url);
+                
+                // Wait a moment then show reminder
+                setTimeout(() => {
+                  Alert.alert(
+                    '📱 Return to App',
+                    'After completing setup in your browser, return here and pull down to refresh to see your updated status.',
+                    [{ text: 'OK' }]
+                  );
+                }, 2000);
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert('Error', 'Unable to start bank account setup. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error creating onboarding link:', error);
+      Alert.alert('Error', 'Failed to start setup process. Please check your connection.');
+    }
   };
 
   const formatDate = (date: Date) => {
@@ -199,7 +282,54 @@ const DriverWallet: React.FC = () => {
     });
   };
 
-  if (loading) {
+  const renderRecentPayments = () => {
+    if (walletData.recentPayments.length === 0) {
+      return <Text style={styles.noPaymentsText}>No payments yet</Text>;
+    }
+
+    return (
+      <View style={styles.paymentsContainer}>
+        <ScrollView
+          contentContainerStyle={styles.paymentsScrollContent}
+          showsVerticalScrollIndicator={false}
+          nestedScrollEnabled={true}
+        >
+          {walletData.recentPayments.map((payment) => (
+            <View key={payment.id} style={styles.paymentCardContainer}>
+              <View style={styles.paymentItem}>
+                <View style={styles.paymentIcon}>
+                  <Ionicons
+                    name={payment.type === 'tip' ? 'heart' : 'car'}
+                    size={20}
+                    color="#3f7564"
+                  />
+                </View>
+                <View style={styles.paymentInfo}>
+                  <Text style={styles.paymentTitle}>
+                    {payment.type === 'tip' ? 'Tip' : 'Ride'} • {payment.passengerName}
+                    {payment.status === 'pending' && (
+                      <Text style={styles.pendingBadge}> • Pending</Text>
+                    )}
+                  </Text>
+                  <Text style={styles.paymentDate}>
+                    {formatDate(payment.createdAt)}
+                  </Text>
+                </View>
+                <Text style={[
+                  styles.paymentAmount,
+                  payment.status === 'pending' && styles.pendingPaymentAmount
+                ]}>
+                  +${payment.driverShare.toFixed(2)}
+                </Text>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  };
+
+  if (loading || checkingOnboarding) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.loadingContainer}>
@@ -230,87 +360,43 @@ const DriverWallet: React.FC = () => {
               <Text style={styles.availableAmount}>
                 ${walletData.availableBalance.toFixed(2)}
               </Text>
+              <Text style={styles.balanceSubtext}>Ready to transfer</Text>
             </View>
             <View style={styles.balanceItem}>
               <Text style={styles.balanceLabel}>Pending</Text>
               <Text style={styles.pendingAmount}>
                 ${walletData.pendingBalance.toFixed(2)}
               </Text>
+              <Text style={styles.balanceSubtext}>From active rides</Text>
             </View>
           </View>
         </View>
 
+        {!onboardingCompleted && (
+          <View style={styles.warningCard}>
+            <Ionicons name="warning" size={24} color="#FF9500" />
+            <View style={styles.warningText}>
+              <Text style={styles.warningTitle}>Setup Required</Text>
+              <Text style={styles.warningDescription}>
+                Complete your bank account setup to receive payments from completed rides.
+              </Text>
+            </View>
+          </View>
+        )}
+
         <View style={styles.transferSection}>
           <Text style={styles.sectionTitle}>Transfer to Bank</Text>
           
-          <View style={styles.transferOptions}>
-            <TouchableOpacity
-              style={styles.transferOption}
-              onPress={handleInstantTransfer}
-            >
-              <View style={styles.transferOptionContent}>
-                <Ionicons name="flash" size={24} color="#3f7564" />
-                <View style={styles.transferOptionText}>
-                  <Text style={styles.transferOptionTitle}>Instant Transfer</Text>
-                  <Text style={styles.transferOptionSubtitle}>
-                    Available immediately via Stripe
-                  </Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.transferOption}
-              onPress={handleStandardTransfer}
-            >
-              <View style={styles.transferOptionContent}>
-                <Ionicons name="calendar" size={24} color="#2E7D32" />
-                <View style={styles.transferOptionText}>
-                  <Text style={styles.transferOptionTitle}>Standard Transfer</Text>
-                  <Text style={styles.transferOptionSubtitle}>
-                    1-2 business days via Stripe
-                  </Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-          </View>
-
           <CustomButton
-            title="Set Up Bank Account"
-            onPress={openBankingInfo}
-            style={styles.manageButton}
+            title={onboardingCompleted ? "Open Stripe Dashboard" : "Set Up Bank Account"}
+            onPress={onboardingCompleted ? openStripeDashboard : openBankingInfo}
+            style={onboardingCompleted ? styles.transferButton : styles.manageButton}
           />
         </View>
 
         <View style={styles.paymentsSection}>
           <Text style={styles.sectionTitle}>Recent Payments</Text>
-          
-          {walletData.recentPayments.length === 0 ? (
-            <Text style={styles.noPaymentsText}>No payments yet</Text>
-          ) : (
-            walletData.recentPayments.map((payment) => (
-              <View key={payment.id} style={styles.paymentItem}>
-                <View style={styles.paymentIcon}>
-                  <Ionicons
-                    name={payment.type === 'tip' ? 'heart' : 'car'}
-                    size={20}
-                    color="#3f7564"
-                  />
-                </View>
-                <View style={styles.paymentInfo}>
-                  <Text style={styles.paymentTitle}>
-                    {payment.type === 'tip' ? 'Tip' : 'Ride'} • {payment.passengerName}
-                  </Text>
-                  <Text style={styles.paymentDate}>
-                    {formatDate(payment.createdAt)}
-                  </Text>
-                </View>
-                <Text style={styles.paymentAmount}>
-                  +${payment.driverShare.toFixed(2)}
-                </Text>
-              </View>
-            ))
-          )}
+          {renderRecentPayments()}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -372,6 +458,38 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginBottom: 4,
   },
+  balanceSubtext: {
+    fontSize: 12,
+    fontFamily: 'DMSans',
+    color: '#9CA3AF',
+    marginTop: 2,
+  },
+  warningCard: {
+    backgroundColor: '#FFF7ED',
+    margin: 16,
+    padding: 16,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF9500',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  warningText: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  warningTitle: {
+    fontSize: 16,
+    fontFamily: 'DMSans-Bold',
+    color: '#FF9500',
+    marginBottom: 4,
+  },
+  warningDescription: {
+    fontSize: 14,
+    fontFamily: 'DMSans',
+    color: '#B45309',
+    lineHeight: 20,
+  },
   availableAmount: {
     fontSize: 18,
     fontFamily: 'DMSans-Bold',
@@ -399,35 +517,9 @@ const styles = StyleSheet.create({
     color: '#000000',
     marginBottom: 16,
   },
-  transferOptions: {
-    marginBottom: 16,
-  },
-  transferOption: {
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 0.5,
-    borderColor: '#D1D5DB',
+  transferButton: {
+    backgroundColor: '#3f7564',
     marginBottom: 12,
-    backgroundColor: '#F9FAFB',
-  },
-  transferOptionContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  transferOptionText: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  transferOptionTitle: {
-    fontSize: 16,
-    fontFamily: 'DMSans-Bold',
-    color: '#000000',
-    marginBottom: 4,
-  },
-  transferOptionSubtitle: {
-    fontSize: 14,
-    fontFamily: 'DMSans',
-    color: '#6B7280',
   },
   manageButton: {
     backgroundColor: '#6B7280',
@@ -443,6 +535,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  paymentsContainer: {
+    maxHeight: 250,
+    overflow: "hidden",
+  },
+  paymentsScrollContent: {
+    paddingVertical: 0,
+  },
+  paymentCardContainer: {
+    marginVertical: 0,
+    marginBottom: 0,
+    marginTop: 0,
   },
   noPaymentsText: {
     textAlign: 'center',
@@ -485,6 +589,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'DMSans-Bold',
     color: '#2E7D32',
+  },
+  pendingBadge: {
+    color: '#edc985',
+    fontSize: 14,
+  },
+  pendingPaymentAmount: {
+    color: '#edc985',
   },
 });
 
