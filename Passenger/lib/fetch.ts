@@ -986,4 +986,3 @@ export const navigateToDriverChat = (
   });
 };
 
-
