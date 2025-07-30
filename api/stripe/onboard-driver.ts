@@ -1,0 +1,104 @@
+import { Stripe } from "stripe";
+import { initializeApp, getApps, cert } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+
+if (!getApps().length) {
+  initializeApp({
+    credential: cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    }),
+  });
+}
+
+const db = getFirestore();
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_default', {
+  apiVersion: '2023-08-16',
+});
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  try {
+    const { driver_id, email } = req.body;
+    
+    if (!driver_id || !email) {
+      return res.status(400).json({ error: "Driver ID and email are required" });
+    }
+
+    const driversQuery = db.collection("drivers").where("clerkId", "==", driver_id);
+    const driversSnapshot = await driversQuery.get();
+    
+    if (driversSnapshot.empty) {
+      return res.status(404).json({ error: "Driver not found" });
+    }
+
+    const driverDoc = driversSnapshot.docs[0];
+    const driverData = driverDoc.data();
+    let stripeAccountId = driverData.stripe_connect_account_id;
+
+    if (!stripeAccountId) {
+      try {
+        const account = await stripe.accounts.create({
+          type: 'express',
+          country: 'US',
+          email: email,
+          capabilities: {
+            card_payments: { requested: true },
+            transfers: { requested: true },
+          },
+          business_type: 'individual',
+          business_profile: {
+            product_description: 'Transportation services through Cabbage Driver app',
+          },
+        });
+
+        stripeAccountId = account.id;
+
+        await driverDoc.ref.update({
+          stripe_connect_account_id: stripeAccountId,
+          stripe_account_created_at: new Date(),
+          onboarding_completed: false,
+        });
+
+      } catch (stripeError) {
+        console.error("Error creating Stripe account:", stripeError);
+        return res.status(500).json({ error: "Failed to create Stripe account" });
+      }
+    }
+
+    try {
+      const accountLink = await stripe.accountLinks.create({
+        account: stripeAccountId,
+        refresh_url: 'https://dashboard.stripe.com/express/onboarding',
+        return_url: 'https://dashboard.stripe.com/express/onboarding/complete',
+        type: 'account_onboarding',
+      });
+
+      return res.json({
+        url: accountLink.url,
+        account_id: stripeAccountId,
+        success: true,
+      });
+
+    } catch (stripeError) {
+      console.error("Error creating account link:", stripeError);
+      return res.status(500).json({ error: "Failed to create onboarding link" });
+    }
+
+  } catch (error) {
+    console.error("Error in onboard-driver:", error);
+    return res.status(500).json({ error: "Failed to create onboarding link" });
+  }
+}

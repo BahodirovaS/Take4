@@ -18,6 +18,7 @@ import CustomButton from '@/components/CustomButton';
 import { Ionicons } from '@expo/vector-icons';
 import { Ride, WalletData, Payment } from '@/types/type';
 import { fetchAPI, fetchDriverInfo } from '@/lib/fetch';
+import { API_ENDPOINTS } from '@/lib/config';
 
 const DriverWallet: React.FC = () => {
   const { userId } = useAuth();
@@ -57,29 +58,34 @@ const DriverWallet: React.FC = () => {
   };
 
   const checkOnboardingStatus = async () => {
-    try {
-      setCheckingOnboarding(true);
-      console.log('Checking onboarding status for driver:', userId);
-      
-      const response = await fetchAPI('/(api)/(stripe)/check-driver-status', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          driver_id: userId,
-        }),
-      });
+  try {
+    setCheckingOnboarding(true);
+    console.log('Checking onboarding status for driver:', userId);
+    
+const response = await fetchAPI(API_ENDPOINTS.CHECK_DRIVER_STATUS, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        driver_id: userId,
+      }),
+    });
 
-      console.log('Onboarding status response:', response);
-      setOnboardingCompleted(response.onboarding_completed || false);
-    } catch (error) {
-      console.error('Error checking onboarding status:', error);
-      setOnboardingCompleted(false);
-    } finally {
-      setCheckingOnboarding(false);
+    console.log('Onboarding status response:', response);
+    setOnboardingCompleted(response.onboarding_completed || false);
+  } catch (error) {
+    console.error('Error checking onboarding status:', error);
+    
+    if (error instanceof SyntaxError && error.message.includes('JSON Parse error')) {
+      console.error('API endpoint returned HTML instead of JSON - check if the endpoint exists');
     }
-  };
+    
+    setOnboardingCompleted(false);
+  } finally {
+    setCheckingOnboarding(false);
+  }
+};
 
   const fetchWalletData = async () => {
     if (!userId) {
@@ -204,7 +210,7 @@ const DriverWallet: React.FC = () => {
 
   const openStripeDashboard = async () => {
     try {
-      const response = await fetchAPI('/(api)/(stripe)/express-dashboard', {
+    const response = await fetchAPI(API_ENDPOINTS.EXPRESS_DASHBOARD, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -229,7 +235,7 @@ const DriverWallet: React.FC = () => {
     try {
       const emailToUse = driverEmail || 'driver@email.com';
       
-      const response = await fetchAPI('/api/stripe/onboard-driver', {
+      const response = await fetchAPI(API_ENDPOINTS.ONBOARD_DRIVER, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -249,10 +255,7 @@ const DriverWallet: React.FC = () => {
             {
               text: 'Continue to Stripe',
               onPress: async () => {
-                // Open Stripe onboarding
                 await Linking.openURL(response.url);
-                
-                // Wait a moment then show reminder
                 setTimeout(() => {
                   Alert.alert(
                     '📱 Return to App',

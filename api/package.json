@@ -1,6 +1,13 @@
 {
+  "name": "take4-api-functions",
+  "version": "1.0.0",
+  "description": "API functions for Take4",
   "dependencies": {
-    "firebase": "^11.10.0",
-    "stripe": "^18.3.0"
+    "@vercel/node": "^5.3.7",
+    "firebase-admin": "^11.0.0",
+    "stripe": "^13.0.0"
+  },
+  "engines": {
+    "node": "22.x"
   }
 }
