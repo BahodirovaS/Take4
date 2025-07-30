@@ -1,11 +1,13 @@
-import { Stripe } from "stripe";
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+// api/stripe/tip.js
+
+const { Stripe } = require("stripe");
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_default', {
-  apiVersion: '2023-08-16',
+  apiVersion: '2023-10-16',
 });
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+module.exports = async (req, res) => {
+  // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -19,7 +21,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { rideId, tipAmount, customer_id, driver_id, payment_method_id } = req.body;
+    const {
+      rideId,
+      tipAmount,
+      customer_id,
+      driver_id,
+      payment_method_id
+    } = req.body;
 
     if (!rideId || !tipAmount || !customer_id || !driver_id || !payment_method_id) {
       return res.status(400).json({ error: "Missing required fields" });
@@ -65,18 +73,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     return res.json({
-      paymentIntent: paymentIntent,
+      paymentIntent,
       customer: customer_id,
       success: true
     });
 
-  } catch (error: unknown) {
+  } catch (error) {
     console.error("Error creating tip payment:", error);
+
     let errorMessage = "Internal Server Error";
-    
-    if (error instanceof Stripe.errors.StripeError) {
-      errorMessage = error.message;
-    } else if (error instanceof Error) {
+    if (error && typeof error === 'object' && 'message' in error) {
       errorMessage = error.message;
     }
 
@@ -85,4 +91,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       details: typeof error === 'object' && error !== null ? String(error) : 'Unknown error'
     });
   }
-}
+};

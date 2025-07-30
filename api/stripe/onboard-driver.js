@@ -1,8 +1,11 @@
-import { Stripe } from "stripe";
-import { initializeApp, getApps, cert } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+const { Stripe } = require("stripe");
+const { initializeApp, getApps, cert } = require("firebase-admin/app");
+const { getFirestore } = require("firebase-admin/firestore");
 
+/**
+ * @param {import('@vercel/node').VercelRequest} req
+ * @param {import('@vercel/node').VercelResponse} res
+ */
 if (!getApps().length) {
   initializeApp({
     credential: cert({
@@ -14,10 +17,11 @@ if (!getApps().length) {
 }
 
 const db = getFirestore();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_default', {
-  apiVersion: '2023-08-16',
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: '2023-10-16',
 });
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+
+module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -32,14 +36,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const { driver_id, email } = req.body;
-    
+
     if (!driver_id || !email) {
       return res.status(400).json({ error: "Driver ID and email are required" });
     }
 
     const driversQuery = db.collection("drivers").where("clerkId", "==", driver_id);
     const driversSnapshot = await driversQuery.get();
-    
+
     if (driversSnapshot.empty) {
       return res.status(404).json({ error: "Driver not found" });
     }
@@ -101,4 +105,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.error("Error in onboard-driver:", error);
     return res.status(500).json({ error: "Failed to create onboarding link" });
   }
-}
+};

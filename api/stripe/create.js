@@ -1,12 +1,10 @@
-// api/stripe/create.ts (Vercel format with CommonJS imports)
-import Stripe from "stripe"
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+const { Stripe } = require("stripe");
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_default', {
-  apiVersion: '2023-08-16',
+  apiVersion: '2023-10-16',
 });
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Enable CORS
+
+module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -40,9 +38,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const companyShare = (fareAmount * (1 - driverCommissionRate)).toFixed(2);
 
     let customer;
-    const doesCustomerExist = await stripe.customers.list({
-      email,
-    });
+    const doesCustomerExist = await stripe.customers.list({ email });
 
     if (doesCustomerExist.data.length > 0) {
       customer = doesCustomerExist.data[0];
@@ -50,16 +46,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         customer = await stripe.customers.update(customer.id, { name });
       }
     } else {
-      const newCustomer = await stripe.customers.create({
-        name,
-        email,
-      });
-      customer = newCustomer;
+      customer = await stripe.customers.create({ name, email });
     }
 
     const ephemeralKey = await stripe.ephemeralKeys.create(
       { customer: customer.id },
-      { apiVersion: "2024-06-20" },
+      { apiVersion: "2024-06-20" }
     );
 
     const paymentIntent = await stripe.paymentIntents.create({
@@ -80,8 +72,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     return res.json({
-      paymentIntent: paymentIntent,
-      ephemeralKey: ephemeralKey,
+      paymentIntent,
+      ephemeralKey,
       customer: customer.id,
     });
 
@@ -89,4 +81,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.error("Error creating payment:", error);
     return res.status(500).json({ error: "Internal Server Error" });
   }
-}
+};

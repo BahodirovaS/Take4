@@ -60,8 +60,7 @@ const DriverWallet: React.FC = () => {
   const checkOnboardingStatus = async () => {
   try {
     setCheckingOnboarding(true);
-    console.log('Checking onboarding status for driver:', userId);
-    
+        
 const response = await fetchAPI(API_ENDPOINTS.CHECK_DRIVER_STATUS, {
       method: 'POST',
       headers: {

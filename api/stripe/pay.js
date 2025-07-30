@@ -1,10 +1,13 @@
-import { Stripe } from "stripe";
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-
+const Stripe = require('stripe');
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_default', {
   apiVersion: '2023-08-16',
 });
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+
+/**
+ * @param {import('@vercel/node').VercelRequest} req
+ * @param {import('@vercel/node').VercelResponse} res
+ */
+module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -26,17 +29,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const paymentMethod = await stripe.paymentMethods.attach(
       payment_method_id,
-      { customer: customer_id },
+      { customer: customer_id }
     );
 
     const result = await stripe.paymentIntents.confirm(payment_intent_id, {
       payment_method: paymentMethod.id,
     });
-
-    // You might want to add additional logic here, such as:
-    // - Send receipt emails
-    // - Update transaction records in your database
-    // - Send notifications to drivers about new earnings
 
     return res.json({
       success: true,
@@ -48,4 +46,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.error("Error paying:", error);
     return res.status(500).json({ error: "Internal Server Error" });
   }
-}
+};
