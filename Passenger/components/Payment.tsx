@@ -12,12 +12,15 @@ import { useLocationStore, useReservationStore } from "@/store";
 import { PaymentProps } from "@/types/type";
 import { db } from "@/lib/firebase";
 import { collection, addDoc } from "firebase/firestore";
+import { API_ENDPOINTS } from "@/lib/config";
 
 interface EnhancedPaymentProps extends PaymentProps {
   isScheduled?: boolean;
   scheduledDate?: string;
   scheduledTime?: string;
   driverCommissionRate?: number;
+  rideType?: string;
+  requiredSeats?: number; 
 }
 
 const Payment: React.FC<EnhancedPaymentProps> = ({
@@ -29,6 +32,8 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
   isScheduled = false,
   scheduledDate,
   scheduledTime,
+  rideType,
+  requiredSeats, 
   driverCommissionRate = 0.80,
 }) => {
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
@@ -49,19 +54,12 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
   const buttonTitle = isScheduled ? "Pay & Confirm Reservation" : "Confirm Ride";
   const modalTitle = isScheduled ? "Reservation Confirmed" : "Booking placed successfully";
   const modalText = isScheduled
-    ? `Thank you for your booking. Your ride has been scheduled for ${scheduledDate} at ${scheduledTime}. We'll notify you when your driver is on the way.`
-    : "Thank you for your booking. Your reservation has been successfully placed. Please proceed with your trip.";
+    ? `Thank you for your booking. Your ${rideType} ride has been scheduled for ${scheduledDate} at ${scheduledTime}. We'll notify you when your driver is assigned.`
+    : `Thank you for your booking. We're finding the closest ${rideType} driver for you now.`;
   const buttonText = isScheduled ? "View My Rides" : "View Ride Status";
 
   const driverShare = (parseFloat(amount) * driverCommissionRate).toFixed(2);
   const companyShare = (parseFloat(amount) * (1 - driverCommissionRate)).toFixed(2);
-
-  const redirectPath = isScheduled
-    ? "/(root)/(tabs)/resos"
-    : {
-      pathname: "/(root)/ride-requested",
-      params: { rideId: rideId || undefined }
-    };
 
   const openPaymentSheet = async () => {
     await initializePaymentSheet();
@@ -77,7 +75,7 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
 
   const initializePaymentSheet = async () => {
     const { error } = await initPaymentSheet({
-      merchantDisplayName: "Example, Inc.",
+      merchantDisplayName: "Cabbage Rides",
       intentConfiguration: {
         mode: {
           amount: Math.round(parseFloat(amount) * 100),
@@ -89,7 +87,7 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
           intentCreationCallback
         ) => {
           const { paymentIntent, customer } = await fetchAPI(
-            "/(api)/(stripe)/create",
+            "/api/stripe/create",
             {
               method: "POST",
               headers: {
@@ -106,7 +104,7 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
           );
 
           if (paymentIntent.client_secret) {
-            const { result } = await fetchAPI("/(api)/(stripe)/pay", {
+            const { result } = await fetchAPI("/api/stripe/pay", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -134,11 +132,13 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
                 payment_status: "paid",
                 user_id: userId,
                 user_name: fullName,
-                driver_id: driver_id,
+                driver_id: "",
                 createdAt: new Date(),
                 payment_intent_id: paymentIntent.id,
                 payment_method_id: paymentMethod.id,
-                stripe_id: customer
+                stripe_id: customer,
+                ride_type: rideType,
+                required_seats: requiredSeats,
               };
 
               if (isScheduled && scheduledDate && scheduledTime) {
@@ -174,7 +174,7 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
                   );
 
                   Object.assign(rideData, {
-                    status: "scheduled",
+                    status: "scheduled_pending_driver",
                     scheduled_date: scheduledDate,
                     scheduled_time: scheduledTime,
                     scheduled_datetime: scheduledDateTime,
@@ -186,12 +186,42 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
                 }
               } else {
                 Object.assign(rideData, {
-                  status: "requested",
+                  status: "requested_pending_driver",
                 });
               }
 
               const rideDoc = await addDoc(collection(db, "rideRequests"), rideData);
               setRideId(rideDoc.id);
+
+              if (!isScheduled) {
+                try {
+                  console.log('Calling driver assignment API for immediate ride...');
+                  
+                  const assignmentResponse = await fetchAPI(API_ENDPOINTS.ASSIGN_DRIVER, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      rideId: rideDoc.id,
+                      rideType: rideType,
+                      pickupLatitude: userLatitude,
+                      pickupLongitude: userLongitude,
+                      isScheduled: false
+                    }),
+                  });
+
+                  const assignmentResult = await assignmentResponse.json();
+                  
+                  if (assignmentResult.success) {
+                    console.log('Driver assigned successfully:', assignmentResult.driver);
+                  } else {
+                    console.warn('Driver assignment failed:', assignmentResult.error);
+                  }
+                } catch (assignmentError) {
+                  console.error('Error calling driver assignment API:', assignmentError);
+                }
+              }
 
               intentCreationCallback({
                 clientSecret: result.client_secret,
@@ -281,6 +311,7 @@ const styles = StyleSheet.create({
     fontFamily: "DMSans",
     textAlign: "center",
     marginTop: 10,
+    lineHeight: 22,
   },
   backButton: {
     marginTop: 20,

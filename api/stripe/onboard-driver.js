@@ -85,10 +85,11 @@ module.exports = async function handler(req, res) {
     try {
       const accountLink = await stripe.accountLinks.create({
         account: stripeAccountId,
-        refresh_url: 'https://dashboard.stripe.com/express/onboarding',
-        return_url: 'https://dashboard.stripe.com/express/onboarding/complete',
+        refresh_url: 'https://bahodirovas.github.io/cabbage-return/refresh.html?v=2',
+        return_url: 'https://bahodirovas.github.io/cabbage-return/return.html?v=2',
         type: 'account_onboarding',
       });
+
 
       return res.json({
         url: accountLink.url,

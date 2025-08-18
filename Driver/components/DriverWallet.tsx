@@ -33,6 +33,9 @@ const DriverWallet: React.FC = () => {
   const [onboardingCompleted, setOnboardingCompleted] = useState(false);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   const [driverEmail, setDriverEmail] = useState<string>('');
+  const [accountExists, setAccountExists] = useState(false);
+  const [accountId, setAccountId] = useState<string | null>(null);
+  const [openingDashboard, setOpeningDashboard] = useState(false);
 
   useEffect(() => {
     if (userId) {
@@ -44,9 +47,9 @@ const DriverWallet: React.FC = () => {
 
   const fetchDriverEmail = async () => {
     if (!userId) return;
-    
+
     try {
-      const { driverData, error } = await fetchDriverInfo(userId);
+      const { driverData } = await fetchDriverInfo(userId);
       if (driverData && driverData.email) {
         setDriverEmail(driverData.email);
       } else {
@@ -58,33 +61,36 @@ const DriverWallet: React.FC = () => {
   };
 
   const checkOnboardingStatus = async () => {
-  try {
-    setCheckingOnboarding(true);
-        
-const response = await fetchAPI(API_ENDPOINTS.CHECK_DRIVER_STATUS, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        driver_id: userId,
-      }),
-    });
+    try {
+      setCheckingOnboarding(true);
 
-    console.log('Onboarding status response:', response);
-    setOnboardingCompleted(response.onboarding_completed || false);
-  } catch (error) {
-    console.error('Error checking onboarding status:', error);
-    
-    if (error instanceof SyntaxError && error.message.includes('JSON Parse error')) {
-      console.error('API endpoint returned HTML instead of JSON - check if the endpoint exists');
+      const response = await fetchAPI(API_ENDPOINTS.CHECK_DRIVER_STATUS, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          driver_id: userId,
+        }),
+      });
+
+      setOnboardingCompleted(response.onboarding_completed || false);
+      setAccountExists(!!(response.account_exists || response.account_id));
+      setAccountId(response.account_id ?? null);
+    } catch (error) {
+      console.error('Error checking onboarding status:', error);
+
+      if (error instanceof SyntaxError && (error as any).message?.includes('JSON Parse error')) {
+        console.error('API endpoint returned HTML instead of JSON - check if the endpoint exists');
+      }
+
+      setOnboardingCompleted(false);
+      setAccountExists(false);
+      setAccountId(null);
+    } finally {
+      setCheckingOnboarding(false);
     }
-    
-    setOnboardingCompleted(false);
-  } finally {
-    setCheckingOnboarding(false);
-  }
-};
+  };
 
   const fetchWalletData = async () => {
     if (!userId) {
@@ -94,27 +100,27 @@ const response = await fetchAPI(API_ENDPOINTS.CHECK_DRIVER_STATUS, {
 
     try {
       setLoading(true);
-      
+
       const ridesQuery = query(
         collection(db, 'rideRequests'),
         where('driver_id', '==', userId),
         where('payment_status', '==', 'paid')
       );
-      
+
       const ridesSnapshot = await getDocs(ridesQuery);
       const allRides: Ride[] = ridesSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
       } as Ride));
 
-      const pendingRides = allRides.filter(ride => 
-        ride.status === 'accepted' || 
-        ride.status === 'arrived_at_pickup' || 
+      const pendingRides = allRides.filter(ride =>
+        ride.status === 'accepted' ||
+        ride.status === 'arrived_at_pickup' ||
         ride.status === 'in_progress'
       );
-      
-      const completedRides = allRides.filter(ride => 
-        ride.status === 'completed' || 
+
+      const completedRides = allRides.filter(ride =>
+        ride.status === 'completed' ||
         ride.status === 'rated'
       );
 
@@ -132,7 +138,7 @@ const response = await fetchAPI(API_ENDPOINTS.CHECK_DRIVER_STATUS, {
         if (baseDriverShare > 0) {
           let rideDate;
           const createdAt = (ride as any).createdAt;
-          
+
           if (createdAt?.toDate) {
             rideDate = createdAt.toDate();
           } else if (createdAt?.seconds) {
@@ -147,7 +153,7 @@ const response = await fetchAPI(API_ENDPOINTS.CHECK_DRIVER_STATUS, {
           if (ride.status === 'completed' || ride.status === 'rated') {
             paymentStatus = 'completed';
           }
-          
+
           recentPayments.push({
             id: ride.id,
             amount: baseFarePrice / 100,
@@ -160,20 +166,20 @@ const response = await fetchAPI(API_ENDPOINTS.CHECK_DRIVER_STATUS, {
           });
         }
 
-        if (ride.tip_amount && parseFloat(ride.tip_amount.toString()) > 0 && 
-           (ride.status === 'completed' || ride.status === 'rated')) {
+        if (ride.tip_amount && parseFloat(ride.tip_amount.toString()) > 0 &&
+          (ride.status === 'completed' || ride.status === 'rated')) {
           const tipAmount = parseFloat(ride.tip_amount.toString());
           const createdAt = (ride as any).createdAt;
-          
+
           recentPayments.push({
             id: `${ride.id}_tip`,
             amount: tipAmount,
             driverShare: tipAmount,
-            createdAt: ride.tipped_at?.toDate ? ride.tipped_at.toDate() : 
-                      ride.rated_at?.toDate ? ride.rated_at.toDate() :
-                      createdAt?.toDate ? createdAt.toDate() : 
-                      createdAt?.seconds ? new Date(createdAt.seconds * 1000) :
-                      new Date(),
+            createdAt: ride.tipped_at?.toDate ? ride.tipped_at.toDate() :
+              ride.rated_at?.toDate ? ride.rated_at.toDate() :
+                createdAt?.toDate ? createdAt.toDate() :
+                  createdAt?.seconds ? new Date(createdAt.seconds * 1000) :
+                    new Date(),
             rideId: ride.id,
             passengerName: ride.user_name || 'Unknown',
             status: 'completed',
@@ -209,31 +215,36 @@ const response = await fetchAPI(API_ENDPOINTS.CHECK_DRIVER_STATUS, {
 
   const openStripeDashboard = async () => {
     try {
-    const response = await fetchAPI(API_ENDPOINTS.EXPRESS_DASHBOARD, {
+      setOpeningDashboard(true);
+
+      const payload: any = { driver_id: userId };
+      if (accountId) payload.account_id = accountId;
+
+      const response = await fetchAPI(API_ENDPOINTS.EXPRESS_DASHBOARD, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          driver_id: userId,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (response.success && response.url) {
         Linking.openURL(response.url);
       } else {
-        Alert.alert('Error', 'Unable to open Stripe dashboard. Please try again.');
+        Alert.alert('Error', response?.error || 'Unable to open Stripe dashboard. Please try again.');
       }
     } catch (error) {
       console.error('Error opening Stripe dashboard:', error);
       Alert.alert('Error', 'Failed to open dashboard. Please check your connection.');
+    } finally {
+      setOpeningDashboard(false);
     }
   };
 
   const openBankingInfo = async () => {
     try {
       const emailToUse = driverEmail || 'driver@email.com';
-      
+
       const response = await fetchAPI(API_ENDPOINTS.ONBOARD_DRIVER, {
         method: 'POST',
         headers: {
@@ -355,7 +366,7 @@ const response = await fetchAPI(API_ENDPOINTS.CHECK_DRIVER_STATUS, {
           <Text style={styles.totalEarnings}>
             ${walletData.totalEarnings.toFixed(2)}
           </Text>
-          
+
           <View style={styles.balanceRow}>
             <View style={styles.balanceItem}>
               <Text style={styles.balanceLabel}>Available</Text>
@@ -388,11 +399,12 @@ const response = await fetchAPI(API_ENDPOINTS.CHECK_DRIVER_STATUS, {
 
         <View style={styles.transferSection}>
           <Text style={styles.sectionTitle}>Transfer to Bank</Text>
-          
+
           <CustomButton
-            title={onboardingCompleted ? "Open Stripe Dashboard" : "Set Up Bank Account"}
-            onPress={onboardingCompleted ? openStripeDashboard : openBankingInfo}
-            style={onboardingCompleted ? styles.transferButton : styles.manageButton}
+            title={accountExists ? (openingDashboard ? "Opening..." : "Open Stripe Dashboard") : "Set Up Bank Account"}
+            onPress={accountExists ? openStripeDashboard : openBankingInfo}
+            disabled={openingDashboard || (!accountExists && !driverEmail)}
+            style={accountExists ? styles.transferButton : styles.manageButton}
           />
         </View>
 
@@ -525,6 +537,10 @@ const styles = StyleSheet.create({
   },
   manageButton: {
     backgroundColor: '#6B7280',
+  },
+  disabledButton: {
+    backgroundColor: '#E5E7EB',
+    opacity: 0.6,
   },
   paymentsSection: {
     backgroundColor: 'white',

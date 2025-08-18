@@ -1,15 +1,25 @@
 import React, { useState } from "react";
 import { Image, StyleSheet, Text, View, Alert } from "react-native";
 import { useUser, useAuth } from "@clerk/clerk-expo";
+import { useLocalSearchParams } from "expo-router";
 import { StripeProvider, useStripe } from "@stripe/stripe-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import Payment from "@/components/Payment";
 import RideLayout from "@/components/RideLayout";
 import { icons } from "@/constants";
 import { formatTime } from "@/lib/utils";
-import { useDriverStore, useLocationStore, useReservationStore } from "@/store";
+import { useLocationStore, useReservationStore } from "@/store";
 import { usePriceCalculator } from "@/lib/price";
 
+// Ride type configuration
+const RIDE_TYPES = {
+  standard: { name: "Standard", seats: 4, multiplier: 1.0, icon: "car" },
+  comfort: { name: "Comfort", seats: 6, multiplier: 1.2, icon: "car-sport" },
+  xl: { name: "XL", seats: 7, multiplier: 1.5, icon: "bus" },
+};
+
 const ReserveBookRide: React.FC = () => {
+    const { rideType } = useLocalSearchParams<{ rideType: string }>();
     const mileageAPI = process.env.EXPO_PUBLIC_DIRECTIONS_API_KEY!;
     const { user } = useUser();
     const { 
@@ -20,14 +30,10 @@ const ReserveBookRide: React.FC = () => {
         userAddress, 
         destinationAddress 
     } = useLocationStore();
-    const { drivers, selectedDriver } = useDriverStore();
     const { scheduledDate, scheduledTime } = useReservationStore();
 
-    const driverDetails = drivers?.find(
-        (driver) => driver.clerk_id === selectedDriver
-    );
-
-    const driverClerkId = driverDetails?.clerk_id
+    // Get ride type data instead of driver details
+    const selectedRideTypeData = RIDE_TYPES[rideType as keyof typeof RIDE_TYPES] || RIDE_TYPES.standard;
 
     const { price, time } = usePriceCalculator(
         { latitude: userLatitude!, longitude: userLongitude! },
@@ -35,14 +41,8 @@ const ReserveBookRide: React.FC = () => {
         mileageAPI
     );
 
-    let adjustedPrice = price;
-    if (driverDetails) {
-        if (driverDetails.car_seats === 6) {
-            adjustedPrice *= 1.2;
-        } else if (driverDetails.car_seats >= 7) {
-            adjustedPrice *= 1.5;
-        }
-    }
+    // Apply ride type multiplier instead of driver-specific pricing
+    const adjustedPrice = price * selectedRideTypeData.multiplier;
 
     return (
         <StripeProvider
@@ -57,9 +57,26 @@ const ReserveBookRide: React.FC = () => {
                         <Text style={styles.reservationDetails}>
                             {scheduledDate}, {scheduledTime}
                         </Text>
+                        <View style={styles.rideTypeInfo}>
+                            <Ionicons 
+                                name={selectedRideTypeData.icon as any} 
+                                size={18} 
+                                color="#0066CC" 
+                            />
+                            <Text style={styles.rideTypeText}>
+                                {selectedRideTypeData.name} • Up to {selectedRideTypeData.seats} passengers
+                            </Text>
+                        </View>
                     </View>
 
                     <View style={styles.infoCard}>
+                        <View style={[styles.infoRow, styles.borderedRow]}>
+                            <Text style={styles.infoText}>Ride Type</Text>
+                            <Text style={[styles.infoText, styles.rideType]}>
+                                {selectedRideTypeData.name}
+                            </Text>
+                        </View>
+
                         <View style={[styles.infoRow, styles.borderedRow]}>
                             <Text style={styles.infoText}>Ride Price</Text>
                             <Text style={[styles.infoText, styles.price]}>
@@ -73,9 +90,26 @@ const ReserveBookRide: React.FC = () => {
                         </View>
 
                         <View style={styles.infoRow}>
-                            <Text style={styles.infoText}>Car Seats</Text>
-                            <Text style={styles.infoText}>{driverDetails?.car_seats}</Text>
+                            <Text style={styles.infoText}>Passenger Capacity</Text>
+                            <Text style={styles.infoText}>Up to {selectedRideTypeData.seats} seats</Text>
                         </View>
+                    </View>
+
+                    {/* Driver Assignment Information */}
+                    <View style={styles.driverAssignmentCard}>
+                        <View style={styles.driverAssignmentHeader}>
+                            <Ionicons name="time" size={20} color="#3f7564" />
+                            <Text style={styles.driverAssignmentTitle}>Driver Assignment</Text>
+                        </View>
+                        <Text style={styles.driverAssignmentText}>
+                            📍 We'll find the closest available {selectedRideTypeData.name.toLowerCase()} driver for your scheduled time
+                        </Text>
+                        <Text style={styles.driverAssignmentText}>
+                            ⏰ You'll be notified 30 minutes before pickup with driver details
+                        </Text>
+                        <Text style={styles.driverAssignmentSubtext}>
+                            Driver will have a vehicle with {selectedRideTypeData.seats}+ seats as requested
+                        </Text>
                     </View>
 
                     <View style={styles.addressContainer}>
@@ -94,18 +128,19 @@ const ReserveBookRide: React.FC = () => {
                         fullName={user?.fullName!}
                         email={user?.emailAddresses[0].emailAddress!}
                         amount={adjustedPrice.toFixed(2).toString()}
-                        driver_id={driverClerkId?.toString() ?? ""}
+                        driver_id={""} // No specific driver - will be assigned later
                         rideTime={time}
                         isScheduled={true}
                         scheduledDate={scheduledDate!}
                         scheduledTime={scheduledTime!}
+                        rideType={rideType as string}
+                        requiredSeats={selectedRideTypeData.seats}
                     />
                 </>
             </RideLayout>
         </StripeProvider>
     );
 };
-
 
 const styles = StyleSheet.create({
     reservationBanner: {
@@ -123,13 +158,32 @@ const styles = StyleSheet.create({
         fontSize: 17,
         fontFamily: "DMSans",
         marginTop: 5,
+        marginBottom: 8,
+    },
+    rideTypeInfo: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginTop: 8,
+    },
+    rideTypeText: {
+        fontSize: 14,
+        fontFamily: "DMSans-SemiBold",
+        color: "#0066CC",
+        marginLeft: 6,
     },
     infoCard: {
         flexDirection: "column",
         alignItems: "flex-start",
         justifyContent: "center",
-        borderRadius: 30,
+        borderRadius: 16,
         backgroundColor: "white",
+        padding: 16,
+        marginBottom: 16,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+        elevation: 3,
     },
     infoRow: {
         flexDirection: "row",
@@ -140,14 +194,53 @@ const styles = StyleSheet.create({
     },
     borderedRow: {
         borderBottomWidth: 1,
-        borderBottomColor: "#CED4DA",
+        borderBottomColor: "#E5E7EB",
     },
     infoText: {
         fontSize: 16,
         fontFamily: "DMSans",
     },
+    rideType: {
+        color: "#3f7564",
+        fontFamily: "DMSans-SemiBold",
+    },
     price: {
         color: "#0CC25F",
+        fontFamily: "DMSans-Bold",
+        fontSize: 18,
+    },
+    driverAssignmentCard: {
+        backgroundColor: "#F0F9F5",
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 16,
+        borderLeftWidth: 4,
+        borderLeftColor: "#3f7564",
+    },
+    driverAssignmentHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 10,
+    },
+    driverAssignmentTitle: {
+        fontSize: 16,
+        fontFamily: "DMSans-SemiBold",
+        color: "#3f7564",
+        marginLeft: 8,
+    },
+    driverAssignmentText: {
+        fontSize: 14,
+        fontFamily: "DMSans",
+        color: "#166534",
+        lineHeight: 18,
+        marginBottom: 6,
+    },
+    driverAssignmentSubtext: {
+        fontSize: 13,
+        fontFamily: "DMSans",
+        color: "#15803D",
+        lineHeight: 16,
+        fontStyle: "italic",
     },
     addressContainer: {
         flexDirection: "column",
@@ -162,10 +255,11 @@ const styles = StyleSheet.create({
         justifyContent: "flex-start",
         borderTopWidth: 1,
         borderBottomWidth: 1,
-        borderColor: "#CED4DA",
+        borderColor: "#E5E7EB",
         width: "100%",
         paddingVertical: 15,
         paddingLeft: 10,
+        backgroundColor: "white",
     },
     addressText: {
         fontSize: 16,
@@ -175,41 +269,6 @@ const styles = StyleSheet.create({
     icon: {
         width: 24,
         height: 24,
-    },
-    confirmButton: {
-        marginVertical: 10,
-        marginBottom: 70,
-    },
-    modalContainer: {
-        height: 400,
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "white",
-        padding: 20,
-        borderRadius: 20,
-    },
-    checkImage: {
-        width: 112,
-        height: 112,
-        marginTop: 20,
-    },
-    modalTitle: {
-        fontSize: 24,
-        fontFamily: "DMSans-Bold",
-        marginTop: 20,
-        textAlign: "center",
-    },
-    modalText: {
-        fontSize: 16,
-        color: "#A0A0A0",
-        fontFamily: "DMSans",
-        textAlign: "center",
-        marginTop: 10,
-    },
-    backButton: {
-        marginTop: 20,
-        width: 200,
-        paddingVertical: 20,
     },
 });
 

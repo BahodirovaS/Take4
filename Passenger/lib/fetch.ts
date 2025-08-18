@@ -14,29 +14,29 @@ const DEFAULT_TIMEOUT = 5000;
 
 export const fetchAPI = async (url: string, options?: RequestInit) => {
   const updatedOptions = {
-      ...options,
-      headers: {
-          ...options?.headers,
-          Connection: "keep-alive",
-      },
+    ...options,
+    headers: {
+      ...options?.headers,
+      Connection: "keep-alive",
+    },
   };
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT);
   try {
-      const response = await fetch(url, { ...updatedOptions, signal: controller.signal });
-      clearTimeout(timeoutId);
-      if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-      }
-      return await response.json();
+    const response = await fetch(url, { ...updatedOptions, signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
+    return await response.json();
   } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-          console.error("Fetch aborted due to timeout");
-          throw new Error("Fetch request timed out");
-      }
-      console.error("Fetch error:", error);
-      throw error instanceof Error ? error : new Error("Unknown error occurred");
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error("Fetch aborted due to timeout");
+      throw new Error("Fetch request timed out");
+    }
+    console.error("Fetch error:", error);
+    throw error instanceof Error ? error : new Error("Unknown error occurred");
   }
 };
 
@@ -87,7 +87,7 @@ export const fetchRideHistory = (
       where("user_id", "==", userId),
       where("status", "in", ["completed"])
     );
-    
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const rides = snapshot.docs.map((doc) => {
         const data = doc.data();
@@ -120,21 +120,21 @@ export const fetchRideHistory = (
           status: data.status
         } as Ride;
       });
-      
+
       rides.sort((a, b) => {
         const timeA = new Date(a.created_at).getTime();
         const timeB = new Date(b.created_at).getTime();
         return timeB - timeA;
       });
-      
+
       onRidesUpdate(rides);
     }, onError);
-    
+
     return unsubscribe;
   } catch (error) {
     console.error("Error setting up ride history subscription:", error);
     onError(error);
-    return () => {};
+    return () => { };
   }
 };
 
@@ -152,12 +152,12 @@ export const checkActiveRides = (
       where("user_id", "==", userId),
       where("status", "in", ["requested", "accepted", "arrived_at_pickup", "in_progress"])
     );
-    
+
     const unsubscribe = onSnapshot(activeRidesQuery, (snapshot) => {
       if (!snapshot.empty) {
         const rideDoc = snapshot.docs[0];
         const rideData = rideDoc.data();
-        
+
         onActiveRideUpdate(true, {
           rideId: rideDoc.id,
           status: rideData.status,
@@ -167,12 +167,12 @@ export const checkActiveRides = (
         onActiveRideUpdate(false, null);
       }
     }, onError);
-    
+
     return unsubscribe;
   } catch (error) {
     console.error("Error checking active rides:", error);
     onError(error);
-    return () => {};
+    return () => { };
   }
 };
 
@@ -242,9 +242,9 @@ export const fetchPassengerProfile = async (userId: string): Promise<{
  * Create a new passenger document
  */
 export const createPassengerProfile = async (
-  userId: string, 
-  firstName: string, 
-  lastName: string, 
+  userId: string,
+  firstName: string,
+  lastName: string,
   email: string
 ): Promise<{
   docId: string | null;
@@ -260,7 +260,7 @@ export const createPassengerProfile = async (
       isDriver: false,
       createdAt: new Date()
     });
-    
+
     return {
       docId: newUserRef.id,
       error: null
@@ -286,10 +286,10 @@ export const updatePassengerProfile = async (
     phoneNumber: string;
     profilePhotoBase64: string;
   }
-): Promise<{ 
-  success: boolean; 
+): Promise<{
+  success: boolean;
   newDocId: string | null;
-  error: Error | null; 
+  error: Error | null;
 }> => {
   try {
     if (!docId) {
@@ -298,7 +298,7 @@ export const updatePassengerProfile = async (
         clerkId: userId,
         createdAt: new Date()
       });
-      
+
       return {
         success: true,
         newDocId: docRef.id,
@@ -306,7 +306,7 @@ export const updatePassengerProfile = async (
       };
     } else {
       await updateDoc(doc(db, "passengers", docId), data);
-      
+
       return {
         success: true,
         newDocId: null,
@@ -337,9 +337,9 @@ export const selectProfileImage = async (): Promise<{
 
     if (status !== 'granted') {
       Alert.alert('Permission Required', 'We need permission to access your photos');
-      return { 
-        base64Image: null, 
-        error: new Error('Permission denied') 
+      return {
+        base64Image: null,
+        error: new Error('Permission denied')
       };
     }
 
@@ -352,9 +352,9 @@ export const selectProfileImage = async (): Promise<{
     });
 
     if (result.canceled) {
-      return { 
-        base64Image: null, 
-        error: null 
+      return {
+        base64Image: null,
+        error: null
       };
     }
 
@@ -379,9 +379,9 @@ export const selectProfileImage = async (): Promise<{
         "Please select a smaller image (under 1MB)",
         [{ text: "OK" }]
       );
-      return { 
-        base64Image: null, 
-        error: new Error('Image too large') 
+      return {
+        base64Image: null,
+        error: new Error('Image too large')
       };
     }
 
@@ -414,37 +414,35 @@ export const getCurrentLocation = async (): Promise<{
 }> => {
   try {
     const { status } = await Location.requestForegroundPermissionsAsync();
-    
+
     if (status !== "granted") {
-      return {
-        location: null,
-        hasPermission: false,
-        error: null
-      };
+      return { location: null, hasPermission: false, error: null };
     }
-    
+
     const location = await Location.getCurrentPositionAsync({});
-    const address = await Location.reverseGeocodeAsync({
-      latitude: location.coords.latitude,
-      longitude: location.coords.longitude,
-    });
-    
+    const lat = location.coords.latitude;
+    const lng = location.coords.longitude;
+
+    const googleApiKey = process.env.EXPO_PUBLIC_PLACES_API_KEY;
+    const response = await fetch(
+      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&result_type=street_address&key=${googleApiKey}`
+    );
+    const data = await response.json();
+
+    const formattedAddress = data.results[0]?.formatted_address || "Unknown location";
+
     return {
       location: {
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-        address: `${address[0].name || ""}, ${address[0].region || ""}`,
+        latitude: lat,
+        longitude: lng,
+        address: formattedAddress,
       },
       hasPermission: true,
-      error: null
+      error: null,
     };
   } catch (error) {
     console.error("Error getting location:", error);
-    return {
-      location: null,
-      hasPermission: false,
-      error: error as Error
-    };
+    return { location: null, hasPermission: false, error: error as Error };
   }
 };
 
@@ -454,13 +452,13 @@ export const getCurrentLocation = async (): Promise<{
  */
 export const formatPhoneNumber = (value: string): string => {
   let formattedValue = value.replace(/\D/g, '');
-  
+
   if (formattedValue.length > 3 && formattedValue.length <= 6) {
     formattedValue = `${formattedValue.slice(0, 3)}-${formattedValue.slice(3)}`;
   } else if (formattedValue.length > 6) {
     formattedValue = `${formattedValue.slice(0, 3)}-${formattedValue.slice(3, 6)}-${formattedValue.slice(6, 10)}`;
   }
-  
+
   return formattedValue;
 };
 
@@ -489,15 +487,15 @@ export const fetchScheduledRides = async (userId: string): Promise<{
       ...doc.data()
     } as RideRequest));
 
-    return { 
-      rides: scheduledRides, 
-      error: null 
+    return {
+      rides: scheduledRides,
+      error: null
     };
   } catch (error) {
     console.error("Error fetching scheduled rides:", error);
-    return { 
-      rides: [], 
-      error: error as Error 
+    return {
+      rides: [],
+      error: error as Error
     };
   }
 };
@@ -513,16 +511,16 @@ export const cancelRide = async (rideId: string): Promise<{
 }> => {
   try {
     await deleteDoc(doc(db, "rideRequests", rideId));
-    
-    return { 
-      success: true, 
-      error: null 
+
+    return {
+      success: true,
+      error: null
     };
   } catch (error) {
     console.error("Error cancelling ride:", error);
-    return { 
-      success: false, 
-      error: error as Error 
+    return {
+      success: false,
+      error: error as Error
     };
   }
 };
@@ -532,7 +530,7 @@ export const cancelRide = async (rideId: string): Promise<{
  * Find the most recent active ride for a user
  */
 export const findActiveRide = async (
-  userId: string, 
+  userId: string,
   onSuccess: (rideData: { id: string, status: string } | null) => void,
   onError: (error: any) => void
 ) => {
@@ -550,7 +548,7 @@ export const findActiveRide = async (
     );
 
     const querySnapshot = await getDocs(activeRidesQuery);
-    
+
     if (querySnapshot.empty) {
       onSuccess(null);
       return;
@@ -596,15 +594,15 @@ export const findActiveRide = async (
 export const subscribeToRideUpdates = (
   rideId: string,
   onRideUpdate: (
-    status: string, 
-    driverId: string | null, 
-    driverLocation: {latitude: number, longitude: number},
-    destinationInfo: {latitude: number, longitude: number, address: string} | null
+    status: string,
+    driverId: string | null,
+    driverLocation: { latitude: number, longitude: number },
+    destinationInfo: { latitude: number, longitude: number, address: string } | null
   ) => void,
   onRideCompleted: (rideId: string) => void,
   onError: (error: any) => void
 ): (() => void) => {
-  if (!rideId) return () => {};
+  if (!rideId) return () => { };
 
   try {
     const rideRef = doc(db, "rideRequests", rideId);
@@ -613,31 +611,31 @@ export const subscribeToRideUpdates = (
       if (data) {
         const destinationInfo = data.destination_latitude && data.destination_longitude && data.destination_address
           ? {
-              latitude: data.destination_latitude,
-              longitude: data.destination_longitude,
-              address: data.destination_address
-            }
+            latitude: data.destination_latitude,
+            longitude: data.destination_longitude,
+            address: data.destination_address
+          }
           : null;
-  
+
         if (destinationInfo) {
           const { setDestinationLocation } = useLocationStore.getState();
           setDestinationLocation(destinationInfo);
         }
-  
+
         if (data.status === "completed") {
           onRideCompleted(rideId);
         } else {
-          const driverId = 
-            (data.status === "accepted" || 
-             data.status === "arrived_at_pickup" || 
-             data.status === "in_progress") 
-            ? data.driver_id : null;
-          
+          const driverId =
+            (data.status === "accepted" ||
+              data.status === "arrived_at_pickup" ||
+              data.status === "in_progress")
+              ? data.driver_id : null;
+
           const driverLocation = {
             latitude: data.driver_current_latitude || 0,
             longitude: data.driver_current_longitude || 0
           };
-          
+
           onRideUpdate(data.status, driverId, driverLocation, destinationInfo);
         }
       }
@@ -645,12 +643,12 @@ export const subscribeToRideUpdates = (
       console.error("Error in ride subscription:", error);
       onError(error);
     });
-  
+
     return unsubscribe;
   } catch (error) {
     console.error("Error setting up ride subscription:", error);
     onError(error);
-    return () => {};
+    return () => { };
   }
 };
 
@@ -673,7 +671,7 @@ export const fetchDriverDetails = (
       const driversRef = collection(db, "drivers");
       const driverQuery = query(driversRef, where("clerkId", "==", driverId));
       const querySnapshot = await getDocs(driverQuery);
-  
+
       if (!querySnapshot.empty) {
         const driverData = querySnapshot.docs[0].data();
         onSuccess(driverData.firstName || null);
@@ -738,7 +736,7 @@ export const subscribeToMessages = (
   onError: (error: any) => void
 ): (() => void) => {
   if (!userId || !otherPersonId) {
-    return () => {};
+    return () => { };
   }
   try {
     const q = query(
@@ -763,7 +761,7 @@ export const subscribeToMessages = (
   } catch (error) {
     console.error("Error setting up message subscription:", error);
     onError(error);
-    return () => {};
+    return () => { };
   }
 };
 
@@ -888,7 +886,7 @@ export const fetchDriverInfo = (
       if (!querySnapshot.empty) {
         const driverDoc = querySnapshot.docs[0];
         const driverData = driverDoc.data();
-        
+
         const driverMarker: MarkerData = {
           id: parseInt(driverDoc.id) || 0,
           clerk_id: driverId,
@@ -945,12 +943,12 @@ export const cancelRideRequest = (
     const cancelRide = async () => {
       const rideIdString = Array.isArray(rideId) ? rideId[0] : rideId as string;
       const rideRef = doc(db, "rideRequests", rideIdString);
-      
+
       await updateDoc(rideRef, {
         status: "cancelled_by_user",
         cancelledAt: new Date()
       });
-      
+
       onSuccess();
     };
 
@@ -974,7 +972,7 @@ export const navigateToDriverChat = (
   rideId: string | string[] | undefined
 ): void => {
   if (!driver) return;
-  
+
   router.push({
     pathname: "/(root)/chat",
     params: {
