@@ -54,6 +54,7 @@ declare interface PassengerInfo {
   firstName: string;
   lastName: string;
   photoUrl?: string;
+  phone: string;
 }
 
 declare interface MapProps {

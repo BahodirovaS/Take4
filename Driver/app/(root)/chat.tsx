@@ -15,7 +15,7 @@ import { Message, Ride } from "@/types/type";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import CustomButton from "@/components/CustomButton";
-import { subscribeToMessages, fetchRideDetails, sendMessage as sendMessageUtil } from "@/lib/fetch";
+import { subscribeToMessages, fetchRideDetails, sendMessage as sendMessageUtil, watchAndMarkRead } from "@/lib/fetch";
 
 const Chat = () => {
     const [messages, setMessages] = useState<Message[]>([]);
@@ -23,7 +23,7 @@ const Chat = () => {
     const [rideDetails, setRideDetails] = useState<Partial<Ride> | null>(null);
     const { user } = useUser();
     const router = useRouter();
-    
+
     const {
         otherPersonId,
         otherPersonName,
@@ -58,6 +58,13 @@ const Chat = () => {
         );
         return unsubscribe;
     }, [user?.id, otherPersonId]);
+
+
+    useEffect(() => {
+        if (!user?.id || !otherPersonId || !rideId) return;
+        const stop = watchAndMarkRead(user.id, otherPersonId as string, rideId as string);
+        return stop;
+    }, [user?.id, otherPersonId, rideId]);
 
 
     const handleSendMessage = async () => {

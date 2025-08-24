@@ -892,6 +892,7 @@ export const fetchDriverInfo = (
           clerk_id: driverId,
           first_name: driverData.firstName || '',
           last_name: driverData.lastName || '',
+          phone_number: driverData.phoneNumber || '',
           profile_image_url: driverData.profile_image_url || '',
           car_image_url: driverData.car_image_url || '',
           car_seats: driverData.carSeats || 4,

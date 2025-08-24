@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { doc, updateDoc, onSnapshot, collection, addDoc, query, where, getDocs, limit, deleteDoc, orderBy, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, onSnapshot, collection, addDoc, query, where, getDocs, limit, deleteDoc, orderBy, getDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import * as Location from 'expo-location';
 import { Ride, ActiveRideData, PassengerInfo, DriverProfileForm, RideRequest, Message } from '@/types/type';
@@ -97,13 +97,15 @@ export const fetchPassengerInfo = async (userId: string): Promise<PassengerInfo 
               id: userId,
               firstName: data.firstName || "Unknown",
               lastName: data.lastName || "",
-              photoUrl: data.photoUrl
+              photoUrl: data.photoUrl,
+              phone: data.phoneNumber
           };
       } else {
           return {
               id: userId,
               firstName: "Passenger",
               lastName: "",
+              phone: "",
           };
       }
   } catch (error) {
@@ -112,6 +114,7 @@ export const fetchPassengerInfo = async (userId: string): Promise<PassengerInfo 
           id: userId,
           firstName: "Passenger",
           lastName: "",
+          phone: "",
       };
   }
 };
@@ -863,9 +866,10 @@ export const sendMessage = async (
       senderName: senderName || "Guest",
       recipientId: recipientId,
       recipientName: recipientName,
-      timestamp: new Date(),
       rideId: rideId || null,
-      context: context || "general"
+      context: context || "general",
+      read: false,
+      timestamp: serverTimestamp(),
     });
     return true;
   } catch (error) {
@@ -873,3 +877,37 @@ export const sendMessage = async (
     return false;
   }
 };
+
+export function subscribeToUnreadCount(
+  myId: string,
+  otherId: string,
+  rideId: string,
+  onCount: (n: number) => void
+) {
+  const q = query(
+    collection(db, "messages"),
+    where("rideId", "==", rideId),
+    where("recipientId", "==", myId),
+    where("read", "==", false)
+  );
+
+  return onSnapshot(q, (snap) => onCount(snap.size));
+}
+
+export function watchAndMarkRead(myId: string, otherId: string, rideId: string) {
+  const q = query(
+    collection(db, "messages"),
+    where("rideId", "==", rideId),
+    where("recipientId", "==", myId),
+    where("read", "==", false)
+  );
+
+  const unsub = onSnapshot(q, async (snap) => {
+    if (snap.empty) return;
+    const batch = writeBatch(db);
+    snap.docs.forEach((d) => batch.update(doc(db, "messages", d.id), { read: true }));
+    await batch.commit();
+  });
+
+  return unsub;
+}

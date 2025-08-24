@@ -22,8 +22,13 @@ import {
     setupLocationTracking,
     markArrivedAtPickup,
     startRide,
-    completeRide
+    completeRide,
+    subscribeToUnreadCount
 } from '@/lib/fetch';
+import { useURL } from 'expo-linking';
+import { useUser } from '@clerk/clerk-expo';
+import { collection, getDocs, limit, query, where } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCancel }) => {
     const [ride, setRide] = useState<Ride | null>(null);
@@ -32,6 +37,10 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [passengerInfo, setPassengerInfo] = useState<PassengerInfo | null>(null);
     const [loadingPassenger, setLoadingPassenger] = useState<boolean>(false);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const { user } = useUser()
+    const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
+
 
     const locationStore = useLocationStore();
     const { setUserLocation, setDestinationLocation } = locationStore;
@@ -39,10 +48,10 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
     const handleRideStatusChange = (status: string) => {
         const newRideStage =
             status === 'accepted'
-                ? 'to_pickup' 
-                : status === 'arrived_at_pickup' ? 'to_destination' 
-                : status === 'in_progress' ? 'to_destination' 
-                : 'to_pickup';
+                ? 'to_pickup'
+                : status === 'arrived_at_pickup' ? 'to_destination'
+                    : status === 'in_progress' ? 'to_destination'
+                        : 'to_pickup';
 
         setRideStage(newRideStage);
     };
@@ -53,7 +62,16 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
         const info = await fetchPassengerInfo(userId);
         if (info) setPassengerInfo(info);
         setLoadingPassenger(false);
+        if (info?.phone || info?.phone) {
+            setPhoneNumber(info.phone ?? info.phone);
+        }
     };
+
+    useEffect(() => {
+        if (!user?.id || !passengerInfo?.id || !rideId) return;
+        const unsub = subscribeToUnreadCount(user.id, passengerInfo.id, rideId as string, setUnreadCount);
+        return unsub;
+    }, [user?.id, passengerInfo?.id, rideId]);
 
 
     const handleRideUpdate = (updatedRide: Ride) => {
@@ -260,6 +278,56 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
         });
     };
 
+    const handleContactPassengerPhone = async () => {
+        try {
+            let phone = phoneNumber;
+
+            if (!phone) {
+                if (!ride?.user_id) {
+                    Alert.alert("Contact Info", "Passenger ID is missing");
+                    return;
+                }
+                const q = query(
+                    collection(db, "passengers"),
+                    where("clerkId", "==", ride.user_id),
+                    limit(1)
+                );
+                const snap = await getDocs(q);
+                if (!snap.empty) {
+                    const data = snap.docs[0].data() as any;
+                    phone = data.phoneNumber || data.phone || null;
+                    if (phone) setPhoneNumber(phone);
+                }
+            }
+
+            if (!phone) {
+                Alert.alert("Contact Info", "Phone number is not available");
+                return;
+            }
+
+            const raw = phone.toString().trim();
+            const digits = raw.replace(/[^\d+]/g, "");
+            const normalized =
+                digits.startsWith("+") ? digits : (digits.length === 10 ? `+1${digits}` : digits);
+
+            if (!normalized) {
+                Alert.alert("Contact Info", "Phone number format is invalid");
+                return;
+            }
+
+            const url = `tel:${normalized}`;
+            const supported = await Linking.canOpenURL(url);
+            if (!supported) {
+                Alert.alert("Error", "Calling is not supported on this device");
+                return;
+            }
+            await Linking.openURL(url);
+        } catch (err) {
+            console.error("Call error:", err);
+            Alert.alert("Error", "Could not open phone dialer");
+        }
+    };
+
     const handleGoToHome = () => {
         router.push({
             pathname: '/(root)/(tabs)/home',
@@ -315,14 +383,23 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
                         style={styles.navigationButton}
                     />
 
-                    <CustomButton
-                        title="Message"
-                        bgVariant="tertiary"
-                        textVariant="primary"
-                        onPress={handleMessagePassenger}
-                        IconLeft={() => <Ionicons name="chatbubble-ellipses-outline" size={20} color="black" marginRight="5" />}
-                        style={styles.messageButton}
-                    />
+                    <View style={styles.messageWrapper}>
+                        <CustomButton
+                            title="Call Passenger"
+                            bgVariant="tertiary"
+                            textVariant="primary"
+                            onPress={handleContactPassengerPhone}
+                            IconLeft={() => (
+                                <Ionicons name="call-outline" size={20} color="black" marginRight="5" />
+                            )}
+                            style={styles.messageButton}
+                        />
+                        {unreadCount > 0 && (
+                            <View style={styles.badge}>
+                                <Text style={styles.badgeText}>{unreadCount > 99 ? "99+" : unreadCount}</Text>
+                            </View>
+                        )}
+                    </View>
                 </View>
 
                 <View style={styles.actionButtonContainer}>
@@ -436,8 +513,30 @@ const styles = StyleSheet.create({
     },
     messageButton: {
         flex: 1,
-        marginLeft: 10,
     },
+    messageWrapper: {
+        flex: 1,
+        marginLeft: 10,
+        position: "relative",
+    },
+    badge: {
+        position: "absolute",
+        top: -6,
+        right: -6,
+        minWidth: 18,
+        height: 18,
+        borderRadius: 9,
+        paddingHorizontal: 4,
+        backgroundColor: "#FF3B30",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    badgeText: {
+        color: "#fff",
+        fontSize: 11,
+        fontFamily: "DMSans-Bold",
+    },
+
     customActionButton: {
         width: '100%',
     }

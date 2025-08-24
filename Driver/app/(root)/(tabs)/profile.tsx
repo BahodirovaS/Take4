@@ -15,11 +15,11 @@ import { useRouter } from "expo-router";
 import CustomButton from "@/components/CustomButton";
 import InputField from "@/components/InputField";
 import { useAuth, useUser } from "@clerk/clerk-expo";
-import { 
-    fetchDriverInfo, 
-    selectProfileImage, 
+import {
+    fetchDriverInfo,
+    selectProfileImage,
     saveDriverProfile,
-    updateDriverStatusOnSignOut
+    updateDriverStatusOnSignOut,
 } from "@/lib/fetch";
 import { DriverProfileForm } from "@/types/type"
 
@@ -68,7 +68,7 @@ const DriverInfo = () => {
 
             if (driverData) {
                 setDriverDocId(docId);
-                
+
                 setForm({
                     ...driverData,
                     firstName: user?.firstName || driverData.firstName || "",
@@ -94,7 +94,7 @@ const DriverInfo = () => {
     const pickImage = async () => {
         setUploading(true);
         const { base64Image, error } = await selectProfileImage();
-        
+
         if (base64Image) {
             setForm(prevForm => ({
                 ...prevForm,
@@ -103,7 +103,7 @@ const DriverInfo = () => {
         } else if (error && error.message !== 'Permission denied') {
             Alert.alert("Error", "Failed to select image");
         }
-        
+
         setUploading(false);
     };
 
@@ -222,9 +222,9 @@ const DriverInfo = () => {
                                 label="Phone Number"
                                 placeholder="Format 123-456-7890"
                                 value={form.phoneNumber}
-                                onChangeText={(value) => setForm({ 
-                                    ...form, 
-                                    phoneNumber: formatPhoneNumber(value) 
+                                onChangeText={(value) => setForm({
+                                    ...form,
+                                    phoneNumber: formatPhoneNumber(value)
                                 })}
                             />
                             <InputField
