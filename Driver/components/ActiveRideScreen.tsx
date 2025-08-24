@@ -38,10 +38,11 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId, onComplete, onCan
 
     const handleRideStatusChange = (status: string) => {
         const newRideStage =
-            status === 'accepted' ? 'to_pickup' :
-                status === 'arrived_at_pickup' ? 'to_destination' :
-                    status === 'in_progress' ? 'to_destination' :
-                        'to_pickup';
+            status === 'accepted'
+                ? 'to_pickup' 
+                : status === 'arrived_at_pickup' ? 'to_destination' 
+                : status === 'in_progress' ? 'to_destination' 
+                : 'to_pickup';
 
         setRideStage(newRideStage);
     };

@@ -181,6 +181,7 @@ export const checkActiveRides = (
  */
 export const determineRideStage = (status: string): string => {
   switch (status) {
+    case 'requested':
     case 'accepted':
       return 'to_pickup';
     case 'arrived_at_pickup':
@@ -190,7 +191,6 @@ export const determineRideStage = (status: string): string => {
       return 'to_pickup';
   }
 };
-
 
 
 /**

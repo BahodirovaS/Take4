@@ -13,6 +13,8 @@ import RideRequestBottomSheet from "@/components/RideRequest";
 import { Ride } from "@/types/type";
 import { useLocationStore } from "@/store";
 import * as Location from "expo-location";
+import DriverLocationPublisher from "@/components/DriverLocationPublisher";
+
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -95,7 +97,7 @@ export default function RootLayout() {
         });
       }
     };
-    
+
     initializeLocation();
   }, []);
 
@@ -122,10 +124,9 @@ export default function RootLayout() {
   return (
     <ClerkProvider tokenCache={tokenCache} publishableKey={publishableKey}>
       <RideRequestProvider>
-
         <ClerkLoaded>
+          <DriverLocationPublisher />
           <RideRequestListener />
-
           <Stack>
             <Stack.Screen name="index" options={{ headerShown: false }} />
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />

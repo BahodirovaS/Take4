@@ -168,7 +168,7 @@ const Home = () => {
             pathname: '/(root)/active-ride',
             params: {
                 rideId: activeRideData.rideId,
-                rideStage: activeRideData.status === 'accepted' 
+                rideStage: activeRideData.status === 'accepted'
                     ? 'to_pickup' 
                     : 'to_destination'
             }

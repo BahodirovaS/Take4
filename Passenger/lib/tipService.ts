@@ -2,6 +2,7 @@ import { fetchAPI } from "@/lib/fetch";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Alert } from "react-native";
+import { API_ENDPOINTS } from "./config";
 
 export async function processTipPayment({
   rideId,
@@ -59,7 +60,7 @@ export async function processTipPayment({
     };
         
     const response = await fetchAPI(
-      "/(api)/(stripe)/createTip",
+      API_ENDPOINTS.CREATE_TIP,
       {
         method: "POST",
         headers: {

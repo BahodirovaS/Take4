@@ -20,7 +20,7 @@ interface EnhancedPaymentProps extends PaymentProps {
   scheduledTime?: string;
   driverCommissionRate?: number;
   rideType?: string;
-  requiredSeats?: number; 
+  requiredSeats?: number;
 }
 
 const Payment: React.FC<EnhancedPaymentProps> = ({
@@ -33,7 +33,7 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
   scheduledDate,
   scheduledTime,
   rideType,
-  requiredSeats, 
+  requiredSeats,
   driverCommissionRate = 0.80,
 }) => {
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
@@ -87,7 +87,7 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
           intentCreationCallback
         ) => {
           const { paymentIntent, customer } = await fetchAPI(
-            "/api/stripe/create",
+            API_ENDPOINTS.CREATE_PAYMENT,
             {
               method: "POST",
               headers: {
@@ -104,7 +104,7 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
           );
 
           if (paymentIntent.client_secret) {
-            const { result } = await fetchAPI("/api/stripe/pay", {
+            const { result } = await fetchAPI(API_ENDPOINTS.PROCESS_PAYMENT, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -186,7 +186,7 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
                 }
               } else {
                 Object.assign(rideData, {
-                  status: "requested_pending_driver",
+                  status: "requested",
                 });
               }
 
@@ -196,27 +196,26 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
               if (!isScheduled) {
                 try {
                   console.log('Calling driver assignment API for immediate ride...');
-                  
-                  const assignmentResponse = await fetchAPI(API_ENDPOINTS.ASSIGN_DRIVER, {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                      rideId: rideDoc.id,
-                      rideType: rideType,
-                      pickupLatitude: userLatitude,
-                      pickupLongitude: userLongitude,
-                      isScheduled: false
-                    }),
-                  });
 
-                  const assignmentResult = await assignmentResponse.json();
-                  
-                  if (assignmentResult.success) {
-                    console.log('Driver assigned successfully:', assignmentResult.driver);
+                  const assignmentResult = await fetchAPI(
+                    API_ENDPOINTS.ASSIGN_DRIVER,
+                    {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        rideId: rideDoc.id,
+                        rideType: rideType || 'standard',
+                        pickupLatitude: userLatitude,
+                        pickupLongitude: userLongitude,
+                        isScheduled: false,
+                      }),
+                    },
+                  );
+
+                  if (assignmentResult?.success) {
+                    console.log('Driver request published:', assignmentResult.driver);
                   } else {
-                    console.warn('Driver assignment failed:', assignmentResult.error);
+                    console.warn('Driver assignment failed:', assignmentResult?.error);
                   }
                 } catch (assignmentError) {
                   console.error('Error calling driver assignment API:', assignmentError);

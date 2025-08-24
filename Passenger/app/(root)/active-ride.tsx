@@ -109,10 +109,10 @@ const ActiveRide = () => {
 
 
     const getRideStatusTitle = () => {
-        if (rideStatus === "accepted" && driverName) {
-            return `${driverName} is on the way!`;
-        } else if (rideStatus === "arrived_at_pickup" && driverName) {
-            return `${driverName} is here!`;
+        if ((rideStatus === "accepted" )) {
+            return driverName ? `${driverName} is on the way!` : "Your driver is on the way!";
+        } else if (rideStatus === "arrived_at_pickup") {
+            return driverName ? `${driverName} is here!` : "Your driver is here!";
         } else if (rideStatus === "in_progress") {
             return `Headed to ${destinationAddress}`;
         } else if (rideStatus === "completed") {

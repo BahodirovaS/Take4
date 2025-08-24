@@ -133,7 +133,7 @@ const RideCompleted = () => {
                 
                 <View style={styles.tipButtonContainer}>
                     <CustomButton
-                        title={`Submit Rating & ${parseFloat(tipAmount) > 0 ? `$${tipAmount} Tip` : 'No Tip'}`}
+                        title={`Submit ${parseFloat(tipAmount) > 0 ? `$${tipAmount} Tip` : 'No Tip'}`}
                         onPress={processTip}
                         bgVariant="primary"
                         style={styles.submitButton}

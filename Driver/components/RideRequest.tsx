@@ -5,9 +5,10 @@ import {
   TouchableOpacity,
   StyleSheet,
   Modal,
-  ActivityIndicator
+  ActivityIndicator,
+  Alert,
 } from "react-native";
-import { Ride } from "@/types/type";
+import { useUser } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
 import Reanimated, {
@@ -15,12 +16,15 @@ import Reanimated, {
   useAnimatedStyle,
   withTiming,
   withSpring,
-  runOnJS
-} from 'react-native-reanimated';
+  runOnJS,
+} from "react-native-reanimated";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import CustomButton from "@/components/CustomButton";
 import { useRideRequest } from "@/contexts/RideRequestContext";
+import { fetchAPI } from "@/lib/fetch";
+import { API_ENDPOINTS } from "@/lib/config";
+import { router } from "expo-router"
 
 interface PassengerInfo {
   first_name: string;
@@ -31,28 +35,22 @@ interface PassengerInfo {
 const AnimatedView = Reanimated.createAnimatedComponent(View);
 
 const RideRequestBottomSheet: React.FC = () => {
-  const { 
-    newRequest: ride, 
-    modalVisible, 
-    setModalVisible, 
-    acceptRide, 
-    declineRide 
-  } = useRideRequest();
-
+  const { user } = useUser();
+  const { newRequest: ride, modalVisible, setModalVisible } = useRideRequest();
   const [passengerInfo, setPassengerInfo] = useState<PassengerInfo | null>(null);
   const [loading, setLoading] = useState(false);
-  
+  const [busy, setBusy] = useState<null | "accept" | "decline">(null);
   const insets = useSafeAreaInsets();
   const sheetHeight = 280;
-
   const translateY = useSharedValue(sheetHeight);
   const backdropOpacity = useSharedValue(0);
   const isSnappedToTop = useSharedValue(false);
 
+
   useEffect(() => {
     const fetchPassengerInfo = async () => {
       if (!ride || !ride.user_id) return;
-      
+
       setLoading(true);
       try {
         const passengersQuery = query(
@@ -60,28 +58,22 @@ const RideRequestBottomSheet: React.FC = () => {
           where("clerkId", "==", ride.user_id),
           limit(1)
         );
-        
+
         const passengersSnapshot = await getDocs(passengersQuery);
-        
+
         if (!passengersSnapshot.empty) {
           const passengerDoc = passengersSnapshot.docs[0];
           const data = passengerDoc.data();
           setPassengerInfo({
             first_name: data.firstName || "Unknown",
             last_name: data.lastName || "",
-            photo_url: data.photo_url
+            photo_url: data.photo_url,
           });
         } else {
-          setPassengerInfo({
-            first_name: "Passenger",
-            last_name: "",
-          });
+          setPassengerInfo({ first_name: "Passenger", last_name: "" });
         }
-      } catch (error) {
-        setPassengerInfo({
-          first_name: "Passenger",
-          last_name: "",
-        });
+      } catch {
+        setPassengerInfo({ first_name: "Passenger", last_name: "" });
       } finally {
         setLoading(false);
       }
@@ -110,15 +102,11 @@ const RideRequestBottomSheet: React.FC = () => {
     })
     .onUpdate((event) => {
       if (event.translationY > 0) {
-        translateY.value = Math.min(
-          sheetHeight,
-          context.value.y + event.translationY
-        );
-
+        translateY.value = Math.min(sheetHeight, context.value.y + event.translationY);
         backdropOpacity.value = 0.5 * (1 - Math.min(1, translateY.value / sheetHeight));
       }
     })
-    .onEnd((event) => {
+    .onEnd(() => {
       if (translateY.value > sheetHeight * 0.6) {
         translateY.value = withTiming(sheetHeight, { duration: 300 });
         backdropOpacity.value = withTiming(0, { duration: 300 });
@@ -134,22 +122,68 @@ const RideRequestBottomSheet: React.FC = () => {
   const context = useSharedValue({ y: 0 });
 
   const handleBackdropPress = () => {
-    if (modalVisible) {
+    if (modalVisible && busy === null) {
       setModalVisible(false);
     }
   };
 
-  const sheetStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ translateY: translateY.value }],
-    };
-  });
+  const sheetStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
 
-  const backdropStyle = useAnimatedStyle(() => {
-    return {
-      opacity: backdropOpacity.value,
-    };
-  });
+  const backdropStyle = useAnimatedStyle(() => ({
+    opacity: backdropOpacity.value,
+  }));
+
+
+  const onAccept = async () => {
+    if (!ride?.id || !user?.id || busy) return;
+    try {
+      setBusy("accept");
+      const res = await fetchAPI(API_ENDPOINTS.ACCEPT_RIDE, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          rideId: ride.id, 
+          driverId: user.id 
+        }),
+      });
+      if (res?.success) {
+        setModalVisible(false);
+        router.replace({ pathname: "/(root)/active-ride", params: { rideId: ride.id } });
+      } else {
+        Alert.alert("Couldn’t accept ride", res?.error || "Please try again.");
+      }
+    } catch (e: any) {
+      Alert.alert("Ride unavailable", e?.message || "This ride may have been taken.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const onDecline = async () => {
+    if (!ride?.id || !user?.id || busy) return;
+    try {
+      setBusy("decline");
+      const res = await fetchAPI(API_ENDPOINTS.DECLINE_RIDE, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          rideId: ride.id, 
+          driverId: user.id 
+        }),
+      });
+      if (res?.success) {
+        setModalVisible(false);
+      } else {
+        Alert.alert("Couldn’t decline ride", res?.error || "Please try again.");
+      }
+    } catch (e: any) {
+      Alert.alert("Error", e?.message || "Please try again.");
+    } finally {
+      setBusy(null);
+    }
+  };
 
   if (!ride) return null;
 
@@ -158,7 +192,7 @@ const RideRequestBottomSheet: React.FC = () => {
       visible={modalVisible}
       transparent
       animationType="none"
-      onRequestClose={() => setModalVisible(false)}
+      onRequestClose={() => (busy ? null : setModalVisible(false))}
     >
       <GestureHandlerRootView style={{ flex: 1 }}>
         <View style={styles.container}>
@@ -167,9 +201,7 @@ const RideRequestBottomSheet: React.FC = () => {
             activeOpacity={1}
             onPress={handleBackdropPress}
           >
-            <AnimatedView
-              style={[styles.backdrop, backdropStyle]}
-            />
+            <AnimatedView style={[styles.backdrop, backdropStyle]} />
           </TouchableOpacity>
 
           <GestureDetector gesture={panGesture}>
@@ -177,7 +209,7 @@ const RideRequestBottomSheet: React.FC = () => {
               style={[
                 styles.bottomSheet,
                 sheetStyle,
-                { paddingBottom: insets.bottom > 0 ? insets.bottom : 20 }
+                { paddingBottom: insets.bottom > 0 ? insets.bottom : 20 },
               ]}
             >
               <View style={styles.handle} />
@@ -188,11 +220,11 @@ const RideRequestBottomSheet: React.FC = () => {
                 <Text style={styles.label}>Passenger Name:</Text>
                 {loading ? (
                   <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="small" color="#0000ff" />
+                    <ActivityIndicator size="small" />
                   </View>
                 ) : (
                   <Text style={styles.value}>
-                    {passengerInfo ? passengerInfo.first_name : "Unknown passenger"}
+                    {passengerInfo ? passengerInfo.first_name : "Passenger"}
                   </Text>
                 )}
 
@@ -206,20 +238,24 @@ const RideRequestBottomSheet: React.FC = () => {
                 <Text style={styles.value}>{ride.ride_time} min</Text>
 
                 <Text style={styles.label}>Fare Price:</Text>
-                <Text style={styles.value}>${((ride.fare_price ?? 0) / 100).toFixed(2)}</Text>
+                <Text style={styles.value}>
+                  ${((ride.fare_price ?? 0) / 100).toFixed(2)}
+                </Text>
               </View>
 
               <View style={styles.buttonContainer}>
                 <CustomButton
-                  title="Accept"
+                  title={busy === "accept" ? "Accepting…" : "Accept"}
                   bgVariant="success"
-                  onPress={() => ride.id && acceptRide(ride.id)}
+                  onPress={onAccept}
+                  disabled={busy !== null}
                   style={styles.actionButton}
                 />
                 <CustomButton
-                  title="Decline"
+                  title={busy === "decline" ? "Declining…" : "Decline"}
                   bgVariant="danger"
-                  onPress={() => ride.id && declineRide(ride.id)}
+                  onPress={onDecline}
+                  disabled={busy !== null}
                   style={styles.actionButton}
                 />
               </View>
@@ -234,54 +270,51 @@ const RideRequestBottomSheet: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: "flex-end"
   },
   backdrop: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: "#000"
   },
   bottomSheet: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
     paddingTop: 12,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: -2,
-    },
+    shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
   },
   handle: {
-    alignSelf: 'center',
+    alignSelf: "center",
     width: 40,
     height: 5,
     borderRadius: 3,
-    backgroundColor: '#DDDDDD',
+    backgroundColor: "#DDDDDD",
     marginBottom: 10,
   },
   infoContainer: {
-    marginVertical: 10,
+    marginVertical: 10
   },
   title: {
     fontSize: 18,
     fontWeight: "bold",
     textAlign: "center",
-    marginVertical: 10,
+    marginVertical: 10
   },
   label: {
     fontSize: 15,
     fontWeight: "600",
     marginTop: 10,
-    color: '#666',
+    color: "#666"
   },
   value: {
     fontSize: 16,
     marginBottom: 5,
-    fontWeight: '500',
+    fontWeight: "500"
   },
   buttonContainer: {
     flexDirection: "row",
@@ -290,10 +323,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   actionButton: {
-    width: 140,
+    width: 140
   },
   loadingContainer: {
-    paddingVertical: 8,
+    paddingVertical: 8
   },
 });
 

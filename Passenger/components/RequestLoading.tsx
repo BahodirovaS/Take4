@@ -46,7 +46,7 @@ const RequestLoading: React.FC<RequestLoadingProps> = ({ rideId }) => {
 
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>Finding Your Driver</Text>
+            <Text style={styles.title}>Finding You a Driver</Text>
             <ActivityIndicator size="large" color="#000" />
             
             <Text style={styles.statusText}>
@@ -71,7 +71,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         alignItems: "center",
-        padding: 20,
     },
     title: {
         fontSize: 24,
@@ -93,7 +92,7 @@ const styles = StyleSheet.create({
         fontFamily: "DMSans",
     },
     cancelButton: {
-        marginTop: 40,
+        marginTop: 30,
     },
 });
 
