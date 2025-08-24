@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "description": "API functions for Take4",
   "dependencies": {
+    "@clerk/backend": "^2.9.4",
     "@vercel/node": "^5.3.7",
-    "firebase-admin": "^11.0.0",
     "firebase": "^10.12.0",
+    "firebase-admin": "^11.0.0",
     "stripe": "^13.0.0"
   },
   "engines": {

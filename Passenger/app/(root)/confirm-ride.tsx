@@ -88,9 +88,9 @@ const ConfirmRide = () => {
             ]}>
               ${adjustedPrice}
             </Text>
-            <Text style={styles.estimatedTime}>
+            {/* <Text style={styles.estimatedTime}>
               {Math.ceil(time)} min
-            </Text>
+            </Text> */}
           </View>
         </View>
       </TouchableOpacity>

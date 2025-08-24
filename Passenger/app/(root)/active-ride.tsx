@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         paddingHorizontal: 16,
-        marginBottom: 12,
+        marginBottom: 10,
         zIndex: 10,
     },
     topBarText: {

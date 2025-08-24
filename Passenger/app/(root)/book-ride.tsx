@@ -76,15 +76,15 @@ const BookRide: React.FC = () => {
                             </Text>
                         </View>
 
-                        <View style={[styles.infoRow, styles.borderedRow]}>
+                        {/* <View style={[styles.infoRow, styles.borderedRow]}>
                             <Text style={styles.infoText}>Pickup In</Text>
                             <Text style={styles.infoText}>{formatTime(5)}</Text>
-                        </View>
+                        </View> */}
 
-                        <View style={[styles.infoRow, styles.borderedRow]}>
+                        {/* <View style={[styles.infoRow, styles.borderedRow]}>
                             <Text style={styles.infoText}>Arrival Time</Text>
                             <Text style={styles.infoText}>{arrivalTime}</Text>
-                        </View>
+                        </View> */}
 
                         <View style={[styles.infoRow, styles.borderedRow]}>
                             <Text style={styles.infoText}>Vehicle Type</Text>
