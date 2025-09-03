@@ -11,7 +11,6 @@ import { formatTime } from "@/lib/utils";
 import { useLocationStore, useReservationStore } from "@/store";
 import { usePriceCalculator } from "@/lib/price";
 
-// Ride type configuration
 const RIDE_TYPES = {
   standard: { name: "Standard", seats: 4, multiplier: 1.0, icon: "car" },
   comfort: { name: "Comfort", seats: 6, multiplier: 1.2, icon: "car-sport" },
@@ -32,7 +31,6 @@ const ReserveBookRide: React.FC = () => {
     } = useLocationStore();
     const { scheduledDate, scheduledTime } = useReservationStore();
 
-    // Get ride type data instead of driver details
     const selectedRideTypeData = RIDE_TYPES[rideType as keyof typeof RIDE_TYPES] || RIDE_TYPES.standard;
 
     const { price, time } = usePriceCalculator(
@@ -41,7 +39,6 @@ const ReserveBookRide: React.FC = () => {
         mileageAPI
     );
 
-    // Apply ride type multiplier instead of driver-specific pricing
     const adjustedPrice = price * selectedRideTypeData.multiplier;
 
     return (
@@ -89,29 +86,11 @@ const ReserveBookRide: React.FC = () => {
                             <Text style={styles.infoText}>{formatTime(time)}</Text>
                         </View>
 
-                        <View style={styles.infoRow}>
+                        {/* <View style={styles.infoRow}>
                             <Text style={styles.infoText}>Passenger Capacity</Text>
                             <Text style={styles.infoText}>Up to {selectedRideTypeData.seats} seats</Text>
-                        </View>
+                        </View> */}
                     </View>
-
-                    {/* Driver Assignment Information */}
-                    <View style={styles.driverAssignmentCard}>
-                        <View style={styles.driverAssignmentHeader}>
-                            <Ionicons name="time" size={20} color="#3f7564" />
-                            <Text style={styles.driverAssignmentTitle}>Driver Assignment</Text>
-                        </View>
-                        <Text style={styles.driverAssignmentText}>
-                            📍 We'll find the closest available {selectedRideTypeData.name.toLowerCase()} driver for your scheduled time
-                        </Text>
-                        <Text style={styles.driverAssignmentText}>
-                            ⏰ You'll be notified 30 minutes before pickup with driver details
-                        </Text>
-                        <Text style={styles.driverAssignmentSubtext}>
-                            Driver will have a vehicle with {selectedRideTypeData.seats}+ seats as requested
-                        </Text>
-                    </View>
-
                     <View style={styles.addressContainer}>
                         <View style={styles.addressRow}>
                             <Image source={icons.to} style={styles.icon} />

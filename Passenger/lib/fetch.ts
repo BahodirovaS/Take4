@@ -478,7 +478,7 @@ export const fetchScheduledRides = async (userId: string): Promise<{
     const q = query(
       collection(db, "rideRequests"),
       where("user_id", "==", userId),
-      where("status", "==", "scheduled")
+      where("status", "==", "scheduled_pending_driver")
     );
 
     const querySnapshot = await getDocs(q);

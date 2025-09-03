@@ -4,3 +4,4 @@ As I'm going:
 - eta once the ride has started on the passenger screen needs to be fixed to match actual google maps data
 - tip is showing up in the Connect account of the driver, but the fare share isn't
 - make admin page to change pricing of rides
+- tipping page won't pop up for passenegers if the app refreshes. Make it so if the tip is false, they can't go to home screen?

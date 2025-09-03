@@ -110,16 +110,6 @@ const ConfirmRide = () => {
 
       <View style={styles.rideTypeContainer}>
         {RIDE_TYPES.map(renderRideTypeCard)}
-        
-        <View style={styles.infoNote}>
-          <Ionicons name="information-circle-outline" size={16} color="#666" />
-          <Text style={styles.noteText}>
-            {isScheduled 
-              ? "Driver will be assigned 30 minutes before your ride"
-              : "You'll be connected with the nearest available driver"
-            }
-          </Text>
-        </View>
       </View>
 
       <View style={styles.footer}>
@@ -267,7 +257,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     marginHorizontal: 20,
-    marginTop:30,
+    // marginTop:30,
     marginBottom: 70,
   },
   button: {
