@@ -45,74 +45,93 @@ module.exports = async (req, res) => {
 
   try {
     if (req.method === 'POST' && path === '/create') {
-      const {
-        name,
-        email,
-        amount,
-        tipAmount = '0',
-        driverCommissionRate = 0.8,
-        driver_id,
-      } = req.body || {};
+  const {
+    name,
+    email,
+    amount,              // <-- this is the FARE ONLY (ride price before tip)
+    driverCommissionRate = 0.8,
+    driver_id,
+    rideId,              // <-- recommend passing a rideId for reconciliation
+  } = req.body || {};
 
-      if (!name || !email || !amount) {
-        return res.status(400).json({ error: 'Missing required fields' });
-      }
+  if (!name || !email || !amount) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
 
-      const fare = parseFloat(amount) || 0;
-      const tip = parseFloat(tipAmount) || 0;
-      const total = fare + tip;
+  // IMPORTANT: Only the fare is charged here. Tips happen later in /createTip.
+  const fare = parseFloat(amount) || 0;
+  const fareCents = Math.round(fare * 100);
 
-      const totalCents = Math.round(total * 100);
-      const companyShareCents = Math.round(fare * (1 - driverCommissionRate) * 100);
+  // Company share is taken via application_fee_amount on the destination charge
+  const companyShareCents = Math.round(fare * (1 - driverCommissionRate) * 100);
 
-      let customer;
-      const list = await stripe.customers.list({ email, limit: 1 });
-      if (list.data.length > 0) {
-        customer = list.data[0];
-        if (name && customer.name !== name) {
-          customer = await stripe.customers.update(customer.id, { name });
-        }
-      } else {
-        customer = await stripe.customers.create({ name, email });
-      }
-
-      const connectedAccountId = await getDriverConnectAccountId(driver_id);
-
-      const ephemeralKey = await stripe.ephemeralKeys.create(
-        { customer: customer.id },
-        { apiVersion: '2024-06-20' }
-      );
-
-      const intentParams = {
-        amount: totalCents,
-        currency: 'usd',
-        customer: customer.id,
-        automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
-        metadata: {
-          fareAmount: String(fare.toFixed(2)),
-          tipAmount: String(tip.toFixed(2)),
-          driverCommissionRate: String(driverCommissionRate),
-          driver_id: driver_id || '',
-        },
-        ...(connectedAccountId
-          ? {
-              transfer_data: { destination: connectedAccountId },
-              application_fee_amount: companyShareCents,
-              on_behalf_of: connectedAccountId,
-            }
-          : {}),
-      };
-
-      const paymentIntent = await stripe.paymentIntents.create(intentParams);
-
-      return res.json({
-        paymentIntent,
-        ephemeralKey,
-        customer: customer.id,
-        connectedAccountId: connectedAccountId || null,
-        mode: connectedAccountId ? 'destination_charge' : 'platform_charge',
-      });
+  // Load or create the customer
+  let customer;
+  const list = await stripe.customers.list({ email, limit: 1 });
+  if (list.data.length > 0) {
+    customer = list.data[0];
+    if (name && customer.name !== name) {
+      customer = await stripe.customers.update(customer.id, { name });
     }
+  } else {
+    customer = await stripe.customers.create({ name, email });
+  }
+
+  const connectedAccountId = await getDriverConnectAccountId(driver_id);
+
+  // Create an ephemeral key for the mobile SDK
+  const ephemeralKey = await stripe.ephemeralKeys.create(
+    { customer: customer.id },
+    { apiVersion: '2024-06-20' }
+  );
+
+  // Base intent params for the FARE ONLY
+  const baseIntentParams = {
+    amount: fareCents,            // <-- FARE ONLY
+    currency: 'usd',
+    customer: customer.id,
+    automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
+    metadata: {
+      type: 'fare',
+      rideId: rideId || '',
+      fareAmount: fare.toFixed(2),
+      driverCommissionRate: String(driverCommissionRate),
+      driver_id: driver_id || '',
+    },
+    // Optional: statement descriptors help driver/platform disputes
+    description: rideId ? `Fare for ride ${rideId}` : 'Ride fare',
+  };
+
+  let paymentIntent;
+  let mode;
+
+  if (connectedAccountId) {
+    // Destination charge → driver receives (fare - app_fee)
+    paymentIntent = await stripe.paymentIntents.create({
+      ...baseIntentParams,
+      transfer_data: { destination: connectedAccountId },
+      application_fee_amount: companyShareCents,
+      on_behalf_of: connectedAccountId, // keeps fees lower and descriptors cleaner
+    });
+    mode = 'destination_charge';
+  } else {
+    // Fallback: platform charge (no transfer yet)
+    // You can later run a transfer when the driver connects, or handle it manually.
+    paymentIntent = await stripe.paymentIntents.create({
+      ...baseIntentParams,
+    });
+    mode = 'platform_charge';
+  }
+
+  return res.json({
+    paymentIntent,
+    ephemeralKey,
+    customer: customer.id,
+    connectedAccountId: connectedAccountId || null,
+    mode,
+  });
+}
+
 
     if (req.method === 'POST' && path === '/check-driver-status') {
       const { driver_id } = req.body || {};

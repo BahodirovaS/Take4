@@ -5,3 +5,6 @@ As I'm going:
 - tip is showing up in the Connect account of the driver, but the fare share isn't
 - make admin page to change pricing of rides
 - tipping page won't pop up for passenegers if the app refreshes. Make it so if the tip is false, they can't go to home screen?
+- filter pets
+- buttons for different screens overflow words
+- scheduling rides

@@ -193,38 +193,38 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
               const rideDoc = await addDoc(collection(db, "rideRequests"), rideData);
               setRideId(rideDoc.id);
 
-              if (!isScheduled) {
-                try {
-                  console.log('Calling driver assignment API for immediate ride...');
+              try {
+                const assignmentResult = await fetchAPI(API_ENDPOINTS.ASSIGN_DRIVER, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    rideId: rideDoc.id,
+                    rideType: rideType || 'standard',
+                    pickupLatitude: userLatitude,
+                    pickupLongitude: userLongitude,
+                    // key change: pass the actual flag
+                    isScheduled: !!isScheduled,
+                  }),
+                });
 
-                  const assignmentResult = await fetchAPI(
-                    API_ENDPOINTS.ASSIGN_DRIVER,
-                    {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        rideId: rideDoc.id,
-                        rideType: rideType || 'standard',
-                        pickupLatitude: userLatitude,
-                        pickupLongitude: userLongitude,
-                        isScheduled: false,
-                      }),
-                    },
+                if (assignmentResult?.success) {
+                  //remove later
+                  console.log(
+                    isScheduled
+                      ? 'Scheduled reservation sent to driver:'
+                      : 'Driver request published:',
+                    assignmentResult.driver
                   );
-
-                  if (assignmentResult?.success) {
-                    console.log('Driver request published:', assignmentResult.driver);
-                  } else {
-                    console.warn('Driver assignment failed:', assignmentResult?.error);
-                  }
-                } catch (assignmentError) {
-                  console.error('Error calling driver assignment API:', assignmentError);
+                } else {
+                  console.warn('Driver assignment failed:', assignmentResult?.error);
                 }
+              } catch (assignmentError) {
+                console.error('Error calling ASSIGN_DRIVER:', assignmentError);
               }
 
               intentCreationCallback({
                 clientSecret: result.client_secret,
-              });
+              });;
             }
           }
         },

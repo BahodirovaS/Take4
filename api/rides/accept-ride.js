@@ -49,7 +49,7 @@ module.exports = async (req, res) => {
       }
       const r = ride.data();
 
-      const openStatuses = ["requested", "accepted"]; 
+      const openStatuses = ["requested", "scheduled_requested"]; 
       const alreadyTaken =
         (r.driver_id && r.driver_id !== driverId) ||
         !openStatuses.includes(r.status);

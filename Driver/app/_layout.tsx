@@ -39,7 +39,7 @@ const RideRequestListener: React.FC = () => {
     const q = query(
       collection(db, "rideRequests"),
       where("driver_id", "==", user.id),
-      where("status", "==", "requested")
+      where("status", "in", ["requested", "scheduled_requested"])
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
