@@ -73,6 +73,8 @@ const DriverWallet: React.FC = () => {
           driver_id: userId,
         }),
       });
+      console.log('Full API response:', JSON.stringify(response, null, 2)); // Add this
+      console.log('onboarding_completed value:', response.onboarding_completed); // And this
 
       setOnboardingCompleted(response.onboarding_completed || false);
       setAccountExists(!!(response.account_exists || response.account_id));

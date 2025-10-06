@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
+import * as Location from "expo-location";
 import { useUser } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
@@ -24,7 +25,8 @@ import CustomButton from "@/components/CustomButton";
 import { useRideRequest } from "@/contexts/RideRequestContext";
 import { fetchAPI } from "@/lib/fetch";
 import { API_ENDPOINTS } from "@/lib/config";
-import { router } from "expo-router"
+import { router } from "expo-router";
+import { getEtaMinutes, LatLng } from "@/lib/eta";
 
 interface PassengerInfo {
   first_name: string;
@@ -33,6 +35,7 @@ interface PassengerInfo {
 }
 
 const AnimatedView = Reanimated.createAnimatedComponent(View);
+const GOOGLE_KEY = process.env.EXPO_PUBLIC_DIRECTIONS_API_KEY || "";
 
 const RideRequestBottomSheet: React.FC = () => {
   const { user } = useUser();
@@ -40,17 +43,19 @@ const RideRequestBottomSheet: React.FC = () => {
   const [passengerInfo, setPassengerInfo] = useState<PassengerInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState<null | "accept" | "decline">(null);
+  const [pickupEtaMin, setPickupEtaMin] = useState<number | null>(null);
+  const [tripEtaMin, setTripEtaMin] = useState<number | null>(null);
+  const [totalEtaMin, setTotalEtaMin] = useState<number | null>(null);
   const insets = useSafeAreaInsets();
   const sheetHeight = 280;
   const translateY = useSharedValue(sheetHeight);
   const backdropOpacity = useSharedValue(0);
   const isSnappedToTop = useSharedValue(false);
-
+  const context = useSharedValue({ y: 0 });
 
   useEffect(() => {
     const fetchPassengerInfo = async () => {
       if (!ride || !ride.user_id) return;
-
       setLoading(true);
       try {
         const passengersQuery = query(
@@ -58,9 +63,7 @@ const RideRequestBottomSheet: React.FC = () => {
           where("clerkId", "==", ride.user_id),
           limit(1)
         );
-
         const passengersSnapshot = await getDocs(passengersQuery);
-
         if (!passengersSnapshot.empty) {
           const passengerDoc = passengersSnapshot.docs[0];
           const data = passengerDoc.data();
@@ -78,10 +81,7 @@ const RideRequestBottomSheet: React.FC = () => {
         setLoading(false);
       }
     };
-
-    if (modalVisible && ride) {
-      fetchPassengerInfo();
-    }
+    if (modalVisible && ride) fetchPassengerInfo();
   }, [ride, modalVisible]);
 
   useEffect(() => {
@@ -95,6 +95,50 @@ const RideRequestBottomSheet: React.FC = () => {
       isSnappedToTop.value = false;
     }
   }, [modalVisible]);
+
+  useEffect(() => {
+    const t =
+      typeof ride?.ride_time === "number"
+        ? ride?.ride_time
+        : Number(ride?.ride_time || 0);
+    setTripEtaMin(Number.isFinite(t) ? Math.round(t) : null);
+  }, [ride?.ride_time]);
+
+  useEffect(() => {
+    let mounted = true;
+    const run = async () => {
+      if (!modalVisible || !ride || !GOOGLE_KEY) return;
+
+      const perm = await Location.requestForegroundPermissionsAsync();
+      if (perm.status !== "granted") return;
+
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      if (!mounted) return;
+
+      const driver: LatLng = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+
+      if (ride.origin_latitude == null || ride.origin_longitude == null) return;
+      const pickup: LatLng = { latitude: ride.origin_latitude, longitude: ride.origin_longitude };
+
+      if (ride.destination_latitude == null || ride.destination_longitude == null) return;
+      const dropoff: LatLng = { latitude: ride.destination_latitude, longitude: ride.destination_longitude };
+
+      const [pickupEta, tripEtaMaybe] = await Promise.all([
+        getEtaMinutes(driver, pickup, GOOGLE_KEY),
+        tripEtaMin != null ? Promise.resolve(tripEtaMin) : getEtaMinutes(pickup, dropoff, GOOGLE_KEY),
+      ]);
+      if (!mounted) return;
+
+      const tripEta = tripEtaMaybe ?? null;
+      setPickupEtaMin(pickupEta ?? null);
+      setTripEtaMin(tripEta);
+      setTotalEtaMin(pickupEta != null && tripEta != null ? pickupEta + tripEta : null);
+    };
+    run();
+    return () => {
+      mounted = false;
+    };
+  }, [modalVisible, ride?.origin_latitude, ride?.origin_longitude, ride?.destination_latitude, ride?.destination_longitude, tripEtaMin]);
 
   const panGesture = Gesture.Pan()
     .onStart(() => {
@@ -119,12 +163,8 @@ const RideRequestBottomSheet: React.FC = () => {
       }
     });
 
-  const context = useSharedValue({ y: 0 });
-
   const handleBackdropPress = () => {
-    if (modalVisible && busy === null) {
-      setModalVisible(false);
-    }
+    if (modalVisible && busy === null) setModalVisible(false);
   };
 
   const sheetStyle = useAnimatedStyle(() => ({
@@ -135,7 +175,6 @@ const RideRequestBottomSheet: React.FC = () => {
     opacity: backdropOpacity.value,
   }));
 
-
   const onAccept = async () => {
     if (!ride?.id || !user?.id || busy) return;
     try {
@@ -143,10 +182,7 @@ const RideRequestBottomSheet: React.FC = () => {
       const res = await fetchAPI(API_ENDPOINTS.ACCEPT_RIDE, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          rideId: ride.id, 
-          driverId: user.id 
-        }),
+        body: JSON.stringify({ rideId: ride.id, driverId: user.id }),
       });
       if (res?.success) {
         setModalVisible(false);
@@ -168,16 +204,10 @@ const RideRequestBottomSheet: React.FC = () => {
       const res = await fetchAPI(API_ENDPOINTS.DECLINE_RIDE, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          rideId: ride.id, 
-          driverId: user.id 
-        }),
+        body: JSON.stringify({ rideId: ride.id, driverId: user.id }),
       });
-      if (res?.success) {
-        setModalVisible(false);
-      } else {
-        Alert.alert("Couldn’t decline ride", res?.error || "Please try again.");
-      }
+      if (res?.success) setModalVisible(false);
+      else Alert.alert("Couldn’t decline ride", res?.error || "Please try again.");
     } catch (e: any) {
       Alert.alert("Error", e?.message || "Please try again.");
     } finally {
@@ -213,7 +243,6 @@ const RideRequestBottomSheet: React.FC = () => {
               ]}
             >
               <View style={styles.handle} />
-
               <Text style={styles.title}>New Ride Request!</Text>
 
               <View style={styles.infoContainer}>
@@ -235,7 +264,15 @@ const RideRequestBottomSheet: React.FC = () => {
                 <Text style={styles.value}>{ride.destination_address}</Text>
 
                 <Text style={styles.label}>Ride Time:</Text>
-                <Text style={styles.value}>{ride.ride_time} min</Text>
+                <Text style={styles.value}>
+                  {totalEtaMin != null ? `${totalEtaMin} min` : "—"}
+                </Text>
+
+                <Text style={styles.breakdown}>
+                  {pickupEtaMin != null ? `Pickup ~ ${pickupEtaMin} min` : ""}
+                  {pickupEtaMin != null && tripEtaMin != null ? "  •  " : ""}
+                  {tripEtaMin != null ? `Trip ~ ${tripEtaMin} min` : ""}
+                </Text>
 
                 <Text style={styles.label}>Fare Price:</Text>
                 <Text style={styles.value}>
@@ -268,14 +305,11 @@ const RideRequestBottomSheet: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "flex-end"
+  container: { 
+    flex: 1, 
+    justifyContent: "flex-end" 
   },
-  backdrop: {
-    flex: 1,
-    backgroundColor: "#000"
-  },
+  backdrop: { flex: 1, backgroundColor: "#000" },
   bottomSheet: {
     backgroundColor: "white",
     borderTopLeftRadius: 20,
@@ -288,46 +322,15 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
   },
-  handle: {
-    alignSelf: "center",
-    width: 40,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: "#DDDDDD",
-    marginBottom: 10,
-  },
-  infoContainer: {
-    marginVertical: 10
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginVertical: 10
-  },
-  label: {
-    fontSize: 15,
-    fontWeight: "600",
-    marginTop: 10,
-    color: "#666"
-  },
-  value: {
-    fontSize: 16,
-    marginBottom: 5,
-    fontWeight: "500"
-  },
-  buttonContainer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  actionButton: {
-    width: 140
-  },
-  loadingContainer: {
-    paddingVertical: 8
-  },
+  handle: { alignSelf: "center", width: 40, height: 5, borderRadius: 3, backgroundColor: "#DDDDDD", marginBottom: 10 },
+  infoContainer: { marginVertical: 10 },
+  title: { fontSize: 18, fontWeight: "bold", textAlign: "center", marginVertical: 10 },
+  label: { fontSize: 15, fontWeight: "600", marginTop: 10, color: "#666" },
+  value: { fontSize: 16, marginBottom: 5, fontWeight: "500" },
+  breakdown: { fontSize: 13, color: "#888", marginBottom: 6 },
+  buttonContainer: { flexDirection: "row", justifyContent: "space-around", marginTop: 20, marginBottom: 10 },
+  actionButton: { width: 140 },
+  loadingContainer: { paddingVertical: 8 },
 });
 
 export default RideRequestBottomSheet;

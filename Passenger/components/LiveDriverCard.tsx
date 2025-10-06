@@ -38,12 +38,12 @@ const LiveDriverCard: React.FC<DriverCardProps> = ({
             {driver.v_make} • {driver.v_plate}
           </Text>
         </View>
-        {rideStatus !== "arrived_at_pickup" && (
+        {/* {rideStatus !== "arrived_at_pickup" && (
           <View style={styles.etaContainer}>
             <Text style={styles.etaLabel}>ETA</Text>
             <Text style={styles.etaValue}>{eta}</Text>
           </View>
-        )}
+        )} */}
       </View>
       {rideStatus !== "in_progress" && (
         <View style={styles.contactContainer}>

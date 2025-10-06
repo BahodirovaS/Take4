@@ -1,7 +1,7 @@
 import { useAuth } from "@clerk/clerk-expo";
 import { useStripe } from "@stripe/stripe-react-native";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Alert, Image, Text, View, StyleSheet } from "react-native";
 import { ReactNativeModal } from "react-native-modal";
 
@@ -34,7 +34,7 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
   scheduledTime,
   rideType,
   requiredSeats,
-  driverCommissionRate = 0.80,
+  driverCommissionRate = 0.8,
 }) => {
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const {
@@ -46,10 +46,13 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
     destinationLongitude,
   } = useLocationStore();
   const { clearReservation } = useReservationStore();
-
   const { userId } = useAuth();
+
   const [success, setSuccess] = useState<boolean>(false);
   const [rideId, setRideId] = useState<string | null>(null);
+
+  const lastPIRef = useRef<{ id: string; clientSecret: string; customer: string } | null>(null);
+  const lastPMRef = useRef<string | null>(null);
 
   const buttonTitle = isScheduled ? "Pay & Confirm Reservation" : "Confirm Ride";
   const modalTitle = isScheduled ? "Reservation Confirmed" : "Booking placed successfully";
@@ -60,19 +63,6 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
 
   const driverShare = (parseFloat(amount) * driverCommissionRate).toFixed(2);
   const companyShare = (parseFloat(amount) * (1 - driverCommissionRate)).toFixed(2);
-
-  const openPaymentSheet = async () => {
-    await initializePaymentSheet();
-
-    const { error } = await presentPaymentSheet();
-
-    if (error) {
-      Alert.alert(`Error code: ${error.code}`, error.message);
-    } else {
-      setSuccess(true);
-    }
-  };
-
   const initializePaymentSheet = async () => {
     const { error } = await initPaymentSheet({
       merchantDisplayName: "Cabbage Rides",
@@ -81,158 +71,146 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
           amount: Math.round(parseFloat(amount) * 100),
           currencyCode: "usd",
         },
-        confirmHandler: async (
-          paymentMethod,
-          shouldSavePaymentMethod,
-          intentCreationCallback
-        ) => {
-          const { paymentIntent, customer } = await fetchAPI(
-            API_ENDPOINTS.CREATE_PAYMENT,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                name: fullName || email.split("@")[0],
-                email: email,
-                amount: amount,
-                driverCommissionRate: driverCommissionRate,
-                driver_id: driver_id
-              }),
-            }
-          );
+        confirmHandler: async (paymentMethod, _shouldSave, intentCreationCallback) => {
+          const { paymentIntent, customer } = await fetchAPI(API_ENDPOINTS.CREATE_PAYMENT, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: fullName || email.split("@")[0],
+              email,
+              amount,
+              driverCommissionRate,
+              driver_id,
+            }),
+          });
 
-          if (paymentIntent.client_secret) {
-            const { result } = await fetchAPI(API_ENDPOINTS.PROCESS_PAYMENT, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                payment_method_id: paymentMethod.id,
-                payment_intent_id: paymentIntent.id,
-                customer_id: customer,
-                client_secret: paymentIntent.client_secret,
-              }),
-            });
+          lastPIRef.current = {
+            id: paymentIntent.id,
+            clientSecret: paymentIntent.client_secret,
+            customer,
+          };
+          lastPMRef.current = paymentMethod.id;
 
-            if (result.client_secret) {
-              const rideData = {
-                origin_address: userAddress,
-                destination_address: destinationAddress,
-                origin_latitude: userLatitude,
-                origin_longitude: userLongitude,
-                destination_latitude: destinationLatitude,
-                destination_longitude: destinationLongitude,
-                ride_time: rideTime.toFixed(0),
-                fare_price: Math.round(parseFloat(amount) * 100),
-                driver_share: Math.round(parseFloat(driverShare) * 100),
-                company_share: Math.round(parseFloat(companyShare) * 100),
-                payment_status: "paid",
-                user_id: userId,
-                user_name: fullName,
-                driver_id: "",
-                createdAt: new Date(),
-                payment_intent_id: paymentIntent.id,
-                payment_method_id: paymentMethod.id,
-                stripe_id: customer,
-                ride_type: rideType,
-                required_seats: requiredSeats,
-              };
-
-              if (isScheduled && scheduledDate && scheduledTime) {
-                try {
-                  const dateParts = scheduledDate.split(', ');
-                  const dateString = dateParts.length > 1 ? dateParts[1] : scheduledDate;
-
-                  const months = [
-                    'January', 'February', 'March', 'April', 'May', 'June',
-                    'July', 'August', 'September', 'October', 'November', 'December'
-                  ];
-
-                  const [month, day] = dateString.split(' ');
-                  const monthIndex = months.indexOf(month);
-                  const currentYear = new Date().getFullYear();
-
-                  const [timePart, modifier] = scheduledTime.split(' ');
-                  const [hour, minute] = timePart.split(':').map(Number);
-
-                  let adjustedHour = hour;
-                  if (modifier === 'PM' && hour !== 12) {
-                    adjustedHour += 12;
-                  } else if (modifier === 'AM' && hour === 12) {
-                    adjustedHour = 0;
-                  }
-
-                  const scheduledDateTime = new Date(
-                    currentYear,
-                    monthIndex,
-                    parseInt(day),
-                    adjustedHour,
-                    minute
-                  );
-
-                  Object.assign(rideData, {
-                    status: "scheduled_pending_driver",
-                    scheduled_date: scheduledDate,
-                    scheduled_time: scheduledTime,
-                    scheduled_datetime: scheduledDateTime,
-                  });
-
-                } catch (error) {
-                  console.error('Error parsing scheduled date/time:', error);
-                  return;
-                }
-              } else {
-                Object.assign(rideData, {
-                  status: "requested",
-                });
-              }
-
-              const rideDoc = await addDoc(collection(db, "rideRequests"), rideData);
-              setRideId(rideDoc.id);
-
-              try {
-                const assignmentResult = await fetchAPI(API_ENDPOINTS.ASSIGN_DRIVER, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    rideId: rideDoc.id,
-                    rideType: rideType || 'standard',
-                    pickupLatitude: userLatitude,
-                    pickupLongitude: userLongitude,
-                    // key change: pass the actual flag
-                    isScheduled: !!isScheduled,
-                  }),
-                });
-
-                if (assignmentResult?.success) {
-                  //remove later
-                  console.log(
-                    isScheduled
-                      ? 'Scheduled reservation sent to driver:'
-                      : 'Driver request published:',
-                    assignmentResult.driver
-                  );
-                } else {
-                  console.warn('Driver assignment failed:', assignmentResult?.error);
-                }
-              } catch (assignmentError) {
-                console.error('Error calling ASSIGN_DRIVER:', assignmentError);
-              }
-
-              intentCreationCallback({
-                clientSecret: result.client_secret,
-              });;
-            }
-          }
+          intentCreationCallback({ clientSecret: paymentIntent.client_secret });
         },
       },
       returnURL: isScheduled ? "myapp://reserve-book-ride" : "myapp://book-ride",
     });
 
     if (!error) {
+      // ready
+    }
+  };
+
+  const openPaymentSheet = async () => {
+    await initializePaymentSheet();
+
+    const { error } = await presentPaymentSheet();
+
+    if (error) {
+      Alert.alert(`Error code: ${error.code}`, error.message);
+      return;
+    }
+
+    try {
+      const fareCents = Math.round(parseFloat(amount) * 100);
+      const driverShareCents = Math.round(parseFloat(driverShare) * 100);
+      const companyShareCents = Math.round(parseFloat(companyShare) * 100);
+
+      const baseRideData: any = {
+        origin_address: userAddress ?? null,
+        destination_address: destinationAddress ?? null,
+        origin_latitude: userLatitude ?? null,
+        origin_longitude: userLongitude ?? null,
+        destination_latitude: destinationLatitude ?? null,
+        destination_longitude: destinationLongitude ?? null,
+        ride_time: Number.isFinite(Number(rideTime)) ? String(Math.trunc(Number(rideTime))) : null,
+        fare_price: fareCents,
+        driver_share: driverShareCents,
+        company_share: companyShareCents,
+        payment_status: "paid",
+        user_id: userId ?? null,
+        user_name: fullName ?? (email ? email.split("@")[0] : null),
+        driver_id: "",
+        createdAt: new Date(),
+        ride_type: rideType ?? null,
+        required_seats: typeof requiredSeats === "number" ? requiredSeats : null,
+      };
+
+      if (lastPIRef.current?.id) baseRideData.payment_intent_id = lastPIRef.current.id;
+      if (lastPMRef.current) baseRideData.payment_method_id = lastPMRef.current;
+      if (lastPIRef.current?.customer) baseRideData.stripe_id = lastPIRef.current.customer;
+
+      if (isScheduled && scheduledDate && scheduledTime) {
+        const dateParts = scheduledDate.split(", ");
+        const dateString = dateParts.length > 1 ? dateParts[1] : scheduledDate;
+        const months = [
+          "January",
+          "February",
+          "March",
+          "April",
+          "May",
+          "June",
+          "July",
+          "August",
+          "September",
+          "October",
+          "November",
+          "December",
+        ];
+        const [month, day] = dateString.split(" ");
+        const monthIndex = months.indexOf(month);
+        const currentYear = new Date().getFullYear();
+        const [timePart, modifier] = scheduledTime.split(" ");
+        const [hour, minute] = timePart.split(":").map(Number);
+        let adjustedHour = hour;
+        if (modifier === "PM" && hour !== 12) adjustedHour += 12;
+        if (modifier === "AM" && hour === 12) adjustedHour = 0;
+        const scheduledDateTime = new Date(currentYear, monthIndex, parseInt(day), adjustedHour, minute);
+
+        baseRideData.status = "scheduled_pending_driver";
+        baseRideData.scheduled_date = scheduledDate;
+        baseRideData.scheduled_time = scheduledTime;
+        baseRideData.scheduled_datetime = scheduledDateTime;
+      } else {
+        baseRideData.status = "requested";
+      }
+
+      const rideDoc = await addDoc(collection(db, "rideRequests"), baseRideData);
+      setRideId(rideDoc.id);
+
+      try {
+        const assignmentResult = await fetchAPI(API_ENDPOINTS.ASSIGN_DRIVER, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            rideId: rideDoc.id,
+            rideType: rideType || "standard",
+            pickupLatitude: userLatitude,
+            pickupLongitude: userLongitude,
+            isScheduled: !!isScheduled,
+          }),
+        });
+
+        if (!assignmentResult?.success) {
+          console.warn("Driver assignment failed:", assignmentResult?.error);
+        } else {
+          console.log(
+            isScheduled ? "Scheduled reservation sent to driver:" : "Driver request published:",
+            assignmentResult.driver
+          );
+        }
+      } catch (assignmentError: any) {
+        console.error("Error calling ASSIGN_DRIVER:", assignmentError?.message || assignmentError);
+      }
+
+      setSuccess(true);
+    } catch (persistErr: any) {
+      console.error("Post-payment persist/assign error:", persistErr);
+      Alert.alert(
+        "Payment succeeded, but booking failed",
+        "We’ll refund automatically if needed. Please contact support."
+      );
     }
   };
 
@@ -245,35 +223,20 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
     } else {
       router.push({
         pathname: "/(root)/active-ride",
-        params: { rideId: rideId || undefined }
+        params: { rideId: rideId || undefined },
       });
     }
   };
 
   return (
     <>
-      <CustomButton
-        title={buttonTitle}
-        style={styles.confirmButton}
-        onPress={openPaymentSheet}
-      />
-
-      <ReactNativeModal
-        isVisible={success}
-        onBackdropPress={() => setSuccess(false)}
-      >
+      <CustomButton title={buttonTitle} style={styles.confirmButton} onPress={openPaymentSheet} />
+      <ReactNativeModal isVisible={success} onBackdropPress={() => setSuccess(false)}>
         <View style={styles.modalContainer}>
           <Image source={images.check} style={styles.checkImage} />
-
           <Text style={styles.modalTitle}>{modalTitle}</Text>
-
           <Text style={styles.modalText}>{modalText}</Text>
-
-          <CustomButton
-            title={buttonText}
-            onPress={handleSuccessButtonPress}
-            style={styles.backButton}
-          />
+          <CustomButton title={buttonText} onPress={handleSuccessButtonPress} style={styles.backButton} />
         </View>
       </ReactNativeModal>
     </>

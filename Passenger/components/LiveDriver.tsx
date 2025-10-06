@@ -13,6 +13,7 @@ import {
 
 interface ExtendedDriverInfoProps extends DriverInfoProps {
     rideStatus?: string;
+    eta?: string;
 }
 
 const LiveDriver: React.FC<ExtendedDriverInfoProps> = ({

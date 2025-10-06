@@ -425,7 +425,7 @@ export const getCurrentLocation = async (): Promise<{
 
     const googleApiKey = process.env.EXPO_PUBLIC_PLACES_API_KEY;
     const response = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&result_type=street_address&key=${googleApiKey}`
+      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&location_type=ROOFTOP&key=${googleApiKey}`
     );
     const data = await response.json();
 

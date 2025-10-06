@@ -29,8 +29,8 @@ const RideLayout: React.FC<RideLayoutProps> = ({
   const pathname = usePathname();
 
   const defaultSnapPoints = rideStatus === "in_progress" 
-  ? ["35%"]
-  : ["55%", "80%"]
+  ? ["45%"]
+  : ["50%", "60%"]
 
   const handleBackPress = () => {
     if (pathname.includes('book-ride')) {
@@ -48,9 +48,9 @@ const RideLayout: React.FC<RideLayoutProps> = ({
   return (
     <GestureHandlerRootView style={styles.container}>
       <View style={styles.mainContainer}>
-        <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+        {/* <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
           <Image source={icons.backArrow} resizeMode="contain" style={styles.backArrow} />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
         <Map 
           showLocationButton={true}
           rideStatus={rideStatus}

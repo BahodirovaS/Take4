@@ -5,16 +5,18 @@ import MapViewDirections from "react-native-maps-directions";
 import { icons } from "@/constants";
 import { useLocationStore } from "@/store";
 
-const directionsAPI = process.env.EXPO_PUBLIC_DIRECTIONS_API_KEY;
+const directionsAPI = process.env.EXPO_PUBLIC_DIRECTIONS_API_KEY || "";
+
+const isNum = (v: any): v is number => typeof v === "number" && Number.isFinite(v);
 
 const Map = ({
   showLocationButton,
   rideStatus,
   driverLocation
 }: {
-  showLocationButton?: boolean,
-  rideStatus?: string,
-  driverLocation?: { latitude: number, longitude: number }
+  showLocationButton?: boolean;
+  rideStatus?: string;
+  driverLocation?: { latitude: number; longitude: number };
 }) => {
   const {
     userLongitude,
@@ -24,58 +26,31 @@ const Map = ({
   } = useLocationStore();
 
   const mapRef = useRef<MapView>(null);
-  const [mapCentered, setMapCentered] = useState(false);
+  const [didFit, setDidFit] = useState(false);
 
-  const coordinates: LatLng[] = [];
-
-  if (userLatitude && userLongitude) {
-    coordinates.push({
-      latitude: userLatitude,
-      longitude: userLongitude,
-    });
-  }
-
-  if (destinationLatitude && destinationLongitude) {
-    coordinates.push({
-      latitude: destinationLatitude,
-      longitude: destinationLongitude,
-    });
-  }
-
-  if (rideStatus === "accepted" && driverLocation && driverLocation.latitude && driverLocation.longitude) {
-    coordinates.push({
-      latitude: driverLocation.latitude,
-      longitude: driverLocation.longitude,
-    });
-  }
+  const hasUser = isNum(userLatitude) && isNum(userLongitude);
+  const hasDest = isNum(destinationLatitude) && isNum(destinationLongitude);
+  const hasDriver = rideStatus === "accepted" && driverLocation && isNum(driverLocation.latitude) && isNum(driverLocation.longitude);
 
   useEffect(() => {
-    if (coordinates.length > 1 && mapRef.current) {
-      setTimeout(() => {
-        mapRef.current?.fitToCoordinates(coordinates, {
-          edgePadding: { top: 50, right: 50, bottom: 350, left: 50 },
-          animated: true,
-        });
-        setMapCentered(true);
-      }, 500);
-    }
-  }, [userLatitude, userLongitude, destinationLatitude, destinationLongitude, driverLocation]);
+    setDidFit(false);
+  }, [userLatitude, userLongitude, destinationLatitude, destinationLongitude, driverLocation, rideStatus]);
 
   const goToUserLocation = () => {
-    if (userLatitude && userLongitude && mapRef.current) {
+    if (hasUser && mapRef.current) {
       mapRef.current.animateToRegion(
         {
-          latitude: userLatitude,
-          longitude: userLongitude,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
+          latitude: userLatitude as number,
+          longitude: userLongitude as number,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
         },
-        1000 // Animation duration in ms
+        800
       );
     }
   };
 
-  if (!userLatitude || !userLongitude) {
+  if (!hasUser) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="small" color="#000" />
@@ -93,84 +68,82 @@ const Map = ({
         mapType="mutedStandard"
         showsPointsOfInterest={false}
         initialRegion={{
-          latitude: userLatitude || 42.347023,
-          longitude: userLongitude || -71.081924,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
+          latitude: userLatitude as number,
+          longitude: userLongitude as number,
+          latitudeDelta: 0.02,
+          longitudeDelta: 0.02,
         }}
-        showsUserLocation={true}
+        showsUserLocation={false}
         userInterfaceStyle="light"
       >
         <Marker
           key="user"
-          coordinate={{
-            latitude: userLatitude,
-            longitude: userLongitude,
-          }}
+          coordinate={{ latitude: userLatitude as number, longitude: userLongitude as number }}
           title="Your location"
           image={icons.marker}
         />
 
-        {destinationLatitude && destinationLongitude && (
+        {hasDest && (
           <Marker
             key="destination"
-            coordinate={{
-              latitude: destinationLatitude,
-              longitude: destinationLongitude,
-            }}
+            coordinate={{ latitude: destinationLatitude as number, longitude: destinationLongitude as number }}
             title="Destination"
             image={icons.pin}
           />
         )}
 
-        {rideStatus === "accepted" && driverLocation && driverLocation.latitude && driverLocation.longitude && (
+        {hasDriver && (
           <Marker
             key="driver"
-            coordinate={{
-              latitude: driverLocation.latitude,
-              longitude: driverLocation.longitude,
-            }}
+            coordinate={{ latitude: driverLocation!.latitude, longitude: driverLocation!.longitude }}
             title="Driver"
           >
             <View style={styles.driverMarkerContainer}>
-              <Image
-                source={icons.marker}
-                style={styles.driverMarkerImage}
-              />
+              <Image source={icons.marker} style={styles.driverMarkerImage} />
             </View>
           </Marker>
         )}
 
-        {rideStatus === "accepted" && driverLocation && driverLocation.latitude && driverLocation.longitude && (
+        {hasDriver && directionsAPI && (
           <MapViewDirections
-            origin={{
-              latitude: driverLocation.latitude,
-              longitude: driverLocation.longitude,
-            }}
-            destination={{
-              latitude: userLatitude,
-              longitude: userLongitude,
-            }}
-            apikey={directionsAPI!}
+            origin={{ latitude: driverLocation!.latitude, longitude: driverLocation!.longitude }}
+            destination={{ latitude: userLatitude as number, longitude: userLongitude as number }}
+            apikey={directionsAPI}
             strokeColor="#0286FF"
             strokeWidth={2}
-            lineDashPattern={[5, 4]} 
+            lineDashPattern={[5, 4]}
+            mode="DRIVING"
+            timePrecision="now"
+            onReady={(res) => {
+              if (!didFit && mapRef.current) {
+                mapRef.current.fitToCoordinates(res.coordinates, {
+                  edgePadding: { top: 60, right: 60, bottom: 120, left: 60 },
+                  animated: true,
+                });
+                setDidFit(true);
+              }
+            }}
           />
         )}
 
-        {(rideStatus === "arrived_at_pickup" || rideStatus === "in_progress" || !rideStatus) && destinationLatitude && destinationLongitude && (
+        {(!rideStatus || rideStatus === "arrived_at_pickup" || rideStatus === "in_progress") && hasDest && directionsAPI && (
           <MapViewDirections
-            origin={{
-              latitude: userLatitude,
-              longitude: userLongitude,
-            }}
-            destination={{
-              latitude: destinationLatitude,
-              longitude: destinationLongitude,
-            }}
-            apikey={directionsAPI!}
+            origin={{ latitude: userLatitude as number, longitude: userLongitude as number }}
+            destination={{ latitude: destinationLatitude as number, longitude: destinationLongitude as number }}
+            apikey={directionsAPI}
             strokeColor="#0286FF"
             strokeWidth={2}
+            mode="DRIVING"
+            timePrecision="now"
+            onReady={(res) => {
+              if (!didFit && mapRef.current) {
+                mapRef.current.fitToCoordinates(res.coordinates, {
+                  edgePadding: { top: 60, right: 60, bottom: 120, left: 60 },
+                  animated: true,
+                });
+                setDidFit(true);
+              }
+            }}
           />
         )}
       </MapView>
@@ -185,30 +158,11 @@ const Map = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    width: "100%",
-    height: "100%",
-  },
-  map: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 16,
-  },
-  driverMarkerContainer: {
-    width: 50,
-    height: 24,
-  },
-  driverMarkerImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'contain',
-  },
+  container: { flex: 1 },
+  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", width: "100%", height: "100%" },
+  map: { width: "100%", height: "100%", borderRadius: 16 },
+  driverMarkerContainer: { width: 50, height: 24 },
+  driverMarkerImage: { width: "100%", height: "100%", resizeMode: "contain" },
   button: {
     position: "absolute",
     top: 60,
@@ -218,14 +172,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 50,
     borderWidth: 1,
-    borderColor: "#fffff",
+    borderColor: "#ffffff",
     zIndex: 10,
-    transform: [{ rotate: "315deg" }]
+    transform: [{ rotate: "315deg" }],
   },
-  buttonIcon: {
-    width: 20,
-    height: 20,
-  },
+  buttonIcon: { width: 20, height: 20 },
 });
 
 export default Map;
