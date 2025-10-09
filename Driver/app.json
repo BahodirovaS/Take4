@@ -12,13 +12,19 @@
       "resizeMode": "contain",
       "backgroundColor": "#3f7564"
     },
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.ridepal.take4.driver",
-      "buildNumber": "1",
+      "buildNumber": "6",
       "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Your location is used to show your position and calculate ETAs.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Your location is used to share your live position with riders and dispatch, even in the background.",
+        "UIBackgroundModes": ["location"],
         "ITSAppUsesNonExemptEncryption": false
+      },
+      "config": {
+        "googleMapsApiKey": "AIzaSyCVOc8LSzDU0cp5aHGmIN2Tn1C6o84NPw0"
       }
     },
     "android": {
@@ -46,6 +52,7 @@
       "eas": {
         "projectId": "a74a8bde-6792-4f2b-8a15-e34d95b58d19"
       }
-    }
+    },
+    "owner": "bahs"
   }
 }
