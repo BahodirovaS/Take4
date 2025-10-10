@@ -15,6 +15,7 @@ As I'm going:
 - for driver app, remove the "setup required" in wallet once bank is set up. maybe it's because of the test but it shows incomplete
 
 - buttons for different screens overflow words
+- put back the map button to go to the back screen for passengers
 
 - filter pets
 

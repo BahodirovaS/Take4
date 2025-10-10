@@ -48,9 +48,9 @@ const RideLayout: React.FC<RideLayoutProps> = ({
   return (
     <GestureHandlerRootView style={styles.container}>
       <View style={styles.mainContainer}>
-        {/* <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+        <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
           <Image source={icons.backArrow} resizeMode="contain" style={styles.backArrow} />
-        </TouchableOpacity> */}
+        </TouchableOpacity>
         <Map 
           showLocationButton={true}
           rideStatus={rideStatus}
