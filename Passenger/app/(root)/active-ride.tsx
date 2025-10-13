@@ -233,7 +233,7 @@ const ActiveRide = () => {
                         <Text style={styles.etaValue}>{dropoffEtaMin} min</Text>
                     </View>
                 )}
-                <Text style={styles.headerText}>Your Driver</Text>
+                {/* <Text style={styles.headerText}>Your Driver</Text> */}
                 {["accepted", "arrived_at_pickup", "in_progress"].includes(rideStatus) && driverId && hasDriverFix ? (
                     <LiveDriver
                         driverId={driverId}

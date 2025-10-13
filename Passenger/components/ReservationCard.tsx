@@ -61,12 +61,12 @@ const ReservationCard: React.FC<{
                   {ride.scheduled_time}
                 </Text>
               </View>
-              <View style={styles.infoRow}>
+              {/* <View style={styles.infoRow}>
                 <Text style={styles.label}>Driver</Text>
                 <Text style={styles.value}>
                   {driverName || 'Not assigned'}
                 </Text>
-              </View>
+              </View> */}
               <View style={styles.detailsContainer}>
                 <View style={styles.row}>
                   <Image source={icons.to} style={styles.icon} />

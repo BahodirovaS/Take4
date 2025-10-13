@@ -17,6 +17,7 @@ import ReservationCard from '@/components/ReservationCard';
 import { router } from 'expo-router';
 import { fetchScheduledRides, cancelRide } from '@/lib/fetch';
 
+
 const Reservations = () => {
   const [rides, setRides] = useState<RideRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);

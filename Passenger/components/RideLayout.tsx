@@ -30,7 +30,7 @@ const RideLayout: React.FC<RideLayoutProps> = ({
 
   const defaultSnapPoints = rideStatus === "in_progress" 
   ? ["45%"]
-  : ["50%", "60%"]
+  : ["50%", "80%"]
 
   const handleBackPress = () => {
     if (pathname.includes('book-ride')) {

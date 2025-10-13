@@ -39,7 +39,6 @@ const BookRide: React.FC = () => {
     );
 
     const adjustedPrice = price * selectedRideTypeData.multiplier;
-    console.log("prices", adjustedPrice)
     return (
         <StripeProvider
             publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY!}
