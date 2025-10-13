@@ -16,7 +16,6 @@ import * as Location from "expo-location";
 import DriverLocationPublisher from "@/components/DriverLocationPublisher";
 
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
