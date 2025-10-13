@@ -80,16 +80,26 @@ const Map = ({
           key="user"
           coordinate={{ latitude: userLatitude as number, longitude: userLongitude as number }}
           title="Your location"
-          image={icons.marker}
-        />
+          tracksViewChanges={false}
+          anchor={{ x: 0.5, y: 0.5 }}
+        >
+          <View style={{ width: 28, height: 28 }}>
+            <Image source={icons.marker} style={{ width: "100%", height: "100%", resizeMode: "contain" }} />
+          </View>
+        </Marker>
 
         {hasDest && (
           <Marker
             key="destination"
             coordinate={{ latitude: destinationLatitude as number, longitude: destinationLongitude as number }}
             title="Destination"
-            image={icons.pin}
-          />
+            tracksViewChanges={false}
+            anchor={{ x: 0.5, y: 1 }}
+          >
+            <View style={{ width: 28, height: 28 }}>
+              <Image source={icons.pin} style={{ width: "100%", height: "100%", resizeMode: "contain" }} />
+            </View>
+          </Marker>
         )}
 
         {hasDriver && (
@@ -97,12 +107,15 @@ const Map = ({
             key="driver"
             coordinate={{ latitude: driverLocation!.latitude, longitude: driverLocation!.longitude }}
             title="Driver"
+            tracksViewChanges={false}
+            anchor={{ x: 0.5, y: 0.5 }}
           >
-            <View style={styles.driverMarkerContainer}>
-              <Image source={icons.marker} style={styles.driverMarkerImage} />
+            <View style={{ width: 28, height: 28 }}>
+              <Image source={icons.marker} style={{ width: "100%", height: "100%", resizeMode: "contain" }} />
             </View>
           </Marker>
         )}
+
 
         {hasDriver && directionsAPI && (
           <MapViewDirections

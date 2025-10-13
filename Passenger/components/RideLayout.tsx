@@ -48,14 +48,14 @@ const RideLayout: React.FC<RideLayoutProps> = ({
   return (
     <GestureHandlerRootView style={styles.container}>
       <View style={styles.mainContainer}>
-        <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
-          <Image source={icons.backArrow} resizeMode="contain" style={styles.backArrow} />
-        </TouchableOpacity>
         <Map 
           showLocationButton={true}
           rideStatus={rideStatus}
           driverLocation={driverLocation}
         />
+        <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+          <Image source={icons.backArrow} resizeMode="contain" style={styles.backArrow} />
+        </TouchableOpacity>
       </View>
       <BottomSheet
         ref={bottomSheetRef}
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 60,
     left: 20,
-    zIndex: 10,
+    zIndex: 100,
     width: 40,
     height: 40,
     backgroundColor: "white",

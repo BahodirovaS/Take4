@@ -23,7 +23,7 @@ declare interface MarkerData {
   clerk_id: string;
   first_name: string;
   last_name: string;
-  phone_number: string;
+  phone_number?: string | null;
   profile_image_url: string;
   car_image_url: string;
   car_seats: number;
