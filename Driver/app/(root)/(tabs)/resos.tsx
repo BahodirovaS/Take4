@@ -28,7 +28,6 @@ const Reservations = () => {
   const { user } = useUser();
   const { clearReservation } = useReservationStore();
 
-  
   useEffect(() => {
     loadScheduledRides();
   }, [user]);
@@ -52,7 +51,6 @@ const Reservations = () => {
     setFetchComplete(true);
   };
 
-  
   const handleStartRide = async (rideId: string) => {
     const { success, error } = await startRideAction(rideId);
     if (success) {
