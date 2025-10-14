@@ -723,10 +723,8 @@ export const fetchScheduledRides = async (userId: string): Promise<{
     );
 
     const querySnapshot = await getDocs(q);
-    const scheduledRides: RideRequest[] = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as RideRequest));
+    const scheduledRides: RideRequest[] = querySnapshot.docs
+    .map(doc => ({id: doc.id,...doc.data()} as RideRequest));
 
     return {
       rides: scheduledRides,

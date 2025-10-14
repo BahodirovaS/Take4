@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { 
-    View, 
-    Text, 
-    FlatList, 
-    StyleSheet, 
-    Alert, 
-    Image, 
-    SafeAreaView,
-    ActivityIndicator
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  Alert,
+  Image,
+  SafeAreaView,
+  ActivityIndicator
 } from 'react-native';
 import { useUser } from "@clerk/clerk-expo";
 import { useReservationStore } from "@/store";
@@ -15,10 +15,10 @@ import { RideRequest } from '@/types/type';
 import { images } from "@/constants";
 import ReservationCard from '@/components/ReservationCard';
 import { router } from 'expo-router';
-import { 
-  fetchScheduledRides, 
-  startScheduledRide as startRideAction, 
-  cancelScheduledRide as cancelRideAction 
+import {
+  fetchScheduledRides,
+  startScheduledRide as startRideAction,
+  cancelScheduledRide as cancelRideAction
 } from '@/lib/fetch';
 
 const Reservations = () => {
@@ -32,7 +32,7 @@ const Reservations = () => {
     loadScheduledRides();
   }, [user]);
 
-  
+
   const loadScheduledRides = async () => {
     if (!user?.id) {
       setIsLoading(false);
@@ -41,11 +41,15 @@ const Reservations = () => {
     }
     setIsLoading(true);
     const { rides: scheduledRides, error } = await fetchScheduledRides(user.id);
-    
+    const sorted = [...scheduledRides].sort(
+      (a, b) =>
+        (a.scheduled_datetime?.toDate?.() ?? new Date(a.scheduled_datetime)) -
+        (b.scheduled_datetime?.toDate?.() ?? new Date(b.scheduled_datetime))
+    );
     if (error) {
       Alert.alert('Error', 'Failed to fetch scheduled rides');
     } else {
-      setRides(scheduledRides);
+      setRides(sorted);
     }
     setIsLoading(false);
     setFetchComplete(true);
@@ -65,7 +69,7 @@ const Reservations = () => {
     }
   };
 
-  
+
   const handleCancelRide = async (rideId: string) => {
     const { success, error } = await cancelRideAction(rideId);
     if (success) {
@@ -77,7 +81,7 @@ const Reservations = () => {
     }
   };
 
-  
+
   const confirmCancelRide = (rideId: string) => {
     Alert.alert(
       'Cancel Ride',
@@ -95,7 +99,7 @@ const Reservations = () => {
     );
   };
 
-  
+
   const renderRideItem = ({ item }: { item: RideRequest }) => {
     return (
       <ReservationCard
@@ -106,7 +110,7 @@ const Reservations = () => {
     );
   };
 
-  
+
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
       {fetchComplete && rides.length === 0 ? (
@@ -125,7 +129,7 @@ const Reservations = () => {
     </View>
   );
 
-  
+
   const renderHeader = () => (
     <View>
       <Text style={styles.headerText}>Scheduled Rides</Text>
