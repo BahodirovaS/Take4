@@ -5,7 +5,7 @@ As I'm going:
 - [FIXED]ETA of driver is currently a random number for the passenger
 - [FIXED]eta once the ride has started on the passenger screen needs to be fixed to match actual google maps data
 - [FIXED]passenger needs eta of driver and eta to get to destination
-- [FIXED]active ride page for passenger doesn't show origin address -> destioantion address underneath "Active Ride"
+- [FIXED]active ride page for passenger doesn't show origin address -> destination address underneath "Active Ride"
 
 
 - tip is showing up in the Connect account of the driver, but the fare share isn't
@@ -16,6 +16,7 @@ As I'm going:
 
 - buttons for different screens overflow words
 - put back the map button to go to the back screen for passengers
+- tap to change photo for driver crashes the app
 
 - filter pets
 
@@ -24,6 +25,6 @@ As I'm going:
 
 - make admin page to change pricing of rides
 
-- scheduled ride 
+- scheduled ride doesn't show up for drivers, it shows up as a pop up
 
 - CLEAN UP THE STYLE SECTION FOR RIDEREQUEST component on driver app and ACTIVERIDE on passenger. it's not formatted correctly

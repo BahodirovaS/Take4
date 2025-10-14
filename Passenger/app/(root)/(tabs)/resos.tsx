@@ -127,9 +127,6 @@ const Reservations = () => {
   const renderHeader = () => (
     <View>
       <Text style={styles.headerText}>Scheduled Rides</Text>
-      <View style={styles.header}>
-        <Image source={images.favicon} style={styles.carIcon} />
-      </View>
     </View>
   );
 
