@@ -42,7 +42,17 @@ const Reservations = () => {
     if (error) {
       Alert.alert('Error', 'Failed to fetch scheduled rides');
     } else {
-      setRides(scheduledRides);
+      const sorted = [...scheduledRides].sort((a, b) => {
+        const ad =
+          (a as any).scheduled_datetime?.toDate?.() ??
+          new Date((a as any).scheduled_datetime);
+        const bd =
+          (b as any).scheduled_datetime?.toDate?.() ??
+          new Date((b as any).scheduled_datetime);
+        return +ad - +bd;
+      });
+
+      setRides(sorted);
     }
 
     setIsLoading(false);

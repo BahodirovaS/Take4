@@ -92,6 +92,7 @@ declare interface Ride {
 declare interface RideRequest {
   id: string;
   scheduled_date: string;
+  scheduled_datetime?: Timestamp | Date;
   scheduled_time: string;
   origin_address: string;
   destination_address: string;

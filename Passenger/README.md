@@ -25,6 +25,6 @@ As I'm going:
 
 - make admin page to change pricing of rides
 
-- scheduled ride doesn't show up for drivers, it shows up as a pop up
+- scheduled ride isn't in order for passenger. the label "wednesday" is getting cut off
 
 - CLEAN UP THE STYLE SECTION FOR RIDEREQUEST component on driver app and ACTIVERIDE on passenger. it's not formatted correctly
