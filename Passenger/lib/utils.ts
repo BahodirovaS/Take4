@@ -47,47 +47,43 @@ export function formatDate(dateString: string): string {
 
 export const formatReservationCardDate = (dateString: string) => {
   const monthNames = [
-    "January", "February", "March", "April", "May", "June", 
-    "July", "August", "September", "October", "November", "December"
+    "January","February","March","April","May","June",
+    "July","August","September","October","November","December"
   ];
-  const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-  
-  const match = dateString.match(/^(\w+), (\w+) (\d+)$/);
-  
-  if (match) {
-    const dayOfWeek = match[1];
-    const monthName = match[2];
-    const day = parseInt(match[3]);
+  const tryParse = (s: string): Date | null => {
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  };
 
-    
-    const monthIndex = monthNames.findIndex(m => m === monthName);
-    
-    
-    const currentYear = new Date().getFullYear();
-    const date = new Date(currentYear, monthIndex, day);
+  let date = tryParse(dateString);
 
-    return {
-      dayOfWeek: dayOfWeek,
-      monthName: monthName,
-      dateNumber: day
-    };
+  if (!date) {
+    const m = dateString.match(/^(\w+),\s+(\w+)\s+(\d{1,2})$/);
+    if (m) {
+      const [, , monthName, dayStr] = m;
+      const monthIndex = monthNames.findIndex(
+        (mn) => mn.toLowerCase() === monthName.toLowerCase()
+      );
+      if (monthIndex >= 0) {
+        const year = new Date().getFullYear();
+        date = new Date(year, monthIndex, parseInt(dayStr, 10));
+      }
+    }
   }
 
-  
-  const date = new Date(dateString);
-  
-  if (!isNaN(date.getTime())) {
+  if (date) {
     return {
-      dayOfWeek: daysOfWeek[date.getDay()],
+      dayOfWeek: date.toLocaleDateString(undefined, { weekday: "short" }),
       monthName: monthNames[date.getMonth()],
-      dateNumber: date.getDate()
+      dateNumber: date.getDate(),
     };
   }
 
-  
   return {
-    dayOfWeek: 'Unknown',
-    dateNumber: 'N/A'
+    dayOfWeek: "—",
+    monthName: "",
+    dateNumber: 0,
   };
 };
+
