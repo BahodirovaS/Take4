@@ -32,6 +32,7 @@ import {
   getDriverProfileExists,
   getDriverOnboardingStatus,
 } from "@/lib/fetch";
+import DriverLocationPublisher from "@/components/DriverLocationPublisher";
 
 const Home = () => {
   const { user } = useUser();
@@ -209,6 +210,8 @@ const Home = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+        <DriverLocationPublisher isOnline={isOnline} />
+
       <FlatList
         data={[{}]}
         renderItem={() => (

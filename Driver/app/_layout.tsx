@@ -124,7 +124,6 @@ export default function RootLayout() {
     <ClerkProvider tokenCache={tokenCache} publishableKey={publishableKey}>
       <RideRequestProvider>
         <ClerkLoaded>
-          <DriverLocationPublisher />
           <RideRequestListener />
           <Stack>
             <Stack.Screen name="index" options={{ headerShown: false }} />
