@@ -102,7 +102,7 @@ const Map = ({
           </Marker>
         )}
 
-        {hasDriver && (
+        {/* {hasDriver && (
           <Marker
             key="driver"
             coordinate={{ latitude: driverLocation!.latitude, longitude: driverLocation!.longitude }}
@@ -114,7 +114,7 @@ const Map = ({
               <Image source={icons.marker} style={{ width: "100%", height: "100%", resizeMode: "contain" }} />
             </View>
           </Marker>
-        )}
+        )} */}
 
 
         {hasDriver && directionsAPI && (
