@@ -54,6 +54,17 @@ module.exports = async (req, res) => {
         driver_id,
       } = req.body || {};
 
+      const missing = [];
+      if (!rideId) missing.push('rideId');
+      if (!tipAmount) missing.push('tipAmount');
+      if (!driver_id) missing.push('driver_id');
+      if (!customer_id && !(name && email)) missing.push('customer_id or (name + email)');
+
+      if (missing.length) {
+        console.error('[createTip] Missing fields:', missing, 'Body:', req.body);
+        return res.status(400).json({ error: 'Missing required fields', missing });
+      }
+
       if (!name || !email || !amount) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
@@ -88,6 +99,7 @@ module.exports = async (req, res) => {
         currency: 'usd',
         customer: customer.id,
         automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
+        setup_future_usage: 'off_session',
         metadata: {
           fareAmount: String(fare.toFixed(2)),
           tipAmount: String(tip.toFixed(2)),
@@ -113,6 +125,73 @@ module.exports = async (req, res) => {
         mode: connectedAccountId ? 'destination_charge' : 'platform_charge',
       });
     }
+
+    if (req.method === 'POST' && path === '/createTip') {
+      const { rideId, tipAmount, customer_id, driver_id } = req.body || {};
+
+      if (!rideId || !tipAmount || !customer_id || !driver_id) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      const tipAmountCents = Math.round(parseFloat(tipAmount) * 100);
+      if (!Number.isFinite(tipAmountCents) || tipAmountCents <= 0) {
+        return res.json({ success: true, message: 'No tip amount, skipping payment' });
+      }
+
+      const driverSnap = await db.collection('drivers').where('clerkId', '==', driver_id).limit(1).get();
+      if (driverSnap.empty) return res.status(404).json({ error: 'Driver not found' });
+
+      const driver = driverSnap.docs[0].data();
+      const destination = driver.stripe_connect_account_id;
+      if (!destination) return res.status(400).json({ error: 'Driver is missing Stripe Connect account' });
+
+      const selectPaymentMethodForCustomer = async (customerId) => {
+        const cust = await stripe.customers.retrieve(customerId);
+        const defaultPM = cust?.invoice_settings?.default_payment_method;
+        if (defaultPM) return typeof defaultPM === 'string' ? defaultPM : defaultPM.id;
+        const list = await stripe.paymentMethods.list({ customer: customerId, type: 'card' });
+        return list.data[0]?.id || null;
+      };
+
+      try {
+        const chosenPM = await selectPaymentMethodForCustomer(customer_id);
+        if (!chosenPM) {
+          return res.status(400).json({
+            error: 'no_saved_payment_method',
+            message: 'No saved card on this customer. Add a card via Payment Sheet first.',
+          });
+        }
+
+        const idempotencyKey = `tip_${rideId}_${tipAmountCents}_${chosenPM}`;
+
+        const paymentIntent = await stripe.paymentIntents.create(
+          {
+            amount: tipAmountCents,
+            currency: 'usd',
+            customer: customer_id,
+            payment_method: chosenPM,
+            confirm: true,
+            off_session: true,
+            automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
+            transfer_data: { destination },
+            application_fee_amount: 0,
+            metadata: { rideId, type: 'tip', driver_id },
+            description: `Tip for ride ${rideId}`,
+          },
+          { idempotencyKey }
+        );
+
+        return res.json({ paymentIntent, customer: customer_id, success: true });
+      } catch (e) {
+        console.error('Stripe tip error:', e); // keep this log
+        return res.status(400).json({
+          error: e?.type || 'stripe_error',
+          message: e?.message || 'Unknown Stripe error',
+          code: e?.code,
+        });
+      }
+    }
+
 
     if (req.method === 'POST' && path === '/check-driver-status') {
       const { driver_id } = req.body || {};
@@ -183,59 +262,7 @@ module.exports = async (req, res) => {
       }
     }
 
-    if (req.method === 'POST' && path === '/createTip') {
-      const { rideId, tipAmount, customer_id, driver_id, payment_method_id } = req.body || {};
 
-      if (!rideId || !tipAmount || !customer_id || !driver_id || !payment_method_id) {
-        return res.status(400).json({ error: 'Missing required fields' });
-      }
-
-      const tipAmountCents = Math.round(parseFloat(tipAmount) * 100);
-      if (!Number.isFinite(tipAmountCents) || tipAmountCents <= 0) {
-        return res.json({ success: true, message: 'No tip amount, skipping payment' });
-      }
-
-      const driverSnap = await db
-        .collection('drivers')
-        .where('clerkId', '==', driver_id)
-        .limit(1)
-        .get();
-      if (driverSnap.empty) return res.status(404).json({ error: 'Driver not found' });
-      const driver = driverSnap.docs[0].data();
-      const destination = driver.stripe_connect_account_id;
-      if (!destination)
-        return res.status(400).json({ error: 'Driver is missing Stripe Connect account' });
-
-      try {
-        const pm = await stripe.paymentMethods.retrieve(payment_method_id);
-        if (pm.customer !== customer_id) {
-          await stripe.paymentMethods.attach(payment_method_id, { customer: customer_id });
-        }
-      } catch (e) {
-        return res.status(400).json({ error: 'Invalid payment method' });
-      }
-
-      const idempotencyKey = `tip_${rideId}_${tipAmountCents}`;
-
-      const paymentIntent = await stripe.paymentIntents.create(
-        {
-          amount: tipAmountCents,
-          currency: 'usd',
-          customer: customer_id,
-          payment_method: payment_method_id,
-          confirm: true,
-          off_session: true,
-          automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
-          transfer_data: { destination },
-          application_fee_amount: 0,
-          metadata: { rideId, type: 'tip', driver_id },
-          description: `Tip for ride ${rideId}`,
-        },
-        { idempotencyKey }
-      );
-
-      return res.json({ paymentIntent, customer: customer_id, success: true });
-    }
 
     if (req.method === 'POST' && path === '/express-dashboard') {
       const { driver_id } = req.body || {};

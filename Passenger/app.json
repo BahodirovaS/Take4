@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.ridepal.take4.passenger",
-      "buildNumber": "6",
+      "buildNumber": "5",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -29,12 +29,7 @@
       "package": "com.ridepal.take4.passenger"
     },
     "plugins": [
-      [
-        "expo-router",
-        {
-          "origin": "https://uber.dev/"
-        }
-      ],
+      ["expo-router"],
       "expo-secure-store",
       "expo-web-browser"
     ],

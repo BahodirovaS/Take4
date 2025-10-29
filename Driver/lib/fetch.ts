@@ -2,10 +2,20 @@ import { useState, useEffect, useCallback } from "react";
 import { doc, updateDoc, onSnapshot, collection, addDoc, query, where, getDocs, limit, deleteDoc, orderBy, getDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import * as Location from 'expo-location';
-import { Ride, ActiveRideData, PassengerInfo, DriverProfileForm, RideRequest, Message } from '@/types/type';
+import {
+  Ride,
+  ActiveRideData,
+  PassengerInfo,
+  DriverProfileForm,
+  RideRequest, Message,
+  Payment,
+  WalletData
+} from '@/types/type';
 import { Alert } from 'react-native';
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
+import { API_ENDPOINTS } from '@/lib/config';
+import { Linking } from 'react-native';
 
 const DEFAULT_TIMEOUT = 5000;
 
@@ -724,7 +734,7 @@ export const fetchScheduledRides = async (userId: string): Promise<{
 
     const querySnapshot = await getDocs(q);
     const scheduledRides: RideRequest[] = querySnapshot.docs
-    .map(doc => ({id: doc.id,...doc.data()} as RideRequest));
+      .map(doc => ({ id: doc.id, ...doc.data() } as RideRequest));
 
     return {
       rides: scheduledRides,
@@ -908,3 +918,171 @@ export function watchAndMarkRead(myId: string, otherId: string, rideId: string) 
 
   return unsub;
 }
+
+
+/** True if the driver profile exists (doc or data present) */
+export async function getDriverProfileExists(userId: string): Promise<boolean> {
+  const driversRef = collection(db, "drivers");
+  const q = query(driversRef, where("clerkId", "==", userId), limit(1));
+  const snap = await getDocs(q);
+  return !snap.empty;
+}
+
+/** Pulls driver email from the driver profile, if present */
+export async function getDriverEmailFromProfile(
+  userId: string
+): Promise<string | null> {
+  const { driverData } = await fetchDriverInfo(userId);
+  return driverData?.email ?? null;
+}
+
+/** Stripe onboarding status for the driver */
+export async function getDriverOnboardingStatus(userId: string): Promise<{
+  onboardingCompleted: boolean;
+  accountExists: boolean;
+  accountId: string | null;
+}> {
+  const resp = await fetchAPI(API_ENDPOINTS.CHECK_DRIVER_STATUS, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ driver_id: userId }),
+  });
+
+  const onboardingCompleted = !!resp.onboarding_completed;
+  const accountExists = !!(resp.account_exists || resp.account_id);
+  const accountId = resp.account_id ?? null;
+
+  return { onboardingCompleted, accountExists, accountId };
+}
+
+/** Create a Stripe onboarding link (bank setup) */
+export async function createStripeOnboardingLink(
+  userId: string, 
+  email: string
+): Promise<{
+  success: boolean; 
+  url?: string; 
+  error?: string;
+}> {
+  return fetchAPI(API_ENDPOINTS.ONBOARD_DRIVER, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ driver_id: userId, email }),
+  });
+}
+
+/** Create a Stripe Express dashboard link */
+export async function createStripeDashboardLink(
+  userId: string, 
+  accountId?: string | null
+): Promise<{
+  success: boolean; 
+  url?: string; 
+  error?: string;
+}> {
+  const payload: any = { driver_id: userId };
+  if (accountId) payload.account_id = accountId;
+
+  return fetchAPI(API_ENDPOINTS.EXPRESS_DASHBOARD, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+/** Build WalletData summary from Firestore rides */
+export async function getWalletSummary(
+  userId: string
+): Promise<WalletData> {
+  if (!userId) {
+    return {
+      totalEarnings: 0, 
+      availableBalance: 0, 
+      pendingBalance: 0, 
+      recentPayments: [] 
+    };
+  }
+
+  const ridesQ = query(
+    collection(db, 'rideRequests'),
+    where('driver_id', '==', userId),
+    where('payment_status', '==', 'paid')
+  );
+  const snap = await getDocs(ridesQ);
+  const allRides: Ride[] = snap.docs.map(d => ({ id: d.id, ...d.data() } as Ride));
+
+  const pendingRides = allRides.filter(r =>
+    r.status === 'accepted' || r.status === 'arrived_at_pickup' || r.status === 'in_progress'
+  );
+  const completedRides = allRides.filter(r =>
+    r.status === 'completed' || r.status === 'rated'
+  );
+
+  const pendingEarnings = pendingRides.reduce((sum, r: any) => sum + (r.driver_share || 0), 0);
+  const availableEarnings = completedRides.reduce((sum, r: any) => sum + (r.driver_share || 0), 0);
+  const totalEarnings = pendingEarnings + availableEarnings;
+
+  const toDate = (ts: any): Date => {
+    if (ts?.toDate) return ts.toDate();
+    if (ts?.seconds) return new Date(ts.seconds * 1000);
+    if (ts?._seconds) return new Date(ts._seconds * 1000);
+    return new Date();
+  };
+
+  const recentPayments: Payment[] = [];
+
+  for (const ride of allRides as any[]) {
+    const baseFarePrice = ride.fare_price || 0;
+    const tipAmountCents = ride.tip_amount ? parseFloat(ride.tip_amount.toString()) * 100 : 0;
+    const baseDriverShare = (ride.driver_share || 0) - tipAmountCents;
+
+    const createdAt = toDate(ride.createdAt);
+
+    if (baseDriverShare > 0) {
+      let paymentStatus: 'pending' | 'completed' =
+        (ride.status === 'completed' || ride.status === 'rated') ? 'completed' : 'pending';
+
+      recentPayments.push({
+        id: ride.id,
+        amount: baseFarePrice / 100,
+        driverShare: baseDriverShare / 100,
+        createdAt,
+        rideId: ride.id,
+        passengerName: ride.user_name || 'Unknown',
+        status: paymentStatus,
+        type: 'ride',
+      });
+    }
+
+    if (ride.tip_amount && parseFloat(ride.tip_amount.toString()) > 0 &&
+      (ride.status === 'completed' || ride.status === 'rated')) {
+      const tipDate =
+        ride.tipped_at?.toDate?.() ??
+        ride.rated_at?.toDate?.() ??
+        createdAt;
+
+      recentPayments.push({
+        id: `${ride.id}_tip`,
+        amount: parseFloat(ride.tip_amount.toString()),
+        driverShare: parseFloat(ride.tip_amount.toString()),
+        createdAt: tipDate,
+        rideId: ride.id,
+        passengerName: ride.user_name || 'Unknown',
+        status: 'completed',
+        type: 'tip',
+      });
+    }
+  }
+
+  recentPayments.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  const limitedPayments = recentPayments.slice(0, 10);
+
+  return {
+    totalEarnings: totalEarnings / 100,
+    availableBalance: availableEarnings / 100,
+    pendingBalance: pendingEarnings / 100,
+    recentPayments: limitedPayments,
+  };
+}
+
+

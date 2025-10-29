@@ -6,17 +6,23 @@ As I'm going:
 - [FIXED]eta once the ride has started on the passenger screen needs to be fixed to match actual google maps data
 - [FIXED]passenger needs eta of driver and eta to get to destination
 - [FIXED]active ride page for passenger doesn't show origin address -> destination address underneath "Active Ride"
-
+- [FIXED]scheduled ride isn't in order for passenger. the label "wednesday" is getting cut off
+- [FIXED]set up bank account button isn't working
+- [FIXED]for driver app, remove the "setup required" in wallet once bank is set up. maybe it's because of the test but it shows         incomplete
+- [FIXED]buttons for different screens overflow words
 
 - tip is showing up in the Connect account of the driver, but the fare share isn't
 - tipping page won't pop up for passenegers if the app refreshes. Make it so if the tip is false, they can't go to home screen?
 
 - show banner to set up wallet before allowing drivers to be active
-- for driver app, remove the "setup required" in wallet once bank is set up. maybe it's because of the test but it shows incomplete
 
-- buttons for different screens overflow words
+- active ride page for passenger has the back arrow and the location button too low
+
+- Ride time for the ridecompleted page is innacurate. it shows the estimated ride time, but should show how long has passed since the ride began
+
 - put back the map button to go to the back screen for passengers
 - tap to change photo for driver crashes the app
+- the car icon on the map for the driver is ginormous, make it smaller
 
 - filter pets
 
@@ -25,6 +31,7 @@ As I'm going:
 
 - make admin page to change pricing of rides
 
-- scheduled ride isn't in order for passenger. the label "wednesday" is getting cut off
 
-- CLEAN UP THE STYLE SECTION FOR RIDEREQUEST component on driver app and ACTIVERIDE on passenger. it's not formatted correctly
+- CLEAN UP THE STYLE SECTION FOR SEVRAL COMPONENTS
+
+- WHERE I LAST LEFT OFF: working on index.js in the api to make tipping work. I just pasted const missing to print what's missing.
