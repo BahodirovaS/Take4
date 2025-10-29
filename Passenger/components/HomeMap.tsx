@@ -51,7 +51,7 @@ const HomeMap = ({ showLocationButton }: { showLocationButton?: boolean }) => {
         showsUserLocation={true}
         userInterfaceStyle="light"
       >
-        <Marker
+        {/* <Marker
           key="user"
           coordinate={{
             latitude: userLatitude!,
@@ -59,7 +59,7 @@ const HomeMap = ({ showLocationButton }: { showLocationButton?: boolean }) => {
           }}
           title="Your location"
           image={icons.marker}
-        />
+        /> */}
       </MapView>
 
       {showLocationButton && (
