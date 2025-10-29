@@ -168,7 +168,7 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
         if (modifier === "AM" && hour === 12) adjustedHour = 0;
         const scheduledDateTime = new Date(currentYear, monthIndex, parseInt(day), adjustedHour, minute);
 
-        baseRideData.status = "scheduled_pending_driver";
+        baseRideData.status = "scheduled_requested";
         baseRideData.scheduled_date = scheduledDate;
         baseRideData.scheduled_time = scheduledTime;
         baseRideData.scheduled_datetime = scheduledDateTime;

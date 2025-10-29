@@ -11,6 +11,7 @@ As I'm going:
 - [FIXED]for driver app, remove the "setup required" in wallet once bank is set up
 - [FIXED]buttons for different screens overflow words
 - [FIXED]show banner to set up wallet before allowing drivers to be active
+- [FIXED]the car icon on the map for the driver is ginormous, make it smaller
 
 
 
@@ -23,7 +24,6 @@ As I'm going:
 
 - put back the map button to go to the back screen for passengers
 - tap to change photo for driver crashes the app
-- the car icon on the map for the driver is ginormous, make it smaller
 
 - filter pets
 

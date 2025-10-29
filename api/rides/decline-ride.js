@@ -45,7 +45,7 @@ module.exports = async (req, res) => {
         driver_acceptance: 'declined',
         declined_driver_ids: arrayUnion(driverId),
         driver_id: "",
-        status: 'requested_pending_driver'
+        status: 'scheduled_requested'
       });
     });
 
