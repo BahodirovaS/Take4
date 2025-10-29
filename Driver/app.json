@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.ridepal.take4.driver",
-      "buildNumber": "9",
+      "buildNumber": "10",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Your location is used to show your position and calculate ETAs.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Your location is used to share your live position with riders and dispatch, even in the background.",

@@ -409,7 +409,6 @@ export const getDriverStatus = (
 };
 
 
-
 /**
  * Updates the driver's online status
  */

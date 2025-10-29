@@ -8,13 +8,14 @@ As I'm going:
 - [FIXED]active ride page for passenger doesn't show origin address -> destination address underneath "Active Ride"
 - [FIXED]scheduled ride isn't in order for passenger. the label "wednesday" is getting cut off
 - [FIXED]set up bank account button isn't working
-- [FIXED]for driver app, remove the "setup required" in wallet once bank is set up. maybe it's because of the test but it shows         incomplete
+- [FIXED]for driver app, remove the "setup required" in wallet once bank is set up
 - [FIXED]buttons for different screens overflow words
+- [FIXED]show banner to set up wallet before allowing drivers to be active
+
+
 
 - tip is showing up in the Connect account of the driver, but the fare share isn't
 - tipping page won't pop up for passenegers if the app refreshes. Make it so if the tip is false, they can't go to home screen?
-
-- show banner to set up wallet before allowing drivers to be active
 
 - active ride page for passenger has the back arrow and the location button too low
 
@@ -31,7 +32,4 @@ As I'm going:
 
 - make admin page to change pricing of rides
 
-
 - CLEAN UP THE STYLE SECTION FOR SEVRAL COMPONENTS
-
-- WHERE I LAST LEFT OFF: working on index.js in the api to make tipping work. I just pasted const missing to print what's missing.
