@@ -82,7 +82,7 @@ const DriverMap = ({ showLocationButton }: { showLocationButton?: boolean }) => 
         showsUserLocation={true}
         userInterfaceStyle="light"
       >
-        <Marker
+        {/* <Marker
           key="driver"
           coordinate={{
             latitude: userLatitude!,
@@ -90,7 +90,7 @@ const DriverMap = ({ showLocationButton }: { showLocationButton?: boolean }) => 
           }}
           title="Your location"
           image={icons.marker}
-        />
+        /> */}
 
         {destinationLatitude && destinationLongitude && (
           <>

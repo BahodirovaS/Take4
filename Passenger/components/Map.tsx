@@ -76,7 +76,7 @@ const Map = ({
         showsUserLocation={false}
         userInterfaceStyle="light"
       >
-        <Marker
+        {/* <Marker
           key="user"
           coordinate={{ latitude: userLatitude as number, longitude: userLongitude as number }}
           title="Your location"
@@ -86,7 +86,7 @@ const Map = ({
           <View style={{ width: 28, height: 28 }}>
             <Image source={icons.marker} style={{ width: "100%", height: "100%", resizeMode: "contain" }} />
           </View>
-        </Marker>
+        </Marker> */}
 
         {hasDest && (
           <Marker
