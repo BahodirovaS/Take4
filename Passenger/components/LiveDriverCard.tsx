@@ -32,10 +32,11 @@ const LiveDriverCard: React.FC<DriverCardProps> = ({
         />
         <View style={styles.driverDetails}>
           <Text style={styles.driverName}>
-            {driver.first_name}
+            Your driver's name is {driver.first_name}
           </Text>
           <Text style={styles.carInfo}>
-            {driver.v_make} • {driver.v_plate}
+            {driver.car_color} {driver.v_make} {"\n"} 
+            License plate: {driver.v_plate}
           </Text>
         </View>
         {/* {rideStatus !== "arrived_at_pickup" && (

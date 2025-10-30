@@ -168,6 +168,7 @@ export const subscribeToRideDetails = (
             first_name: data.driver?.first_name || "",
             last_name: data.driver?.last_name || "",
             car_seats: data.driver?.car_seats || 0,
+            car_color: data.driver?.car_color || "",
           },
           status: data.status,
         };
@@ -470,6 +471,7 @@ export const getRideHistory = (
             first_name: data.driver?.first_name || "",
             last_name: data.driver?.last_name || "",
             car_seats: data.driver?.car_seats || 0,
+            car_color: data.driver?.car_color || "",
           },
           status: data.status
         } as Ride;
@@ -557,6 +559,7 @@ export const fetchDriverInfo = async (userId: string): Promise<{
           address: data.address || "",
           dob: data.dob || "",
           licence: data.licence || "",
+          carColor: data.car_color || "",
           vMake: data.vMake || "",
           vPlate: data.vPlate || "",
           vInsurance: data.vInsurance || "",

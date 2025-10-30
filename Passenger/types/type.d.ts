@@ -8,6 +8,7 @@ declare interface Driver {
   profile_image_url: string;
   car_image_url: string;
   car_seats: number;
+  car_color: string;
   pets: boolean;
   rating: number;
   status: boolean;
@@ -27,6 +28,7 @@ declare interface MarkerData {
   profile_image_url: string;
   car_image_url: string;
   car_seats: number;
+  car_color: string;
   latitude: number;
   longitude: number;
   title: string;
@@ -86,6 +88,8 @@ declare interface Ride {
     first_name: string;
     last_name: string;
     car_seats: number;
+    car_color: string;
+
   };
 }
 

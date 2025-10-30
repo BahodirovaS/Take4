@@ -41,6 +41,7 @@ const DriverInfo = () => {
         vInsurance: "",
         pets: false,
         carSeats: 4,
+        carColor: "",
         status: false,
         profilePhotoBase64: "",
     });
@@ -114,7 +115,7 @@ const DriverInfo = () => {
 
         const {
             firstName, lastName, email, phoneNumber, address, dob, licence,
-            vMake, vPlate, vInsurance, carSeats
+            vMake, vPlate, vInsurance, carSeats, carColor
         } = form;
 
         if (
@@ -129,7 +130,8 @@ const DriverInfo = () => {
             !vPlate ||
             !vInsurance ||
             carSeats === null ||
-            carSeats === undefined
+            carSeats === undefined ||
+            !carColor
         ) {
             return Alert.alert("Error", "Please fill out all required fields.");
         }
@@ -250,6 +252,12 @@ const DriverInfo = () => {
                                 placeholder="Enter vehicle make"
                                 value={form.vMake}
                                 onChangeText={(value) => setForm({ ...form, vMake: value })}
+                            />
+                            <InputField
+                                label="Vehicle Color"
+                                placeholder="Enter vehicle color"
+                                value={form.carColor}
+                                onChangeText={(value) => setForm({ ...form, carColor: value })}
                             />
                             <InputField
                                 label="Vehicle Plate"

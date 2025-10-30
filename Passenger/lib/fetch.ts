@@ -116,6 +116,8 @@ export const fetchRideHistory = (
             first_name: data.driver?.firstName || "",
             last_name: data.driver?.lastName || "",
             car_seats: data.driver?.carSeats || 0,
+            car_color: data.driver?.carColor || "",
+            v_plate: data.driver?.vPlate || "",
           },
           status: data.status
         } as Ride;
@@ -478,7 +480,7 @@ export const fetchScheduledRides = async (userId: string): Promise<{
     const q = query(
       collection(db, "rideRequests"),
       where("user_id", "==", userId),
-      where("status", "==", "scheduled_requested")
+      where("status", "in", ["scheduled_requested", "scheduled_accepted"])
     );
 
     const querySnapshot = await getDocs(q);
@@ -654,44 +656,6 @@ export const subscribeToRideUpdates = (
 
 
 /**
- * Fetch driver details
- */
-export const fetchDriverDetails = (
-  driverId: string,
-  onSuccess: (driverName: string | null) => void,
-  onError: (error: any) => void
-): void => {
-  if (!driverId) {
-    onSuccess(null);
-    return;
-  }
-
-  try {
-    const fetchData = async () => {
-      const driversRef = collection(db, "drivers");
-      const driverQuery = query(driversRef, where("clerkId", "==", driverId));
-      const querySnapshot = await getDocs(driverQuery);
-
-      if (!querySnapshot.empty) {
-        const driverData = querySnapshot.docs[0].data();
-        onSuccess(driverData.firstName || null);
-      } else {
-        onSuccess(null);
-      }
-    };
-
-    fetchData().catch(error => {
-      console.error("Error fetching driver details:", error);
-      onError(error);
-    });
-  } catch (error) {
-    console.error("Error in driver details lookup:", error);
-    onError(error);
-  }
-};
-
-
-/**
  * Fetch ride details for a chat
  */
 export const fetchRideDetails = (
@@ -862,6 +826,44 @@ export const formatFarePrice = (priceInCents: number): string => {
   return `$${(priceInCents / 100).toFixed(2)}`;
 };
 
+/**
+ * Fetch driver details
+ */
+export const fetchDriverDetails = (
+  driverId: string,
+  onSuccess: (driverName: string | null) => void,
+  onError: (error: any) => void
+): void => {
+  if (!driverId) {
+    onSuccess(null);
+    return;
+  }
+  try {
+    const fetchData = async () => {
+      const driversRef = collection(db, "drivers");
+      const driverQuery = query(driversRef, where("clerkId", "==", driverId));
+      const querySnapshot = await getDocs(driverQuery);
+
+      if (!querySnapshot.empty) {
+        const driverData = querySnapshot.docs[0].data();
+        onSuccess(
+          driverData.firstName || null
+        );
+      } else {
+        onSuccess(null);
+      }
+    };
+
+    fetchData().catch(error => {
+      console.error("Error fetching driver details:", error);
+      onError(error);
+    });
+  } catch (error) {
+    console.error("Error in driver details lookup:", error);
+    onError(error);
+  }
+};
+
 
 /**
  * Fetch driver information from Firestore
@@ -902,6 +904,7 @@ export const fetchDriverInfo = (
           time: driverData.time || 0,
           price: driverData.price || "0",
           status: driverData.status || true,
+          car_color: driverData.carColor || "",
           v_make: driverData.vMake || '',
           v_plate: driverData.vPlate || '',
           pets: driverData.pets

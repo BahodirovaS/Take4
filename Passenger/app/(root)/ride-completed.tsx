@@ -104,7 +104,7 @@ const RideCompleted = () => {
             <View style={styles.tippingContainer}>
                 <View style={styles.tipSection}>
                     <Text style={styles.tipSectionTitle}>Enjoyed the ride? Add a tip for {driverName}</Text>
-                    <View style={styles.tipOptionsContainer}>
+                    {/* <View style={styles.tipOptionsContainer}>
                         {tipOptions.map((option) => (
                             <TipButton
                                 key={option}
@@ -113,11 +113,14 @@ const RideCompleted = () => {
                                 onPress={() => setTipAmount(option)}
                             />
                         ))}
-                    </View>
+                    </View> */}
                     
                     <View style={styles.customTipContainer}>
-                        <Text style={styles.customTipLabel}>Custom Tip:</Text>
-                        <TextInput
+                        <Text> 
+                            Tipping is not available for this app yet! Please Venmo your driver if you'd like to leave a tip.
+                        </Text>
+                        {/* <Text style={styles.customTipLabel}>Custom Tip:</Text> */}
+                        {/* <TextInput
                             style={styles.customTipInput}
                             value={!tipOptions.includes(tipAmount) ? tipAmount : ''}
                             onChangeText={(text) => {
@@ -127,13 +130,14 @@ const RideCompleted = () => {
                             }}
                             keyboardType="numeric"
                             placeholder="Enter custom amount"
-                        />
+                        /> */}
                     </View>
                 </View>
                 
                 <View style={styles.tipButtonContainer}>
                     <CustomButton
-                        title={`Submit ${parseFloat(tipAmount) > 0 ? `$${tipAmount} Tip` : 'No Tip'}`}
+                        // title={`Submit ${parseFloat(tipAmount) > 0 ? `$${tipAmount} Tip` : 'No Tip'}`}
+                        title="All Done"
                         onPress={processTip}
                         bgVariant="primary"
                         style={styles.submitButton}

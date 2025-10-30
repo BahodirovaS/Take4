@@ -21,6 +21,8 @@ const ActiveRide = () => {
     const [driverId, setDriverId] = useState<string | null>(null);
     const [driverLocation, setDriverLocation] = useState<LatLng | null>(null);
     const [driverName, setDriverName] = useState<string | null>(null);
+    const [carColor, setCarColor] = useState<string | null>(null);
+    const [plate, setPlate] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const { destinationAddress, userAddress } = useLocationStore();
     const [originAddress, setOriginAddress] = useState<string | null>(userAddress ?? null);
@@ -75,12 +77,10 @@ const ActiveRide = () => {
     useEffect(() => {
         if (rideStatus !== "in_progress" || !apiKey || !driverLocation || !destination) return;
         let cancelled = false;
-
         const compute = async () => {
             const eta = await getEtaMinutes(driverLocation, destination, apiKey);
             if (!cancelled) setDropoffEtaMin(eta);
         };
-
         compute();
         const id = setInterval(compute, 15000);
         return () => {
@@ -164,10 +164,10 @@ const ActiveRide = () => {
     const getRideStatusTitle = () => {
         if (rideStatus === "accepted") {
             return driverEtaMin != null
-                ? `Arriving in ${driverEtaMin} min`
+                ? `Arriving in ${driverEtaMin} min.`
                 : (driverName ? `${driverName} is on the way!` : "Your driver is on the way!");
         } else if (rideStatus === "arrived_at_pickup") {
-            return driverName ? `${driverName} is here!` : "Your driver is here!";
+            return "Your driver is here!";
         } else if (rideStatus === "in_progress") {
             return `Headed to ${destinationAddress}`;
         } else if (rideStatus === "completed") {

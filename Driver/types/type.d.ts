@@ -7,6 +7,7 @@ declare interface Driver {
   profile_image_url: string;
   car_image_url: string;
   car_seats: number;
+  car_color: string;
   pets: boolean;
   rating: number;
   status: boolean;
@@ -23,6 +24,7 @@ declare interface MarkerData {
   profile_image_url: string;
   car_image_url: string;
   car_seats: number;
+  car_color: string;
   rating: number;
   first_name: string;
   last_name: string;
@@ -45,6 +47,7 @@ declare interface DriverProfileForm {
   vInsurance: string;
   pets: boolean;
   carSeats: number;
+  carColor: string;
   status: boolean;
   profilePhotoBase64: string;
 }
@@ -89,10 +92,11 @@ declare interface Ride {
     first_name: string;
     last_name: string;
     car_seats: number;
+    car_color: string;
   };
 }
 
-interface RideRequest {
+declare interface RideRequest {
   id: string;
   scheduled_date: string;
   scheduled_datetime?: Timestamp | Date;
@@ -107,6 +111,39 @@ interface RideRequest {
   status: string;
   user_id: string;
   createdAt: Date;
+}
+
+declare interface ScheduledRide {
+  id: string;
+  origin_address?: string;
+  destination_address?: string;
+  scheduled_date?: string;
+  scheduled_time?: string;
+  scheduled_datetime?: any;
+  fare_price?: number;
+  status?: string;
+  driver_id?: string;
+  user_id?: string;
+  [key: string]: any;
+};
+
+declare interface RideRequestContextType {
+  // Live + scheduled requests
+  newRequest: Maybe<Ride>;
+  modalVisible: boolean;
+  setModalVisible: (visible: boolean) => void;
+  setNewRequest: (request: Maybe<Ride>) => void;
+  acceptRide: (rideId: string) => Promise<void>;
+  declineRide: (rideId: string, driverId: string) => Promise<void>;
+
+  // Scheduled-specific
+  scheduledRequest: Maybe<ScheduledRide>;
+  scheduledModalVisible: boolean;
+  setScheduledModalVisible: (visible: boolean) => void;
+  setScheduledRequest: (request: Maybe<ScheduledRide>) => void;
+  clearScheduledRequest: () => void;
+  acceptScheduledRide: (rideId: string, driverId: string) => Promise<void>;
+
 }
 
 interface ActiveRideProps {
