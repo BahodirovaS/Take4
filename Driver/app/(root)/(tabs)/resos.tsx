@@ -192,6 +192,7 @@ const styles = StyleSheet.create({
     fontFamily: "DMSans-Bold",
     marginTop: 30,
     paddingHorizontal: 20,
+    paddingBottom: 20,
   },
 });
 

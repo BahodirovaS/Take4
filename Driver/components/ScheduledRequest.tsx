@@ -6,6 +6,7 @@ import CustomButton from "./CustomButton";
 import { API_ENDPOINTS } from "@/lib/config";
 import { fetchAPI } from "@/lib/fetch";
 import { ReactNativeModal } from "react-native-modal";
+import { router } from "expo-router";
 
 const ScheduledRequestBottomSheet: React.FC = () => {
     const { user } = useUser();
@@ -52,6 +53,8 @@ const ScheduledRequestBottomSheet: React.FC = () => {
                 Alert.alert("Unavailable", resp?.error || "Ride is no longer available.");
             } else {
                 Alert.alert("Booked", "This reservation is now yours. Find it in Reservations.");
+                setScheduledModalVisible(false)
+                router.replace({ pathname: "/(root)/(tabs)/home"})
             }
         } catch (e: any) {
             Alert.alert("Error", e?.message || "Failed to accept scheduled ride.");
