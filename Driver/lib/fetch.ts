@@ -717,34 +717,24 @@ export const updateDriverStatusOnSignOut = async (driverDocId: string | null): P
 /**
  * Fetch scheduled rides for a driver
  */
-export const fetchScheduledRides = async (userId: string): Promise<{
-  rides: RideRequest[];
-  error: Error | null;
-}> => {
+export const fetchScheduledRides = async (userId: string) => {
   try {
-    if (!userId) {
-      return { rides: [], error: null };
-    }
+    if (!userId) return { rides: [], error: null };
+
+    // Only show rides accepted by this driver and still scheduled
     const q = query(
       collection(db, "rideRequests"),
       where("driver_id", "==", userId),
-      where("status", "==", "scheduled_requested")
+      where("status", "==", "scheduled_accepted")
     );
 
-    const querySnapshot = await getDocs(q);
-    const scheduledRides: RideRequest[] = querySnapshot.docs
-      .map(doc => ({ id: doc.id, ...doc.data() } as RideRequest));
+    const snap = await getDocs(q);
+    const scheduledRides = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as any[];
 
-    return {
-      rides: scheduledRides,
-      error: null
-    };
+    return { rides: scheduledRides, error: null };
   } catch (error) {
     console.error("Error fetching scheduled rides:", error);
-    return {
-      rides: [],
-      error: error as Error
-    };
+    return { rides: [], error: error as Error };
   }
 };
 

@@ -15,4 +15,5 @@ export const API_ENDPOINTS = {
   ASSIGN_DRIVER: `${API_CONFIG.BASE_URL}/api/rides/assign-driver`,
   ACCEPT_RIDE: `${API_CONFIG.BASE_URL}/api/rides/accept-ride`,
   DECLINE_RIDE: `${API_CONFIG.BASE_URL}/api/rides/decline-ride`,
+  ACCEPT_SCHEDULED_RIDE: `${API_CONFIG.BASE_URL}/api/rides/accept-schedule`,
 };

@@ -14,6 +14,7 @@ import { Ride } from "@/types/type";
 import { useLocationStore } from "@/store";
 import * as Location from "expo-location";
 import DriverLocationPublisher from "@/components/DriverLocationPublisher";
+import ScheduledRequestBottomSheet from "@/components/ScheduledRequest";
 
 
 SplashScreen.preventAutoHideAsync();
@@ -31,53 +32,76 @@ LogBox.ignoreLogs(["Clerk:"]);
 const RideRequestListener: React.FC = () => {
   const { user } = useUser();
   const { setNewRequest, setModalVisible } = useRideRequest();
+  const { setScheduledRequest, setScheduledModalVisible } = useRideRequest() as any;
+
 
   useEffect(() => {
     if (!user?.id) return;
 
-    const q = query(
+    const qLive = query(
       collection(db, "rideRequests"),
       where("driver_id", "==", user.id),
       where("status", "in", ["requested"])
     );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const requests = snapshot.docs.map((doc) => {
+    const unsubLive = onSnapshot(qLive, (snapshot) => {
+      const reqs = snapshot.docs.map((doc) => {
         const data = doc.data();
-
         return {
           id: doc.id,
-          origin_address: data.origin_address || '',
-          destination_address: data.destination_address || '',
+          origin_address: data.origin_address || "",
+          destination_address: data.destination_address || "",
           origin_latitude: data.origin_latitude || 0,
           origin_longitude: data.origin_longitude || 0,
           destination_latitude: data.destination_latitude || 0,
           destination_longitude: data.destination_longitude || 0,
           ride_time: data.ride_time || 0,
           fare_price: data.fare_price || 0,
-          payment_status: data.payment_status || '',
-          driver_id: String(data.driver_id || ''),
-          user_id: data.user_id || '',
-          created_at: data.created_at?.toDate()?.toISOString() || new Date().toISOString(),
-          status: data.status || 'requested',
+          payment_status: data.payment_status || "",
+          driver_id: String(data.driver_id || ""),
+          user_id: data.user_id || "",
+          created_at: data.created_at?.toDate?.()?.toISOString() || new Date().toISOString(),
+          status: data.status || "requested",
           driver: {
-            first_name: data.driver?.first_name || '',
-            last_name: data.driver?.last_name || '',
-            car_seats: data.driver?.car_seats || 0
-          }
+            first_name: data.driver?.first_name || "",
+            last_name: data.driver?.last_name || "",
+            car_seats: data.driver?.car_seats || 0,
+          },
         } as Ride;
       });
 
-      if (requests.length > 0) {
-        setNewRequest(requests[0]);
+
+      if (reqs.length > 0) {
+        setNewRequest(reqs[0]);
         setModalVisible(true);
       }
     });
 
-    return () => unsubscribe();
+    const qSched = query(
+      collection(db, "rideRequests"),
+      where("driver_id", "==", user.id),
+      where("status", "==", "scheduled_requested")
+    );
+    const unsubSched = onSnapshot(qSched, (snapshot) => {
+      const reqs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as any));
+      if (reqs.length > 0) {
+        setScheduledRequest(reqs[0]);
+        setScheduledModalVisible(true);
+      }
+    });
+
+    return () => {
+      unsubLive();
+      unsubSched();
+    };
   }, [user?.id]);
 
-  return <RideRequestBottomSheet />;
+
+return (
+    <>
+      <RideRequestBottomSheet />
+      <ScheduledRequestBottomSheet />
+    </>
+  );
 };
 
 export default function RootLayout() {

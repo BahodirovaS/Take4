@@ -13,10 +13,15 @@ As I'm going:
 - [FIXED]show banner to set up wallet before allowing drivers to be active
 - [FIXED]the car icon on the map for the driver is ginormous, make it smaller
 
+- scheduled ride accept button is crashing the app
 
+- see if you can use address strings instead of points when clicking "navigate"
+
+- once driver has onboarded and completed profile, the action needed flag doesn't go away immediately like it does for the wallet. maybe it's a scroll down to refresh
 
 - tip is showing up in the Connect account of the driver, but the fare share isn't
 - tipping page won't pop up for passenegers if the app refreshes. Make it so if the tip is false, they can't go to home screen?
+- for testflight version, i am getting "missing required fields" status 400 when attempting to tip
 
 - active ride page for passenger has the back arrow and the location button too low
 
