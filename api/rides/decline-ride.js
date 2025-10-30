@@ -52,11 +52,9 @@ async function pickNextDriver(ride) {
   const snap = await getDocs(q);
 
   if (snap.empty) return null;
-  const declined = Array.isArray(ride.declined_driver_ids) ? ride.declined_driver_ids : [];
-  const excludeSet = new Set(
-    declined.filter(Boolean)
-  );
 
+  const declined = Array.isArray(ride.declined_driver_ids) ? ride.declined_driver_ids : [];
+  const excludeSet = new Set(declined.filter(Boolean));
   if (ride.driver_id) excludeSet.add(ride.driver_id);
 
   const candidates = [];
@@ -86,7 +84,6 @@ async function pickNextDriver(ride) {
   });
 
   if (candidates.length === 0) return null;
-
   candidates.sort((a, b) => a.distance - b.distance);
   return candidates[0];
 }
@@ -106,23 +103,22 @@ module.exports = async (req, res) => {
 
     const rideRef = doc(db, "rideRequests", rideId);
 
-    let rideAfter;
     await runTransaction(db, async (tx) => {
       const snap = await tx.get(rideRef);
       if (!snap.exists()) throw new Error("Ride not found");
       const ride = snap.data();
 
-      const isRequested =
-        ride.status === "requested" || 
-        ride.status === "scheduled_requested" || 
-        ride.status === "scheduled_accepted" || 
-        ride.status === "accepted";
-        
-      if (!isRequested) throw new Error("Ride is not in a requested state");
+      const allowed = new Set(["requested","scheduled_requested","accepted","scheduled_accepted"]);
+      if (!allowed.has(ride.status)) {
+        throw new Error("Ride is not in a requested state");
+      }
 
       if (ride.driver_id && ride.driver_id !== driverId) {
-        throw new Error("This ride is targeted to a different driver");
+        throw new Error("This ride is targeted/assigned to a different driver");
       }
+
+      const isScheduled = String(ride.status).startsWith("scheduled");
+      const newStatus = isScheduled ? "scheduled_requested" : "requested";
 
       tx.update(rideRef, {
         driver_acceptance: "declined",
@@ -131,16 +127,17 @@ module.exports = async (req, res) => {
         requested_driver_name: "",
         requested_driver_car: "",
         requested_at: new Date(),
+        status: newStatus,
       });
-
-      rideAfter = { ...ride, driver_id: "", requested_driver_name: "", requested_driver_car: "" };
     });
 
-    const snap = await getDocs(query(collection(db, "rideRequests"), where("__name__", "==", rideId)));
-    if (snap.empty) {
+    const rideSnap = await getDocs(
+      query(collection(db, "rideRequests"), where("__name__", "==", rideId))
+    );
+    if (rideSnap.empty) {
       return res.status(200).json({ success: true, reassigned: false, reason: "ride_missing_post_tx" });
     }
-    const rideData = snap.docs[0].data();
+    const rideData = rideSnap.docs[0].data();
 
     const next = await pickNextDriver(rideData);
     if (!next) {
@@ -163,6 +160,7 @@ module.exports = async (req, res) => {
         name: `${next.firstName} ${next.lastName}`.trim(),
         car: next.carMake,
         seats: next.carSeats,
+        color: next.carColor,
       },
     });
   } catch (error) {
