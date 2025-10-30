@@ -52,13 +52,17 @@ module.exports = async (req, res) => {
         tipAmount = '0',
         driverCommissionRate = 0.8,
         driver_id,
+        // rideId,
+        customer_id
       } = req.body || {};
 
       const missing = [];
-      if (!rideId) missing.push('rideId');
-      if (!tipAmount) missing.push('tipAmount');
-      if (!driver_id) missing.push('driver_id');
+      // if (rideId == null) missing.push('rideId');
+      if (driver_id == null) missing.push('driver_id');
       if (!customer_id && !(name && email)) missing.push('customer_id or (name + email)');
+      if (!name) missing.push('name');
+      if (!email) missing.push('email');
+      if (!amount) missing.push('amount');
 
       if (missing.length) {
         console.error('[createTip] Missing fields:', missing, 'Body:', req.body);

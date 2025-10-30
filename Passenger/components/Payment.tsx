@@ -70,6 +70,7 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
         mode: {
           amount: Math.round(parseFloat(amount) * 100),
           currencyCode: "usd",
+          setupFutureUsage: "OffSession",
         },
         confirmHandler: async (paymentMethod, _shouldSave, intentCreationCallback) => {
           const { paymentIntent, customer } = await fetchAPI(API_ENDPOINTS.CREATE_PAYMENT, {

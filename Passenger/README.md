@@ -12,8 +12,8 @@ As I'm going:
 - [FIXED]buttons for different screens overflow words
 - [FIXED]show banner to set up wallet before allowing drivers to be active
 - [FIXED]the car icon on the map for the driver is ginormous, make it smaller
+- [FIXED]scheduled ride accept button is crashing the app
 
-- scheduled ride accept button is crashing the app
 
 - see if you can use address strings instead of points when clicking "navigate"
 
