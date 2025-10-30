@@ -113,7 +113,11 @@ module.exports = async (req, res) => {
       const ride = snap.data();
 
       const isRequested =
-        ride.status === "requested" || ride.status === "scheduled_requested";
+        ride.status === "requested" || 
+        ride.status === "scheduled_requested" || 
+        ride.status === "scheduled_accepted" || 
+        ride.status === "accepted";
+        
       if (!isRequested) throw new Error("Ride is not in a requested state");
 
       if (ride.driver_id && ride.driver_id !== driverId) {

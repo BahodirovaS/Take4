@@ -36,7 +36,7 @@ As I'm going:
 
 - filter pets
 
-- when a driver declines a ride, it doesn't go to the next driver but shows "your ride was requested_pending_driver. please try requesting again" to the passenger
+- when a driver declines a ride, it doesn't go to the next driver.
 - decline ride does't have logic to send to another open driver
 
 - make admin page to change pricing of rides
