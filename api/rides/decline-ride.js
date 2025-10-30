@@ -40,12 +40,10 @@ function haversine(lat1, lng1, lat2, lng2) {
 }
 
 async function pickNextDriver(ride) {
-  // Seat requirement (mirror your assign_driver logic)
   const rideType = ride.ride_type || "standard";
   const seatRequirement =
     rideType === "xl" ? 7 : rideType === "comfort" ? 6 : 4;
 
-  // Pull all ONLINE drivers who meet seat requirement
   const q = query(
     collection(db, "drivers"),
     where("carSeats", ">=", seatRequirement),
@@ -54,13 +52,11 @@ async function pickNextDriver(ride) {
   const snap = await getDocs(q);
 
   if (snap.empty) return null;
-
   const declined = Array.isArray(ride.declined_driver_ids) ? ride.declined_driver_ids : [];
   const excludeSet = new Set(
-    declined.filter(Boolean) // previously declined
+    declined.filter(Boolean)
   );
 
-  // Exclude the current requested driver, if any
   if (ride.driver_id) excludeSet.add(ride.driver_id);
 
   const candidates = [];
@@ -70,7 +66,6 @@ async function pickNextDriver(ride) {
     if (!clerkId || excludeSet.has(clerkId)) return;
     if (typeof data.latitude !== "number" || typeof data.longitude !== "number") return;
 
-    // Distance from pickup if we have it
     let distance = Infinity;
     if (typeof ride.origin_latitude === "number" && typeof ride.origin_longitude === "number") {
       distance = haversine(
@@ -80,7 +75,6 @@ async function pickNextDriver(ride) {
         data.longitude
       );
     }
-
     candidates.push({
       clerkId,
       firstName: data.firstName || "Unknown",
@@ -112,7 +106,6 @@ module.exports = async (req, res) => {
 
     const rideRef = doc(db, "rideRequests", rideId);
 
-    // 1) Mark decline and clear requested fields atomically
     let rideAfter;
     await runTransaction(db, async (tx) => {
       const snap = await tx.get(rideRef);
@@ -123,7 +116,6 @@ module.exports = async (req, res) => {
         ride.status === "requested" || ride.status === "scheduled_requested";
       if (!isRequested) throw new Error("Ride is not in a requested state");
 
-      // Only allow the targeted driver to decline
       if (ride.driver_id && ride.driver_id !== driverId) {
         throw new Error("This ride is targeted to a different driver");
       }
@@ -131,30 +123,23 @@ module.exports = async (req, res) => {
       tx.update(rideRef, {
         driver_acceptance: "declined",
         declined_driver_ids: arrayUnion(driverId),
-        // Clear targeting fields so a different driver can be assigned
         driver_id: "",
         requested_driver_name: "",
         requested_driver_car: "",
         requested_at: new Date(),
-        // Keep status the same kind (requested vs scheduled_requested)
-        // so listeners keep looking at the right bucket
-        // (no change to status here)
       });
 
       rideAfter = { ...ride, driver_id: "", requested_driver_name: "", requested_driver_car: "" };
     });
 
-    // 2) Re-assign to next eligible online driver
     const snap = await getDocs(query(collection(db, "rideRequests"), where("__name__", "==", rideId)));
     if (snap.empty) {
-      // Shouldn't happen, but guard
       return res.status(200).json({ success: true, reassigned: false, reason: "ride_missing_post_tx" });
     }
     const rideData = snap.docs[0].data();
 
     const next = await pickNextDriver(rideData);
     if (!next) {
-      // No drivers available; leave it unassigned
       return res.status(200).json({ success: true, reassigned: false, reason: "no_available_drivers" });
     }
 

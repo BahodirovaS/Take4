@@ -76,20 +76,20 @@ const ScheduledRequestBottomSheet: React.FC = () => {
                 <Text style={styles.row}>
                     <Text style={styles.label}>
                         When:
-                    </Text>{details.when}</Text>
+                    </Text> {details.when}</Text>
                 <Text style={styles.row}>
                     <Text style={styles.label}>
                         From:
-                    </Text>{details.pickup}</Text>
+                    </Text> {details.pickup}</Text>
                 <Text style={styles.row}>
                     <Text style={styles.label}>
                         To:
-                    </Text>{details.dropoff}</Text>
+                    </Text> {details.dropoff}</Text>
                 {!!details.fare && (
                     <Text style={styles.row}>
                         <Text style={styles.label}>
                             Fare:
-                        </Text>{details.fare}</Text>
+                        </Text> {details.fare}</Text>
                 )}
                 <View style={styles.actions}>
                     <CustomButton
@@ -113,11 +113,27 @@ const ScheduledRequestBottomSheet: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-    sheet: { backgroundColor: "white", borderRadius: 16, padding: 16 },
-    title: { fontFamily: "DMSans-Bold", fontSize: 18, marginBottom: 12 },
-    row: { fontFamily: "DMSans", fontSize: 16, marginVertical: 2 },
-    label: { fontFamily: "DMSans-Bold" },
-    actions: { flexDirection: "row", marginTop: 16 },
+    sheet: { 
+        backgroundColor: "white", 
+        borderRadius: 16, 
+        padding: 16 
+    },
+    title: { 
+        fontFamily: "DMSans-Bold", 
+        fontSize: 20, 
+        marginBottom: 12 
+    },
+    row: { 
+        fontFamily: "DMSans", 
+        fontSize: 18, 
+        marginVertical: 2 
+    },
+    label: { 
+        fontFamily: "DMSans-Bold" 
+    },
+    actions: { 
+        flexDirection: "row", marginTop: 16 
+    },
 });
 
 export default ScheduledRequestBottomSheet;

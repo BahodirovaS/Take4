@@ -87,12 +87,7 @@ const BookRide: React.FC = () => {
 
                         <View style={[styles.infoRow, styles.borderedRow]}>
                             <Text style={styles.infoText}>Vehicle Type</Text>
-                            <Text style={styles.infoText}>{selectedRideTypeData.name}</Text>
-                        </View>
-
-                        <View style={styles.infoRow}>
-                            <Text style={styles.infoText}>Passenger Capacity</Text>
-                            <Text style={styles.infoText}>{selectedRideTypeData.seats} seats</Text>
+                            <Text style={styles.infoText}>{selectedRideTypeData.name} - {selectedRideTypeData.seats} seats </Text>
                         </View>
                     </View>
 
@@ -102,7 +97,7 @@ const BookRide: React.FC = () => {
                             <Text style={styles.driverAssignmentTitle}>Driver Assignment</Text>
                         </View>
                         <Text style={styles.driverAssignmentSubtext}>
-                            You'll receive driver details and can track their arrival in real-time.
+                            You'll receive driver details and can track their arrival.
                         </Text>
                     </View>
 

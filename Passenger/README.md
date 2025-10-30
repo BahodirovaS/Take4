@@ -24,7 +24,7 @@ As I'm going:
 - tip is showing up in the Connect account of the driver, but the fare share isn't
 - tipping page won't pop up for passenegers if the app refreshes. Make it so if the tip is false, they can't go to home screen?
 
-- active ride page for passenger has the back arrow and the location button too low
+- active ride page for passenger has the back arrow and the location button too low (in RideLayout component)
 - put back the map button to go to the back screen for passengers
 - format the scheduled ride request for drivers. it's ugly
 

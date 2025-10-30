@@ -27,6 +27,7 @@ import {
     updateDriverStatus,
     getRideHistory,
     checkActiveRides,
+    claimPendingRide
 } from "@/lib/fetch";
 import {
     getDriverProfileExists,
@@ -53,6 +54,13 @@ const Home = () => {
         };
         fetchLocation();
     }, []);
+
+    const getCurrentLocationOnce = async () => {
+        return new Promise(async (resolve) => {
+            await getUserLocation((loc) => resolve(loc));
+        });
+    };
+
 
     useEffect(() => {
         if (!user?.id) return;
@@ -132,6 +140,7 @@ const Home = () => {
         checkSetup();
     }, [checkSetup]);
 
+
     const toggleOnlineStatus = async () => {
         if (!hasDriverProfile || !onboardingCompleted) {
             Alert.alert(
@@ -142,20 +151,33 @@ const Home = () => {
             );
             return;
         }
-
         if (!driverDocId) {
             Alert.alert("Error", "Please complete your driver profile first.");
             return;
         }
-
         try {
             const newStatus = !isOnline;
             setIsOnline(newStatus);
             const success = await updateDriverStatus(driverDocId, newStatus);
-
             if (!success) {
                 setIsOnline((prev) => !prev);
                 Alert.alert("Error", "Failed to update your status. Please try again.");
+                return;
+            }
+            if (newStatus) {
+                try {
+                    const location: any = await getCurrentLocationOnce();
+                    const lat = location?.latitude;
+                    const lng = location?.longitude;
+
+                    if (lat && lng && user?.id) {
+                        const { claimed, rideId, reason } = await claimPendingRide(user.id, lat, lng);
+                        if (claimed) console.log("Claimed pending ride:", rideId);
+                        else console.log("No pending rides found:", reason);
+                    }
+                } catch (err) {
+                    console.error("Error claiming pending ride:", err);
+                }
             }
         } catch (error) {
             console.error("Error updating status:", error);
@@ -163,6 +185,7 @@ const Home = () => {
             Alert.alert("Error", "Failed to update your status. Please try again.");
         }
     };
+
 
     const renderRideHistory = () => {
         if (loading) return <ActivityIndicator size="small" color="#000" />;

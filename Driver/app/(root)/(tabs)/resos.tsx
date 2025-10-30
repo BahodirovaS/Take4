@@ -18,7 +18,8 @@ import { router } from 'expo-router';
 import {
   fetchScheduledRides,
   startScheduledRide as startRideAction,
-  cancelScheduledRide as cancelRideAction
+  cancelScheduledRide as cancelRideAction,
+  cancelDriverRide,
 } from '@/lib/fetch';
 
 const Reservations = () => {
@@ -71,13 +72,24 @@ const Reservations = () => {
 
 
   const handleCancelRide = async (rideId: string) => {
-    const { success, error } = await cancelRideAction(rideId);
+    if (!user?.id) {
+      Alert.alert("Error", "User not found");
+      return;
+    }
+    const { success, reassigned, nextDriver, error } = await cancelDriverRide(rideId, user.id);
     if (success) {
-      setRides(prevRides => prevRides.filter(ride => ride.id !== rideId));
+      setRides((prevRides) => prevRides.filter((r) => r.id !== rideId));
       clearReservation();
-      Alert.alert('Success', 'Ride reservation cancelled');
+      if (reassigned) {
+        Alert.alert(
+          "Cancelled and Reassigned",
+          `Ride has been reassigned to another driver (${nextDriver?.name || "N/A"}).`
+        );
+      } else {
+        Alert.alert("Cancelled", "Ride cancelled, but no other drivers are currently available.");
+      }
     } else {
-      Alert.alert('Error', 'Failed to cancel ride');
+      Alert.alert("Error", error || "Failed to cancel ride.");
     }
   };
 

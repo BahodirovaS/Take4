@@ -9,6 +9,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import Map from "@/components/Map";
 import { icons } from "@/constants";
+import HomeMap from "./HomeMap";
 
 interface RideLayoutProps {
   title: string;
@@ -32,6 +33,8 @@ const RideLayout: React.FC<RideLayoutProps> = ({
   ? ["45%"]
   : ["50%", "80%"]
 
+
+  // if in active ride, remove this
   const handleBackPress = () => {
     if (pathname.includes('book-ride')) {
       router.push('/(root)/confirm-ride');
@@ -40,7 +43,6 @@ const RideLayout: React.FC<RideLayoutProps> = ({
     } else if (pathname.includes('find-ride')) {
       router.push('/(root)/(tabs)/home');
     } else {
-      // Fallback - go to home or use router.back()
       router.push('/(root)/(tabs)/home');
     }
   };

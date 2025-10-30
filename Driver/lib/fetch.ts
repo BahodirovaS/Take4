@@ -429,6 +429,40 @@ export const updateDriverStatus = async (
   }
 };
 
+/**
+ * Claim any pending ride for a driver when they go online
+ */
+
+export const claimPendingRide = async (
+  driverId: string,
+  lat: number,
+  lng: number
+): Promise<{ claimed: boolean; rideId?: string; reason?: string }> => {
+  try {
+    const res = await fetch(API_ENDPOINTS.CLAIM_PENDING_RIDE, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ driverId, lat, lng }),
+    });
+
+    if (!res.ok) {
+      console.error("claimPendingRide failed:", res.status, await res.text());
+      return { claimed: false, reason: "network_error" };
+    }
+
+    const data = await res.json();
+    if (data?.claimed) {
+      console.log("✅ Claimed pending ride:", data.rideId);
+      return { claimed: true, rideId: data.rideId };
+    }
+
+    console.log("ℹ️ No pending rides found:", data?.reason || "none");
+    return { claimed: false, reason: data?.reason || "none" };
+  } catch (error) {
+    console.error("claimPendingRide error:", error);
+    return { claimed: false, reason: "exception" };
+  }
+};
 
 
 /**
@@ -652,6 +686,7 @@ export const selectProfileImage = async (): Promise<{
   }
 };
 
+
 /**
 * Save driver profile to Firestore
 */
@@ -789,6 +824,43 @@ export const cancelScheduledRide = async (rideId: string): Promise<{
     };
   }
 };
+
+
+/**
+ * Driver cancels a scheduled ride
+ */
+export const cancelDriverRide = async (rideId: string, driverId: string): Promise<{
+  success: boolean;
+  reassigned?: boolean;
+  nextDriver?: any;
+  error?: string;
+}> => {
+  try {
+    const res = await fetch(API_ENDPOINTS.DECLINE_RIDE, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rideId, driverId }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("cancelDriverRide failed:", text);
+      return { success: false, error: "Network error" };
+    }
+
+    const data = await res.json();
+    return {
+      success: !!data.success,
+      reassigned: data.reassigned,
+      nextDriver: data.nextDriver,
+      error: data.error || undefined,
+    };
+  } catch (error: any) {
+    console.error("cancelDriverRide error:", error);
+    return { success: false, error: error.message || "Unexpected error" };
+  }
+};
+
 
 /**
  * Subscribe to messages between two users

@@ -267,7 +267,6 @@ module.exports = async (req, res) => {
     }
 
 
-
     if (req.method === 'POST' && path === '/express-dashboard') {
       const { driver_id } = req.body || {};
 
@@ -377,6 +376,101 @@ module.exports = async (req, res) => {
 
       return res.json({ success: true, message: 'Payment successful', result });
     }
+
+    if (req.method === 'POST' && path === '/claim-pending-ride') {
+      try {
+        const { driverId, lat, lng } = req.body || {};
+        if (!driverId || typeof lat !== 'number' || typeof lng !== 'number') {
+          return res.status(400).json({ success: false, error: 'driverId, lat, lng required' });
+        }
+
+        const db = getFirestore();
+
+        const driverSnap = await db
+          .collection('drivers')
+          .where('clerkId', '==', driverId)
+          .limit(1)
+          .get();
+        if (driverSnap.empty) {
+          return res.status(404).json({ success: false, error: 'Driver profile not found' });
+        }
+        const d = driverSnap.docs[0].data();
+        const assignedName =
+          [d.firstName, d.lastName].filter(Boolean).join(' ').trim() || d.name || 'Driver';
+        const assignedCar = d.vMake || d.vehicleMake || 'Vehicle';
+
+        const rideSnap = await db
+          .collection('rideRequests')
+          .where('status', 'in', ['requested', 'scheduled_requested'])
+          .where('driver_id', '==', '')
+          .get();
+
+        if (rideSnap.empty) {
+          return res.json({ success: true, claimed: false, ride: null });
+        }
+
+        function haversineKm(lat1, lng1, lat2, lng2) {
+          const R = 6371;
+          const dLat = (lat2 - lat1) * Math.PI / 180;
+          const dLng = (lng2 - lng1) * Math.PI / 180;
+          const a =
+            Math.sin(dLat / 2) ** 2 +
+            Math.cos(lat1 * Math.PI / 180) *
+            Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLng / 2) ** 2;
+          return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        }
+
+        const candidates = [];
+        rideSnap.forEach((doc) => {
+          const data = doc.data();
+          if (data.declined_driver_ids?.includes(driverId)) return; // skip declined ones
+          if (typeof data.origin_latitude !== 'number' || typeof data.origin_longitude !== 'number') return;
+          const distance = haversineKm(lat, lng, data.origin_latitude, data.origin_longitude);
+          candidates.push({ id: doc.id, data, distance });
+        });
+
+        if (candidates.length === 0) {
+          return res.json({ success: true, claimed: false, reason: 'no_unassigned_rides' });
+        }
+
+        candidates.sort((a, b) => a.distance - b.distance);
+        const target = candidates[0];
+
+        const rideRef = db.collection('rideRequests').doc(target.id);
+        await db.runTransaction(async (tx) => {
+          const snap = await tx.get(rideRef);
+          if (!snap.exists) throw new Error('Ride not found');
+          const current = snap.data();
+
+          if (
+            !['requested', 'scheduled_requested'].includes(current.status) ||
+            current.driver_id !== ''
+          ) {
+            throw new Error('Ride no longer available');
+          }
+
+          tx.update(rideRef, {
+            driver_id: driverId,
+            requested_driver_name: assignedName,
+            requested_driver_car: assignedCar,
+            driver_acceptance: 'pending',
+            request_expires_at: new Date(Date.now() + 2 * 60 * 1000), // 2 min expiration
+          });
+        });
+
+        return res.json({
+          success: true,
+          claimed: true,
+          rideId: target.id,
+          rideStatus: target.data.status,
+        });
+      } catch (e) {
+        console.error('claim-pending-ride error:', e);
+        return res.status(500).json({ success: false, error: e?.message || 'claim failed' });
+      }
+    }
+
 
     return res.status(404).json({ error: 'Not found', path });
   } catch (err) {
