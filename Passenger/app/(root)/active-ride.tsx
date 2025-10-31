@@ -226,6 +226,7 @@ const ActiveRide = () => {
                 title={getRideStatusTitle()}
                 rideStatus={rideStatus}
                 {...(hasDriverFix ? { driverLocation: driverLocation! } : {})}
+                hideBackButton
             >
                 {rideStatus === "in_progress" && dropoffEtaMin != null && (
                     <View style={styles.etaContainer}>

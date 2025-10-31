@@ -17,6 +17,7 @@ interface RideLayoutProps {
   children: React.ReactNode;
   rideStatus?: string;
   driverLocation?: {latitude: number, longitude: number};
+  hideBackButton?: boolean;
 }
 
 const RideLayout: React.FC<RideLayoutProps> = ({ 
@@ -24,7 +25,8 @@ const RideLayout: React.FC<RideLayoutProps> = ({
   snapPoints, 
   children, 
   rideStatus, 
-  driverLocation 
+  driverLocation, 
+  hideBackButton = false
 }) => {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const pathname = usePathname();
@@ -55,9 +57,11 @@ const RideLayout: React.FC<RideLayoutProps> = ({
           rideStatus={rideStatus}
           driverLocation={driverLocation}
         />
-        <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
-          <Image source={icons.backArrow} resizeMode="contain" style={styles.backArrow} />
-        </TouchableOpacity>
+        {!hideBackButton && (
+          <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+            <Image source={icons.backArrow} resizeMode="contain" style={styles.backArrow} />
+          </TouchableOpacity>
+        )}
       </View>
       <BottomSheet
         ref={bottomSheetRef}
