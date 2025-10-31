@@ -57,6 +57,7 @@ module.exports = async (req, res) => {
 
             tx.update(rideRef, {
                 status: "scheduled_accepted",
+                driver_acceptance: "accepted",
                 driver_id: driverId,
                 assigned_driver_name: assignedName,
                 assigned_driver_car: assignedCar,

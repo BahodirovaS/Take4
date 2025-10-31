@@ -1,108 +1,137 @@
 import { icons } from "@/constants";
 import { db } from "@/lib/firebase";
 import { RideRequest } from "@/types/type";
-import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
-import { useEffect, useState } from "react";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { useEffect, useMemo, useState } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 import CustomButton from "./CustomButton";
 import { formatReservationCardDate } from "@/lib/utils"
 
-const ReservationCard: React.FC<{ 
-    ride: RideRequest, 
-    onCancel: () => void, 
-    onReschedule: () => void 
-  }> = ({ ride, onCancel, onReschedule }) => {
-    const [driverName, setDriverName] = useState('');
-  
-    useEffect(() => {
-      const fetchDriverName = async () => {
-        if (ride.driver_id) {
-          try {
-            const driversCollection = collection(db, "drivers");
-                    const q = query(
-                      driversCollection, 
-                      where("clerkId", "==", ride.driver_id)
-                    );
-                    const querySnapshot = await getDocs(q);
-                    if (!querySnapshot.empty) {
-                      const driverDoc = querySnapshot.docs[0];
-                      const driverData = driverDoc.data();
-                      
-                      setDriverName(
-                        driverData.firstName && driverData.lastName
-                          ? `${driverData.firstName}`
-                          : "Unknown Driver"
-                      );
-                    }
-          } catch (error) {
-            console.error("Error fetching driver name:", error);
-          }
-        }
-      };
-  
-      fetchDriverName();
-    }, [ride.driver_id]);
+const ReservationCard: React.FC<{
+  ride: RideRequest,
+  onCancel: () => void,
+  onReschedule: () => void
+}> = ({ ride, onCancel, onReschedule }) => {
 
-    const { dayOfWeek, monthName, dateNumber } = formatReservationCardDate(ride.scheduled_date);
-  
-    return (
-      <View style={styles.cardContainer}>
-        <View style={styles.cardContent}>
-          <View style={styles.twoColumnContainer}>
-            <View style={styles.dateColumn}>
+  const [driverName, setDriverName] = useState("");
+  const assignmentState = useMemo<"assigned" | "requested" | "unassigned">(() => {
+    if (ride.driver_id && ride.status === "scheduled_accepted") return "assigned";
+    if (ride.status === "scheduled_requested" || ride.driver_acceptance === "pending") return "requested";
+    return "unassigned";
+  }, [ride.driver_id, ride.status, ride.driver_acceptance]);
+
+  const isDriverAssigned = assignmentState === "assigned";
+  const assignmentLabel =
+    assignmentState === "assigned"
+      ? "Driver assigned"
+      : assignmentState === "requested"
+        ? "Driver requested"
+        : "Driver not yet assigned";
+
+
+  useEffect(() => {
+    const fetchDriverName = async () => {
+      if (!isDriverAssigned || !ride.driver_id) {
+        setDriverName("");
+        return;
+      }
+
+      try {
+        const driversCollection = collection(db, "drivers");
+        const q = query(driversCollection, where("clerkId", "==", ride.driver_id));
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+          const data = querySnapshot.docs[0].data() as any;
+          const first = data.firstName?.trim();
+          const last = data.lastName?.trim();
+          setDriverName(first ? `${first}` : (last ? `${last}` : "Unknown Driver"));
+        } else {
+          setDriverName("Unknown Driver");
+        }
+      } catch (error) {
+        console.error("Error fetching driver name:", error);
+        setDriverName("");
+      }
+    };
+
+    fetchDriverName();
+  }, [isDriverAssigned, ride.driver_id]);
+
+  const { dayOfWeek, monthName, dateNumber } = formatReservationCardDate(ride.scheduled_date);
+
+  return (
+    <View style={styles.cardContainer}>
+      <View style={styles.cardContent}>
+        <View style={styles.twoColumnContainer}>
+          <View style={styles.dateColumn}>
             <Text style={styles.dayOfWeek}>{dayOfWeek},</Text>
             <Text style={styles.dayOfWeek}>{monthName}</Text>
             <Text style={styles.dateNumber}>{dateNumber}</Text>
-            </View>
-            <View style={styles.infoColumn}>
-              <View style={styles.infoRow}>
+          </View>
+
+          <View style={styles.infoColumn}>
+            <View style={styles.infoRow}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                 <Text style={styles.label}>Time</Text>
                 <Text style={styles.value} numberOfLines={1}>
                   {ride.scheduled_time}
                 </Text>
               </View>
-              {/* <View style={styles.infoRow}>
+
+              <View style={[styles.assignmentPill, isDriverAssigned ? styles.pillAssigned : styles.pillUnassigned]}>
+                <Text style={[styles.assignmentText, isDriverAssigned ? styles.assignmentTextAssigned : styles.assignmentTextUnassigned]}>
+                  {assignmentLabel}
+                </Text>
+              </View>
+            </View>
+
+            {/* {isDriverAssigned ? (
+              <View style={styles.infoRow}>
                 <Text style={styles.label}>Driver</Text>
                 <Text style={styles.value}>
-                  {driverName || 'Not assigned'}
+                  {driverName || "Assigning..."}
                 </Text>
-              </View> */}
-              <View style={styles.detailsContainer}>
-                <View style={styles.row}>
-                  <Image source={icons.to} style={styles.icon} />
-                  <Text style={styles.text} numberOfLines={1}>
-                    {ride.origin_address}
-                  </Text>
-                </View>
-                <View style={styles.row}>
-                  <Image source={icons.point} style={styles.icon} />
-                  <Text style={styles.text} numberOfLines={3}>
-                    {ride.destination_address}
-                  </Text>
-                </View>
               </View>
-              <View style={styles.actionButtonsContainer}>
-                <CustomButton 
-                  title="Reschedule"
-                  onPress={onReschedule}
-                  bgVariant="primary"
-                  size="small"
-                  style={styles.rescheduleButton}
-                />
-                <CustomButton 
-                  title="Cancel"
-                  onPress={onCancel}
-                  bgVariant="danger"
-                  size="small"
-                  style={styles.cancelButton}
-                />
+            ) : null} */}
+
+            <View style={styles.detailsContainer}>
+              <View style={styles.row}>
+                <Image source={icons.to} style={styles.icon} />
+                <Text style={styles.text} numberOfLines={1}>
+                  {ride.origin_address}
+                </Text>
               </View>
+              <View style={styles.row}>
+                <Image source={icons.point} style={styles.icon} />
+                <Text style={styles.text} numberOfLines={3}>
+                  {ride.destination_address}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.actionButtonsContainer}>
+              <CustomButton
+                title="Reschedule"
+                onPress={onReschedule}
+                bgVariant="primary"
+                size="small"
+                style={styles.rescheduleButton}
+              />
+              <CustomButton
+                title="Cancel"
+                onPress={onCancel}
+                bgVariant="danger"
+                size="small"
+                style={styles.cancelButton}
+              />
             </View>
           </View>
         </View>
       </View>
-    );
-  };
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   cardContainer: {
@@ -197,7 +226,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     borderRadius: 6,
     marginLeft: 5,
-  }
+  },
+
+  // Assignment pill styles
+  assignmentPill: {
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  pillAssigned: {
+    backgroundColor: "#E7F6EC",
+    borderColor: "#C7E9D2",
+  },
+  pillUnassigned: {
+    backgroundColor: "#F3F4F6",
+    borderColor: "#E5E7EB",
+  },
+  assignmentText: {
+    fontSize: 12,
+    fontFamily: "DMSans-Medium",
+  },
+  assignmentTextAssigned: {
+    color: "#166534", // deep green
+  },
+  assignmentTextUnassigned: {
+    color: "#374151", // neutral gray
+  },
 });
 
 export default ReservationCard;
