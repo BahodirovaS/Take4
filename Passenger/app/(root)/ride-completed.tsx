@@ -138,7 +138,7 @@ const RideCompleted = () => {
                     <CustomButton
                         // title={`Submit ${parseFloat(tipAmount) > 0 ? `$${tipAmount} Tip` : 'No Tip'}`}
                         title="All Done"
-                        onPress={processTip}
+                        onPress={handleSuccessButtonPress}
                         bgVariant="primary"
                         style={styles.submitButton}
                     />
@@ -199,7 +199,7 @@ const RideCompleted = () => {
             
             {renderTipping()}
             
-            <ReactNativeModal
+            {/* <ReactNativeModal
                 isVisible={success}
                 onBackdropPress={() => setSuccess(false)}
             >
@@ -216,7 +216,7 @@ const RideCompleted = () => {
                         style={styles.doneButton}
                     />
                 </View>
-            </ReactNativeModal>
+            </ReactNativeModal> */}
         </View>
     );
 };

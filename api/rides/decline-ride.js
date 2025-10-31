@@ -85,7 +85,7 @@ module.exports = async (req, res) => {
 
     await db.runTransaction(async (tx) => {
       const snap = await tx.get(rideRef);
-      if (!snap.exists()) throw new Error("Ride not found");
+      if (!snap.exists) throw new Error("Ride not found");
       const ride = snap.data();
 
       const allowed = new Set(["requested", "scheduled_requested", "accepted", "scheduled_accepted"]);

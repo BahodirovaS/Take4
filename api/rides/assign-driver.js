@@ -1,5 +1,17 @@
-const { adminDb } = require('./lib/firebaseadmin');
-const { FieldValue } = require('firebase-admin/firestore');
+// api/assign-driver.js
+const { getApps, initializeApp, cert } = require('firebase-admin/app');
+const { getFirestore, FieldValue } = require('firebase-admin/firestore');
+
+if (!getApps().length) {
+  initializeApp({
+    credential: cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    }),
+  });
+}
+const adminDb = getFirestore();
 
 const seatByType = (rideType) =>
   rideType === 'xl' ? 7 : rideType === 'comfort' ? 6 : 4;
@@ -16,20 +28,40 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { rideId, rideType, pickupLatitude, pickupLongitude, isScheduled = false } = req.body;
+    const { rideId, rideType, pickupLatitude, pickupLongitude, isScheduled = false } = req.body || {};
     const idemKey = req.headers['x-idempotency-key'];
 
+    // Basic validation
     if (!rideId || !rideType || typeof pickupLatitude !== 'number' || typeof pickupLongitude !== 'number') {
       return res.status(422).json({ success: false, code: 'VALIDATION_ERROR', message: 'Missing or invalid fields' });
     }
 
     const seatRequirement = seatByType(rideType);
+    console.log('[assign-driver] seatRequirement:', seatRequirement);
 
-    const driversSnapshot = await adminDb
-      .collection('drivers')
-      .where('carSeats', '>=', seatRequirement)
-      .where('status', '==', true)
-      .get();
+    // ---- Query drivers (handle missing composite index) ----
+    let driversSnapshot;
+    try {
+      driversSnapshot = await adminDb
+        .collection('drivers')
+        .where('carSeats', '>=', seatRequirement)
+        .where('status', '==', true)
+        .get();
+    } catch (err) {
+      // Firestore throws failed-precondition when a composite index is missing
+      if (err && (err.code === 9 || err.code === 'failed-precondition') && /index/i.test(String(err.message))) {
+        console.error('Index required for (status == true, carSeats >= N). Create the composite index in Firestore.');
+        return res.status(400).json({
+          success: false,
+          code: 'INDEX_REQUIRED',
+          message: 'Create Firestore composite index on drivers: status (ASC), carSeats (ASC).',
+          details: err.message,
+        });
+      }
+      throw err;
+    }
+
+    console.log('[assign-driver] driversSnapshot size:', driversSnapshot.size);
 
     if (driversSnapshot.empty) {
       if (isScheduled) {
@@ -58,12 +90,15 @@ module.exports = async (req, res) => {
       });
     }
 
+    // Collect geo-usable drivers
     const availableDrivers = [];
     driversSnapshot.forEach((d) => {
-      const driver = d.data();
+      const driver = d.data() || {};
       const lat = Number(driver.latitude);
       const lng = Number(driver.longitude);
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+      if (!driver.clerkId) return; // skip if missing identity used for assignments
+
       const distance = calculateDistance(pickupLatitude, pickupLongitude, lat, lng);
       availableDrivers.push({
         id: d.id,
@@ -77,6 +112,8 @@ module.exports = async (req, res) => {
         distance,
       });
     });
+
+    console.log('[assign-driver] availableDrivers:', availableDrivers.length);
 
     if (availableDrivers.length === 0) {
       if (isScheduled) {
@@ -106,6 +143,7 @@ module.exports = async (req, res) => {
     availableDrivers.sort((a, b) => a.distance - b.distance);
     const target = availableDrivers[0];
 
+    // Assign inside a transaction
     const result = await adminDb.runTransaction(async (trx) => {
       const rideRef = adminDb.collection('rideRequests').doc(rideId);
       const rideSnap = await trx.get(rideRef);
@@ -115,12 +153,14 @@ module.exports = async (req, res) => {
         err._http = 404;
         throw err;
       }
-      const ride = rideSnap.data();
+      const ride = rideSnap.data() || {};
 
+      // Idempotency
       if (idemKey && ride.lastAssignmentRequestId === idemKey) {
         return { kind: 'IDEMPOTENT_REPEAT', target };
       }
 
+      // State guard
       if (ride.driver_acceptance === 'accepted' || ride.status === 'accepted') {
         const err = new Error('Ride already accepted');
         err._code = 'RIDE_STATE_CONFLICT';
@@ -180,12 +220,13 @@ module.exports = async (req, res) => {
     });
   } catch (error) {
     const http = error._http || 500;
-    const code = error._code || 'INTERNAL_ERROR';
+    const code = error.code || error._code || 'INTERNAL_ERROR';
     console.error('assign-driver error:', error);
     return res.status(http).json({
       success: false,
       code,
-      message: error.message || 'Failed to request driver',
+      message: error.message,
+      details: (error.stack && error.stack.split('\n')[0]) || null,
     });
   }
 };
