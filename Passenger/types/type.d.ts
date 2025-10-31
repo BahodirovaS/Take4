@@ -93,6 +93,7 @@ declare interface Ride {
   };
 }
 
+export type DriverAcceptance = "none" | "pending" | "accepted" | "declined";
 declare interface RideRequest {
   id: string;
   scheduled_date: string;
@@ -107,6 +108,11 @@ declare interface RideRequest {
   fare_price: number;
   status: string;
   driver_id: string;
+  driver_acceptance?: DriverAcceptance;
+  requested_driver_name?: string;
+  requested_driver_car?: string;
+  driver_distance_km?: number;
+  requested_at?: Timestamp | Date;
   createdAt: Date;
 }
 

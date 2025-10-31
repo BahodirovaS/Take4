@@ -1,66 +1,70 @@
-const { initializeApp, getApps } = require('firebase/app');
-const {
-  getFirestore, collection, query, where, getDocs, updateDoc, doc
-} = require('firebase/firestore');
+const { adminDb } = require('./lib/firebaseadmin');
+const { FieldValue } = require('firebase-admin/firestore');
 
-const firebaseConfig = {
-  apiKey: process.env.FIREBASE_API_KEY,
-  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.FIREBASE_PROJECT_ID,
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.FIREBASE_APP_ID
-};
+const seatByType = (rideType) =>
+  rideType === 'xl' ? 7 : rideType === 'comfort' ? 6 : 4;
 
-let app;
-let db;
-try {
-  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-  db = getFirestore(app);
-} catch (initError) {
-  console.error('Firebase initialization error:', initError);
-}
+const nowMs = () => Date.now();
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Idempotency-Key');
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ success: false, code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' });
+  }
 
   try {
     const { rideId, rideType, pickupLatitude, pickupLongitude, isScheduled = false } = req.body;
+    const idemKey = req.headers['x-idempotency-key'];
 
-    if (!db) return res.status(500).json({ success: false, error: 'Database connection failed' });
-    if (!rideId || !rideType || pickupLatitude === undefined || pickupLongitude === undefined) {
-      return res.status(400).json({ success: false, error: 'Missing required fields' });
+    if (!rideId || !rideType || typeof pickupLatitude !== 'number' || typeof pickupLongitude !== 'number') {
+      return res.status(422).json({ success: false, code: 'VALIDATION_ERROR', message: 'Missing or invalid fields' });
     }
 
-    const seatRequirement = rideType === 'xl' ? 7 : rideType === 'comfort' ? 6 : 4;
+    const seatRequirement = seatByType(rideType);
 
-    const driversQuery = query(
-      collection(db, 'drivers'),
-      where('carSeats', '>=', seatRequirement),
-      where('status', '==', true)
-    );
+    const driversSnapshot = await adminDb
+      .collection('drivers')
+      .where('carSeats', '>=', seatRequirement)
+      .where('status', '==', true)
+      .get();
 
-    const driversSnapshot = await getDocs(driversQuery);
     if (driversSnapshot.empty) {
-      return res.status(404).json({ 
-        success: false, error: `No ${rideType} drivers available at this time` 
+      if (isScheduled) {
+        await adminDb.collection('rideRequests').doc(rideId).update({
+          status: 'scheduled_waiting_for_driver',
+          driver_acceptance: 'none',
+          lastAssignmentRequestId: idemKey || null,
+          lastAssignmentAt: FieldValue.serverTimestamp(),
+        });
+
+        return res.status(202).json({
+          success: true,
+          code: 'QUEUED_AWAITING_DRIVER',
+          message: `No ${rideType} drivers online right now. The ride is queued until a driver comes online.`,
+          retryAfterSec: 30,
+          ride: { id: rideId },
+        });
+      }
+
+      return res.status(404).json({
+        success: false,
+        code: 'NO_ACTIVE_DRIVERS',
+        message: `No ${rideType} drivers available at this time`,
+        retryAfterSec: 15,
+        ride: { id: rideId },
       });
     }
 
     const availableDrivers = [];
-    driversSnapshot.forEach(d => {
+    driversSnapshot.forEach((d) => {
       const driver = d.data();
-      if (typeof driver.latitude !== 'number' || typeof driver.longitude !== 'number') return;
-      const distance = calculateDistance(
-        pickupLatitude, 
-        pickupLongitude, 
-        driver.latitude, 
-        driver.longitude
-      );
+      const lat = Number(driver.latitude);
+      const lng = Number(driver.longitude);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+      const distance = calculateDistance(pickupLatitude, pickupLongitude, lat, lng);
       availableDrivers.push({
         id: d.id,
         clerk_id: driver.clerkId,
@@ -68,51 +72,124 @@ module.exports = async (req, res) => {
         lastName: driver.lastName || 'Driver',
         carSeats: driver.carSeats,
         carMake: driver.vMake || 'Vehicle',
-        latitude: driver.latitude,
-        longitude: driver.longitude,
-        distance
+        latitude: lat,
+        longitude: lng,
+        distance,
       });
     });
 
     if (availableDrivers.length === 0) {
-      return res.status(404).json({ 
-        success: false, error: 'No drivers with valid location data found' 
+      if (isScheduled) {
+        await adminDb.collection('rideRequests').doc(rideId).update({
+          status: 'scheduled_waiting_for_driver',
+          driver_acceptance: 'none',
+          lastAssignmentRequestId: idemKey || null,
+          lastAssignmentAt: FieldValue.serverTimestamp(),
+        });
+        return res.status(202).json({
+          success: true,
+          code: 'QUEUED_AWAITING_DRIVER',
+          message: 'Drivers online but no usable location yet; ride queued.',
+          retryAfterSec: 30,
+          ride: { id: rideId },
+        });
+      }
+      return res.status(404).json({
+        success: false,
+        code: 'NO_GEO_DRIVERS',
+        message: 'No drivers with valid location data found',
+        retryAfterSec: 10,
+        ride: { id: rideId },
       });
     }
 
     availableDrivers.sort((a, b) => a.distance - b.distance);
     const target = availableDrivers[0];
 
-    const rideRef = doc(db, 'rideRequests', rideId);
-    await updateDoc(rideRef, {
-      driver_id: target.clerk_id,
-      requested_driver_name: `${target.firstName} ${target.lastName}`,
-      requested_driver_car: target.carMake,
-      requested_at: new Date(),
-      driver_distance: target.distance,
-      driver_acceptance: 'pending',
-      status: isScheduled ? 'scheduled_requested' : 'requested',
-      request_expires_at: new Date(Date.now() + 2 * 60 * 1000) 
+    const result = await adminDb.runTransaction(async (trx) => {
+      const rideRef = adminDb.collection('rideRequests').doc(rideId);
+      const rideSnap = await trx.get(rideRef);
+      if (!rideSnap.exists) {
+        const err = new Error('Ride not found');
+        err._code = 'RIDE_NOT_FOUND';
+        err._http = 404;
+        throw err;
+      }
+      const ride = rideSnap.data();
+
+      if (idemKey && ride.lastAssignmentRequestId === idemKey) {
+        return { kind: 'IDEMPOTENT_REPEAT', target };
+      }
+
+      if (ride.driver_acceptance === 'accepted' || ride.status === 'accepted') {
+        const err = new Error('Ride already accepted');
+        err._code = 'RIDE_STATE_CONFLICT';
+        err._http = 409;
+        throw err;
+      }
+
+      const expiresAtMs = nowMs() + 2 * 60 * 1000;
+
+      trx.update(rideRef, {
+        driver_id: target.clerk_id,
+        requested_driver_name: `${target.firstName} ${target.lastName}`,
+        requested_driver_car: target.carMake,
+        requested_at: FieldValue.serverTimestamp(),
+        driver_distance_km: target.distance,
+        driver_acceptance: 'pending',
+        status: isScheduled ? 'scheduled_requested' : 'requested',
+        request_expires_at: new Date(expiresAtMs),
+        request_expires_at_epochMs: expiresAtMs,
+        lastAssignmentRequestId: idemKey || null,
+        lastAssignmentAt: FieldValue.serverTimestamp(),
+      });
+
+      return { kind: 'ASSIGNED', target, expiresAtMs };
     });
+
+    if (result.kind === 'IDEMPOTENT_REPEAT') {
+      return res.status(200).json({
+        success: true,
+        code: 'REQUESTED_DRIVER_PENDING',
+        requested: true,
+        retryAfterSec: 5,
+        driver: {
+          id: result.target.clerk_id,
+          name: `${result.target.firstName} ${result.target.lastName}`,
+          car: result.target.carMake,
+          seats: result.target.carSeats,
+          distanceKm: Number(result.target.distance.toFixed(2)),
+        },
+        ride: { id: rideId },
+      });
+    }
 
     return res.status(200).json({
       success: true,
+      code: 'REQUESTED_DRIVER_PENDING',
       requested: true,
+      retryAfterSec: 5,
       driver: {
-        id: target.clerk_id,
-        name: `${target.firstName} ${target.lastName}`,
-        car: target.carMake,
-        seats: target.carSeats,
-        distance: target.distance
-      }
+        id: result.target.clerk_id,
+        name: `${result.target.firstName} ${result.target.lastName}`,
+        car: result.target.carMake,
+        seats: result.target.carSeats,
+        distanceKm: Number(result.target.distance.toFixed(2)),
+      },
+      ride: { id: rideId, requestExpiresAtMs: result.expiresAtMs },
     });
   } catch (error) {
+    const http = error._http || 500;
+    const code = error._code || 'INTERNAL_ERROR';
     console.error('assign-driver error:', error);
-    return res.status(500).json({ success: false, error: 'Failed to request driver', details: error.message });
+    return res.status(http).json({
+      success: false,
+      code,
+      message: error.message || 'Failed to request driver',
+    });
   }
 };
 
-// Haversine
 function calculateDistance(lat1, lng1, lat2, lng2) {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;

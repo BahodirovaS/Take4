@@ -1,32 +1,16 @@
-const { initializeApp, getApps } = require("firebase/app");
-const {
-  getFirestore,
-  doc,
-  runTransaction,
-  arrayUnion,
-  collection,
-  query,
-  where,
-  getDocs,
-  updateDoc,
-} = require("firebase/firestore");
+const { getApps, initializeApp, cert } = require("firebase-admin/app");
+const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 
-const firebaseConfig = {
-  apiKey: process.env.FIREBASE_API_KEY,
-  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.FIREBASE_PROJECT_ID,
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.FIREBASE_APP_ID,
-};
-
-let app, db;
-try {
-  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-  db = getFirestore(app);
-} catch (e) {
-  console.error("Firebase init error:", e);
+if (!getApps().length) {
+  initializeApp({
+    credential: cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+    }),
+  });
 }
+const db = getFirestore();
 
 function haversine(lat1, lng1, lat2, lng2) {
   const R = 6371;
@@ -41,39 +25,33 @@ function haversine(lat1, lng1, lat2, lng2) {
 
 async function pickNextDriver(ride) {
   const rideType = ride.ride_type || "standard";
-  const seatRequirement =
-    rideType === "xl" ? 7 : rideType === "comfort" ? 6 : 4;
+  const seatRequirement = rideType === "xl" ? 7 : rideType === "comfort" ? 6 : 4;
 
-  const q = query(
-    collection(db, "drivers"),
-    where("carSeats", ">=", seatRequirement),
-    where("status", "==", true)
-  );
-  const snap = await getDocs(q);
+  const snap = await db
+    .collection("drivers")
+    .where("carSeats", ">=", seatRequirement)
+    .where("status", "==", true)
+    .get();
 
   if (snap.empty) return null;
-  const declined = Array.isArray(ride.declined_driver_ids) ? ride.declined_driver_ids : [];
-  const excludeSet = new Set(
-    declined.filter(Boolean)
-  );
 
+  const declined = Array.isArray(ride.declined_driver_ids) ? ride.declined_driver_ids : [];
+  const excludeSet = new Set(declined.filter(Boolean));
   if (ride.driver_id) excludeSet.add(ride.driver_id);
 
   const candidates = [];
-  snap.forEach(d => {
+  snap.forEach((d) => {
     const data = d.data();
     const clerkId = data.clerkId;
     if (!clerkId || excludeSet.has(clerkId)) return;
-    if (typeof data.latitude !== "number" || typeof data.longitude !== "number") return;
+
+    const lat = Number(data.latitude);
+    const lng = Number(data.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
     let distance = Infinity;
     if (typeof ride.origin_latitude === "number" && typeof ride.origin_longitude === "number") {
-      distance = haversine(
-        ride.origin_latitude,
-        ride.origin_longitude,
-        data.latitude,
-        data.longitude
-      );
+      distance = haversine(ride.origin_latitude, ride.origin_longitude, lat, lng);
     }
     candidates.push({
       clerkId,
@@ -86,7 +64,6 @@ async function pickNextDriver(ride) {
   });
 
   if (candidates.length === 0) return null;
-
   candidates.sort((a, b) => a.distance - b.distance);
   return candidates[0];
 }
@@ -104,50 +81,46 @@ module.exports = async (req, res) => {
       return res.status(400).json({ success: false, error: "rideId and driverId required" });
     }
 
-    const rideRef = doc(db, "rideRequests", rideId);
+    const rideRef = db.collection("rideRequests").doc(rideId);
 
-    let rideAfter;
-    await runTransaction(db, async (tx) => {
+    await db.runTransaction(async (tx) => {
       const snap = await tx.get(rideRef);
       if (!snap.exists()) throw new Error("Ride not found");
       const ride = snap.data();
 
-      const isRequested =
-        ride.status === "requested" || 
-        ride.status === "scheduled_requested" || 
-        ride.status === "scheduled_accepted" || 
-        ride.status === "accepted";
-        
-      if (!isRequested) throw new Error("Ride is not in a requested state");
+      const allowed = new Set(["requested", "scheduled_requested", "accepted", "scheduled_accepted"]);
+      if (!allowed.has(ride.status)) throw new Error("Ride is not in a requested state");
 
       if (ride.driver_id && ride.driver_id !== driverId) {
-        throw new Error("This ride is targeted to a different driver");
+        throw new Error("This ride is targeted/assigned to a different driver");
       }
+
+      const isScheduled = String(ride.status).startsWith("scheduled");
+      const newStatus = isScheduled ? "scheduled_requested" : "requested";
 
       tx.update(rideRef, {
         driver_acceptance: "declined",
-        declined_driver_ids: arrayUnion(driverId),
+        declined_driver_ids: FieldValue.arrayUnion(driverId),
         driver_id: "",
         requested_driver_name: "",
         requested_driver_car: "",
         requested_at: new Date(),
+        status: newStatus,
       });
-
-      rideAfter = { ...ride, driver_id: "", requested_driver_name: "", requested_driver_car: "" };
     });
 
-    const snap = await getDocs(query(collection(db, "rideRequests"), where("__name__", "==", rideId)));
-    if (snap.empty) {
+    const postSnap = await rideRef.get();
+    if (!postSnap.exists) {
       return res.status(200).json({ success: true, reassigned: false, reason: "ride_missing_post_tx" });
     }
-    const rideData = snap.docs[0].data();
+    const rideData = postSnap.data();
 
     const next = await pickNextDriver(rideData);
     if (!next) {
       return res.status(200).json({ success: true, reassigned: false, reason: "no_available_drivers" });
     }
 
-    await updateDoc(rideRef, {
+    await rideRef.update({
       driver_id: next.clerkId,
       requested_driver_name: `${next.firstName} ${next.lastName}`.trim(),
       requested_driver_car: next.carMake,

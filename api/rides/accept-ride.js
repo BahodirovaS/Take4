@@ -1,4 +1,4 @@
-const { initializeApp, getApps, cert } = require("firebase-admin/app");
+const { getApps, initializeApp, cert } = require("firebase-admin/app");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 
 if (!getApps().length) {
@@ -13,7 +13,6 @@ if (!getApps().length) {
 const db = getFirestore();
 
 module.exports = async (req, res) => {
-  // CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -30,13 +29,10 @@ module.exports = async (req, res) => {
       .limit(1)
       .get();
 
-    if (driverSnap.empty) {
-      return res.status(404).json({ error: "Driver profile not found" });
-    }
-    const driverDoc = driverSnap.docs[0];
-    const d = driverDoc.data();
-    const assignedName =
-      [d.firstName, d.lastName].filter(Boolean).join(" ").trim() || d.name || "Driver";
+    if (driverSnap.empty) return res.status(404).json({ error: "Driver profile not found" });
+
+    const d = driverSnap.docs[0].data();
+    const assignedName = [d.firstName, d.lastName].filter(Boolean).join(" ").trim() || d.name || "Driver";
     const assignedCar = d.vMake || d.vehicleMake || "Vehicle";
     const assignedSeats = d.carSeats || d.seats || 4;
 
@@ -44,28 +40,27 @@ module.exports = async (req, res) => {
 
     const result = await db.runTransaction(async (tx) => {
       const ride = await tx.get(rideRef);
-      if (!ride.exists) {
-        throw new Error("Ride not found");
-      }
+      if (!ride.exists) throw new Error("Ride not found");
       const r = ride.data();
 
-      const openStatuses = ["requested", "scheduled_requested"]; 
-      const alreadyTaken =
-        (r.driver_id && r.driver_id !== driverId) ||
-        !openStatuses.includes(r.status);
-
+      const openStatuses = ["requested", "scheduled_requested"];
+      const alreadyTaken = (r.driver_id && r.driver_id !== driverId) || !openStatuses.includes(r.status);
       if (alreadyTaken) {
-        return { success: false, reason: "taken_or_closed", status: r.status, driver_id: r.driver_id || "" };
+        return { success: false, status: r.status, driver_id: r.driver_id || "" };
       }
 
       tx.update(rideRef, {
         status: "accepted",
+        driver_acceptance: "accepted",
         driver_id: driverId,
         assigned_driver_name: assignedName,
         assigned_driver_car: assignedCar,
         assigned_driver_seats: assignedSeats,
         assigned_at: FieldValue.serverTimestamp(),
+        request_expires_at: null,
+        request_expires_at_epochMs: null,
       });
+
       return { success: true, assignedName };
     });
 

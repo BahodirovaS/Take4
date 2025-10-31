@@ -377,6 +377,36 @@ module.exports = async (req, res) => {
       return res.json({ success: true, message: 'Payment successful', result });
     }
 
+    // this function is for expiring the scheduled request the night of the day before the date
+    function toDate(input) {
+      if (!input) return null;
+      if (input.toDate) return input.toDate();
+      if (input instanceof Date) return input;
+      const d = new Date(input);
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    function computePreScheduledExpiry(ride) {
+      const schedDT = toDate(ride.scheduled_datetime);
+      if (schedDT) {
+        const ms = schedDT.getTime() - 24 * 60 * 60 * 1000;
+        return new Date(ms);
+      }
+
+      const dateStr = ride.scheduled_date;
+      if (typeof dateStr === 'string') {
+        const [y, m, d] = dateStr.split('-').map(Number);
+        if (y && m && d) {
+          const expUtc = Date.UTC(y, m - 1, d - 1, 23, 59, 59, 999);
+          return new Date(expUtc);
+        }
+      }
+
+      return new Date(Date.now() + 2 * 60 * 1000);
+    }
+    
+// end of function. it is used for the POST below
+
     if (req.method === 'POST' && path === '/claim-pending-ride') {
       try {
         const { driverId, lat, lng } = req.body || {};
@@ -450,12 +480,15 @@ module.exports = async (req, res) => {
             throw new Error('Ride no longer available');
           }
 
+          const expiry = computePreScheduledExpiry(current); // day-before cutoff
+
           tx.update(rideRef, {
             driver_id: driverId,
             requested_driver_name: assignedName,
             requested_driver_car: assignedCar,
             driver_acceptance: 'pending',
-            request_expires_at: new Date(Date.now() + 2 * 60 * 1000), // 2 min expiration
+            request_expires_at: expiry,
+            request_expires_at_epochMs: expiry.getTime(),
           });
         });
 

@@ -86,7 +86,7 @@ const Reservations = () => {
           `Ride has been reassigned to another driver (${nextDriver?.name || "N/A"}).`
         );
       } else {
-        Alert.alert("Cancelled", "Ride cancelled, but no other drivers are currently available.");
+        Alert.alert("Cancelled", "This ride has been cancelled");
       }
     } else {
       Alert.alert("Error", error || "Failed to cancel ride.");

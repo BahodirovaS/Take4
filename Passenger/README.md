@@ -42,3 +42,5 @@ As I'm going:
 - make admin page to change pricing of rides
 
 - CLEAN UP THE STYLE SECTION FOR SEVRAL COMPONENTS
+
+- WHERE I LEFT OFF: vercel --prod the new decline page, so all vercel apps are up to date with deployment. check to see if a driver can decline a scheduled ride AND a real time ride. right now, they can accept both scheduled and real time.
