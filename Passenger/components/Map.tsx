@@ -27,6 +27,7 @@ const Map = ({
 
   const mapRef = useRef<MapView>(null);
   const [didFit, setDidFit] = useState(false);
+  const activeRide = rideStatus === "accepted" || rideStatus === "arrived_at_pickup" || rideStatus === "in_progress";
 
   const hasUser = isNum(userLatitude) && isNum(userLongitude);
   const hasDest = isNum(destinationLatitude) && isNum(destinationLongitude);
@@ -162,7 +163,10 @@ const Map = ({
       </MapView>
 
       {showLocationButton && (
-        <TouchableOpacity style={styles.button} onPress={goToUserLocation}>
+        <TouchableOpacity
+          style={[styles.button, activeRide && styles.buttonHigh]}
+          onPress={goToUserLocation}
+        >
           <Image source={icons.to} style={styles.buttonIcon} />
         </TouchableOpacity>
       )}
@@ -188,6 +192,9 @@ const styles = StyleSheet.create({
     borderColor: "#ffffff",
     zIndex: 10,
     transform: [{ rotate: "315deg" }],
+  },
+  buttonHigh: {
+    top: 16,
   },
   buttonIcon: { width: 20, height: 20 },
 });
