@@ -1,5 +1,5 @@
 import { useUser } from "@clerk/clerk-expo";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useState, useEffect, useCallback } from "react";
 import React from "react";
 import {
@@ -47,6 +47,7 @@ const Home = () => {
     const [hasDriverProfile, setHasDriverProfile] = useState<boolean>(false);
     const [onboardingCompleted, setOnboardingCompleted] = useState<boolean>(false);
     const [checkingSetup, setCheckingSetup] = useState<boolean>(true);
+    const [refreshing, setRefreshing] = useState(false);
 
     useEffect(() => {
         const fetchLocation = async () => {
@@ -61,10 +62,8 @@ const Home = () => {
         });
     };
 
-
     useEffect(() => {
         if (!user?.id) return;
-
         const unsubscribe = getDriverStatus(
             user.id,
             (driverId, status) => {
@@ -72,18 +71,15 @@ const Home = () => {
                 setIsOnline(status);
                 setLoading(false);
             },
-            (error) => {
-                console.error("Error fetching driver status:", error);
+            () => {
                 setLoading(false);
             }
         );
-
         return unsubscribe;
     }, [user?.id]);
 
     useEffect(() => {
         if (!user?.id) return;
-
         setLoading(true);
         const unsubscribe = getRideHistory(
             user.id,
@@ -91,29 +87,23 @@ const Home = () => {
                 setRecentRides(rides);
                 setLoading(false);
             },
-            (error) => {
-                console.error("Error fetching ride history:", error);
+            () => {
                 setLoading(false);
             }
         );
-
         return unsubscribe;
     }, [user?.id]);
 
     useEffect(() => {
         if (!user?.id) return;
-
         const unsubscribe = checkActiveRides(
             user.id,
             (hasRide, rideData) => {
                 setHasActiveRide(hasRide);
                 setActiveRideData(rideData);
             },
-            (error) => {
-                console.error("Error checking active rides:", error);
-            }
+            () => { }
         );
-
         return unsubscribe;
     }, [user?.id]);
 
@@ -127,8 +117,7 @@ const Home = () => {
             ]);
             setHasDriverProfile(profileExists);
             setOnboardingCompleted(onboarding.onboardingCompleted);
-        } catch (e) {
-            console.error("Setup check failed:", e);
+        } catch {
             setHasDriverProfile(false);
             setOnboardingCompleted(false);
         } finally {
@@ -140,6 +129,20 @@ const Home = () => {
         checkSetup();
     }, [checkSetup]);
 
+    useFocusEffect(
+        useCallback(() => {
+            checkSetup();
+        }, [checkSetup])
+    );
+
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        try {
+            await checkSetup();
+        } finally {
+            setRefreshing(false);
+        }
+    }, [checkSetup]);
 
     const toggleOnlineStatus = async () => {
         if (!hasDriverProfile || !onboardingCompleted) {
@@ -169,27 +172,20 @@ const Home = () => {
                     const location: any = await getCurrentLocationOnce();
                     const lat = location?.latitude;
                     const lng = location?.longitude;
-
                     if (lat && lng && user?.id) {
-                        const { claimed, rideId, reason } = await claimPendingRide(user.id, lat, lng);
-                        if (claimed) console.log("Claimed pending ride:", rideId);
-                        else console.log("No pending rides found:", reason);
+                        const { claimed } = await claimPendingRide(user.id, lat, lng);
+                        if (claimed) { }
                     }
-                } catch (err) {
-                    console.error("Error claiming pending ride:", err);
-                }
+                } catch { }
             }
-        } catch (error) {
-            console.error("Error updating status:", error);
+        } catch {
             setIsOnline((prev) => !prev);
             Alert.alert("Error", "Failed to update your status. Please try again.");
         }
     };
 
-
     const renderRideHistory = () => {
         if (loading) return <ActivityIndicator size="small" color="#000" />;
-
         if (recentRides.length === 0) {
             return (
                 <View style={styles.emptyComponent}>
@@ -198,7 +194,6 @@ const Home = () => {
                 </View>
             );
         }
-
         return (
             <View style={styles.rideHistoryContainer}>
                 <ScrollView
@@ -218,7 +213,6 @@ const Home = () => {
 
     const navigateToActiveRide = () => {
         if (!activeRideData) return;
-
         router.push({
             pathname: "/(root)/active-ride",
             params: {
@@ -228,8 +222,7 @@ const Home = () => {
         });
     };
 
-    const shouldShowSetupFlag =
-        !checkingSetup && (!hasDriverProfile || !onboardingCompleted);
+    const shouldShowSetupFlag = !checkingSetup && (!hasDriverProfile || !onboardingCompleted);
 
     return (
         <SafeAreaView style={styles.container}>
@@ -297,6 +290,8 @@ const Home = () => {
                 style={styles.flatList}
                 keyboardShouldPersistTaps="handled"
                 contentContainerStyle={styles.flatListContent}
+                refreshing={refreshing}
+                onRefresh={onRefresh}
             />
         </SafeAreaView>
     );

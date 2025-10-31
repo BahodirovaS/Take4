@@ -14,33 +14,21 @@ As I'm going:
 - [FIXED]the car icon on the map for the driver is ginormous, make it smaller
 - [FIXED]scheduled ride accept button is crashing the app
 - [FIXED]for testflight version, i am getting "missing required fields" status 400 when attempting to tip
+- [FIXED]when a driver declines a ride, it doesn't go to the next driver.
+- [FIXED]decline ride does't have logic to send to another open driver
 
 
 - see if you can use address strings instead of points when clicking "navigate"
-
 - once driver has onboarded and completed profile, the action needed flag doesn't go away immediately like it does for the wallet. maybe it's a scroll down to refresh
-
 - make batch payment flow
 - tip is showing up in the Connect account of the driver, but the fare share isn't
 - tipping page won't pop up for passenegers if the app refreshes. Make it so if the tip is false, they can't go to home screen?
-
 - active ride page for passenger has the back arrow and the location button too low (in RideLayout component)
 - put back the map button to go to the back screen for passengers
 - format the scheduled ride request for drivers. it's ugly
-
 - Ride time for the ridecompleted page is innacurate. it shows the estimated ride time, but should show how long has passed since the ride began
-
 - tap to change photo for driver crashes the app
-
 - driver image won't show up for passengers when ride is coming their way
-
 - filter pets
-
-- when a driver declines a ride, it doesn't go to the next driver.
-- decline ride does't have logic to send to another open driver
-
 - make admin page to change pricing of rides
-
 - CLEAN UP THE STYLE SECTION FOR SEVRAL COMPONENTS
-
-- WHERE I LEFT OFF: vercel --prod the new decline page, so all vercel apps are up to date with deployment. check to see if a driver can decline a scheduled ride AND a real time ride. right now, they can accept both scheduled and real time.
