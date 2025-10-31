@@ -65,7 +65,7 @@ const Reservations = () => {
     if (success) {
       setRides(prevRides => prevRides.filter(ride => ride.id !== rideId));
       clearReservation();
-      Alert.alert('Success', 'Ride reservation cancelled');
+      // Alert.alert('Success', 'Ride reservation cancelled');
     } else {
       Alert.alert('Error', 'Failed to cancel ride');
     }
