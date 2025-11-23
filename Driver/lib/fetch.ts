@@ -256,7 +256,7 @@ export const markArrivedAtPickup = async (rideId: string) => {
   try {
     await updateDoc(doc(db, "rideRequests", rideId), {
       status: 'arrived_at_pickup',
-      arrived_at_pickup_time: new Date()
+      arrived_at_pickup_time: serverTimestamp()
     });
     return true;
   } catch (error) {
@@ -274,7 +274,7 @@ export const startRide = async (rideId: string) => {
   try {
     await updateDoc(doc(db, "rideRequests", rideId), {
       status: 'in_progress',
-      ride_start_time: new Date()
+      ride_start_time: serverTimestamp()
     });
     return true;
   } catch (error) {
@@ -301,44 +301,54 @@ export const completeRide = async (
   }
 ) => {
   try {
-    const {
-      userLatitude,
-      userLongitude,
-      userAddress,
-      destinationLatitude,
-      destinationLongitude,
-      destinationAddress
-    } = locationData;
+    const rideRef = doc(db, "rideRequests", rideId);
+    const snap = await getDoc(rideRef);
 
-    await updateDoc(doc(db, "rideRequests", rideId), {
-      status: 'completed',
-      ride_end_time: new Date()
+    if (!snap.exists()) throw new Error("Ride not found");
+
+    const data = snap.data();
+
+    const start = data.ride_start_time?.toDate?.();
+    const end = new Date();
+
+    let rideMinutes = 0;
+    if (start instanceof Date) {
+      const ms = end.getTime() - start.getTime();
+      rideMinutes = Math.max(1, Math.round(ms / 60000)); // minimum 1 min
+    }
+
+    await updateDoc(rideRef, {
+      status: "completed",
+      ride_end_time: serverTimestamp(),
+      ride_time_minutes: rideMinutes,
     });
 
     const completedRideData = {
-      origin_address: userAddress,
-      destination_address: destinationAddress,
-      origin_latitude: userLatitude,
-      origin_longitude: userLongitude,
-      destination_latitude: destinationLatitude,
-      destination_longitude: destinationLongitude,
-      ride_time: Math.round(Date.now() / 1000),
+      origin_address: locationData.userAddress,
+      destination_address: locationData.destinationAddress,
+      origin_latitude: locationData.userLatitude,
+      origin_longitude: locationData.userLongitude,
+      destination_latitude: locationData.destinationLatitude,
+      destination_longitude: locationData.destinationLongitude,
+      ride_time: rideMinutes,
       fare_price: ride?.fare_price || 0,
       payment_status: "paid",
       driver_id: ride?.driver_id,
       user_id: ride?.user_id,
       rideRequestId: rideId,
       created_at: new Date(),
-      completed_at: new Date()
+      completed_at: new Date(),
     };
 
     await addDoc(collection(db, "completedRides"), completedRideData);
+
     return true;
   } catch (error) {
     console.error("Error completing ride:", error);
     return false;
   }
 };
+
 
 
 
