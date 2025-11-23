@@ -1,23 +1,28 @@
 ## UI Updates:
-- active ride page for passenger has the back arrow and the location button too low (in RideLayout component)
-- put back the map button to go to the back screen for passengers
 - format the scheduled ride request for drivers. it's ugly
 - tap to change photo for driver crashes the app
 - driver image won't show up for passengers when ride is coming their way
 - FORMAT THE STYLE SECTION FOR SEVERAL COMPONENTS
+- passenger can't see the driver when the driver has arrived **IMPORTANT**
+- active ride screen for passenger can't scroll all the way down **IMPORTANT**
 
 ## Logic Updates:
 - see if you can use address strings instead of points when clicking "navigate"
-- Ride time for the ridecompleted page is innacurate. it shows the estimated ride time, but should show how long has passed since the ride began
+- Ride time for the ridecompleted page is innacurate. it shows the estimated ride time, but should show how long has passed since the ride began **IMPORTANT**
 - filter pets
 - make admin page to change pricing of rides
+- If the passenger cancels a ride, change the driver's UI to show passenger canceled the ride. Vice-versa
 
 ## Future updates to features:
+- Be able to edit profile 
+- have wallet feature for passengers **IMPORTANT**
 - make batch payment flow
-- tip is showing up in the Connect account of the driver, but the fare share isn't
+- tip is showing up in the Connect account of the driver, but the fare share isn't **IMPORTANT**
 - tipping page won't pop up for passenegers if the app refreshes. Make it so if the tip is false, they can't go to home screen?
 
 ## Fixed Updates:
+- [FIXED]active ride page for passenger has the back arrow and the location button too low (in RideLayout component)
+- [FIXED]put back the map button to go to the back screen for passengers
 - [FIXED]Alert for drivers for new ride shows a rideTime estimate, it's a random number I think 
 - [FIXED?]eta for pick up and drop off should show what's in maps
 - [FIXED]CHANGING USE PRICE CALCULATOR CHANGES RIDE TIME

@@ -9,9 +9,9 @@ import { AirbnbRating } from "react-native-ratings";
 import { ReactNativeModal } from "react-native-modal";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { 
-  fetchCompletedRideDetails, 
-  formatFarePrice,  
+import {
+    fetchCompletedRideDetails,
+    formatFarePrice,
 } from "@/lib/fetch";
 import { processTipPayment } from "@/lib/tipService";
 
@@ -42,7 +42,7 @@ const RideCompleted = () => {
                     try {
                         const driverRef = doc(db, "drivers", details.driver_id);
                         const driverSnap = await getDoc(driverRef);
-                        
+
                         if (driverSnap.exists()) {
                             const driverData = driverSnap.data();
                             setDriverName(driverData.name || "your driver");
@@ -51,7 +51,7 @@ const RideCompleted = () => {
                         console.error("Error fetching driver details:", err);
                     }
                 }
-                
+
                 setIsLoading(false);
             },
             (error) => {
@@ -68,25 +68,25 @@ const RideCompleted = () => {
 
     const processTip = () => {
         processTipPayment({
-          rideId: rideId as string,
-          rideData: rideDetails,
-          tipAmount,
-          rating,
-          setSuccess
+            rideId: rideId as string,
+            rideData: rideDetails,
+            tipAmount,
+            rating,
+            setSuccess
         });
-      };
-    
+    };
+
     const handleSuccessButtonPress = () => {
         setSuccess(false);
         handleGoHome();
     };
 
     const TipButton = ({ amount, isSelected, onPress }: { amount: string, isSelected: boolean, onPress: () => void }) => (
-        <TouchableOpacity 
+        <TouchableOpacity
             style={[
                 styles.tipButton,
                 isSelected ? styles.selectedTipButton : null
-            ]} 
+            ]}
             onPress={onPress}
         >
             <Text style={[
@@ -98,7 +98,7 @@ const RideCompleted = () => {
         </TouchableOpacity>
     );
 
-    
+
     const renderTipping = () => {
         return (
             <View style={styles.tippingContainer}>
@@ -114,9 +114,9 @@ const RideCompleted = () => {
                             />
                         ))}
                     </View> */}
-                    
+
                     <View style={styles.customTipContainer}>
-                        <Text> 
+                        <Text>
                             Tipping is not available for this app yet! Please Venmo your driver if you'd like to leave a tip.
                         </Text>
                         {/* <Text style={styles.customTipLabel}>Custom Tip:</Text> */}
@@ -133,7 +133,7 @@ const RideCompleted = () => {
                         /> */}
                     </View>
                 </View>
-                
+
                 <View style={styles.tipButtonContainer}>
                     <CustomButton
                         // title={`Submit ${parseFloat(tipAmount) > 0 ? `$${tipAmount} Tip` : 'No Tip'}`}
@@ -160,8 +160,8 @@ const RideCompleted = () => {
         return (
             <View style={styles.container}>
                 <Text style={styles.errorText}>{error || "Unable to load ride details"}</Text>
-                <CustomButton 
-                    title="Back to Home" 
+                <CustomButton
+                    title="Back to Home"
                     onPress={handleGoHome}
                     bgVariant="primary"
                     style={styles.homeButton}
@@ -169,7 +169,7 @@ const RideCompleted = () => {
             </View>
         );
     }
-    
+
     return (
         <View style={styles.container}>
             <Image source={images.check} style={styles.checkImage} />
@@ -186,7 +186,7 @@ const RideCompleted = () => {
                 <View style={styles.detailRow}>
                     <Text style={styles.detailLabel}>Ride Time:</Text>
                     <Text style={styles.detailValue}>
-                        {rideDetails.ride_time} minutes
+                        {rideDetails.ride_time ?? rideDetails.ride_time_minutes} minutes CHANGE
                     </Text>
                 </View>
                 <View style={styles.detailRow}>
@@ -196,9 +196,9 @@ const RideCompleted = () => {
                     </Text>
                 </View>
             </View>
-            
+
             {renderTipping()}
-            
+
             {/* <ReactNativeModal
                 isVisible={success}
                 onBackdropPress={() => setSuccess(false)}
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
     homeButton: {
         width: "100%",
     },
-    
+
     tippingContainer: {
         width: "100%",
         backgroundColor: "#F5F5F5",

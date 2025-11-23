@@ -129,6 +129,7 @@ declare interface CompletedRideDetails {
   origin_address: string;
   destination_address: string;
   ride_time: number;
+  ride_time_minutes?: number | null;
   fare_price: number;
   status: string;
   driver_id?: string;

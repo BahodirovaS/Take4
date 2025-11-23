@@ -801,8 +801,23 @@ export const fetchCompletedRideDetails = (
       const rideSnapshot = await getDoc(rideDocRef);
 
       if (rideSnapshot.exists()) {
-        const data = rideSnapshot.data() as CompletedRideDetails;
-        onSuccess(data);
+        const data = rideSnapshot.data();
+
+        onSuccess({
+          origin_address: data.origin_address,
+          destination_address: data.destination_address,
+          ride_time: data.ride_time,
+          ride_time_minutes: data.ride_time_minutes ?? null,
+          fare_price: data.fare_price,
+          status: data.status,
+          driver_id: data.driver_id,
+          user_id: data.user_id,
+          rating: data.rating || 0,
+          tip_amount: data.tip_amount || "0",
+          customer_id: data.customer_id,
+          payment_method_id: data.payment_method_id,
+          driver_share: data.driver_share,
+        });
       } else {
         onError(new Error("Ride not found"));
       }
