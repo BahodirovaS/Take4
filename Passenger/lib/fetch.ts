@@ -611,12 +611,13 @@ export const subscribeToRideUpdates = (
     const unsubscribe = onSnapshot(rideRef, (snapshot) => {
       const data = snapshot.data();
       if (data) {
-        const destinationInfo = data.destination_latitude && data.destination_longitude && data.destination_address
-          ? {
-            latitude: data.destination_latitude,
-            longitude: data.destination_longitude,
-            address: data.destination_address
-          }
+        const hasDest =
+          data.destination_latitude != null &&
+          data.destination_longitude != null &&
+          data.destination_address;
+
+        const destinationInfo = hasDest
+          ? { latitude: Number(data.destination_latitude), longitude: Number(data.destination_longitude), address: String(data.destination_address) }
           : null;
 
         if (destinationInfo) {

@@ -1,5 +1,4 @@
 ## WHERE I LEFT OFF 
-- ride time estimate is still not working
 
 
 ## UI Updates:
@@ -11,7 +10,6 @@
 
 ## Logic Updates:
 - see if you can use address strings instead of coordinate points when clicking "navigate"
-- Ride time for the ridecompleted page is innacurate. it shows the estimated ride time, but should show how long has passed since the ride began **IMPORTANT**
 - filter pets
 - make admin page to change pricing of rides
 - If the passenger cancels a ride, change the driver's UI to show passenger canceled the ride. Vice-versa
@@ -24,6 +22,7 @@
 - tipping page won't pop up for passenegers if the app refreshes. Make it so if the tip is false, they can't go to home screen?
 
 ## Fixed Updates:
+- [FIXED]Ride time for the ridecompleted page is innacurate. it shows the estimated ride time, but should show how long has passed since the ride began -> used ride_time_minutes
 - [FIXED]active ride screen for passenger can't scroll all the way down -> snappoints to 15%
 - [FIXED]"fetch request timeout" when driver accepts a ride. the ride is running in the background -> changed timeout in fetch code to 20000
 - [FIXED]active ride page for passenger has the back arrow and the location button too low (in RideLayout component)

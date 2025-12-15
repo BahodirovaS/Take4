@@ -31,11 +31,12 @@ const Map = ({
 
   const hasUser = isNum(userLatitude) && isNum(userLongitude);
   const hasDest = isNum(destinationLatitude) && isNum(destinationLongitude);
-  const hasDriver = rideStatus === "accepted" && driverLocation && isNum(driverLocation.latitude) && isNum(driverLocation.longitude);
-
-  useEffect(() => {
-    setDidFit(false);
-  }, [userLatitude, userLongitude, destinationLatitude, destinationLongitude, driverLocation, rideStatus]);
+  const hasDriver =
+    ["accepted", "arrived_at_pickup", "in_progress"].includes(String(rideStatus)) &&
+    driverLocation &&
+    isNum(driverLocation.latitude) &&
+    isNum(driverLocation.longitude) &&
+    !(driverLocation.latitude === 0 && driverLocation.longitude === 0);
 
   const goToUserLocation = () => {
     if (hasUser && mapRef.current) {
@@ -103,7 +104,7 @@ const Map = ({
           </Marker>
         )}
 
-        {/* {hasDriver && (
+        {hasDriver && (
           <Marker
             key="driver"
             coordinate={{ latitude: driverLocation!.latitude, longitude: driverLocation!.longitude }}
@@ -115,7 +116,7 @@ const Map = ({
               <Image source={icons.marker} style={{ width: "100%", height: "100%", resizeMode: "contain" }} />
             </View>
           </Marker>
-        )} */}
+        )}
 
 
         {hasDriver && directionsAPI && (
