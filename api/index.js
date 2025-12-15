@@ -92,11 +92,19 @@ module.exports = async (req, res) => {
       }
 
       const connectedAccountId = await getDriverConnectAccountId(driver_id);
-
+      if (!connectedAccountId) {
+        return res.status(400).json({
+          error: "missing_connect",
+          message: "Driver is missing stripe_connect_account_id or driver_id is not the clerkId",
+          driver_id
+        });
+      }
       const ephemeralKey = await stripe.ephemeralKeys.create(
         { customer: customer.id },
         { apiVersion: '2024-06-20' }
       );
+
+      const driverAmountCents = Math.round((fare * driverCommissionRate + tip) * 100);
 
       const intentParams = {
         amount: totalCents,
@@ -110,15 +118,14 @@ module.exports = async (req, res) => {
           driverCommissionRate: String(driverCommissionRate),
           driver_id: driver_id || '',
         },
-        ...(connectedAccountId
-          ? {
-            transfer_data: { destination: connectedAccountId },
-            application_fee_amount: companyShareCents,
-            on_behalf_of: connectedAccountId,
-          }
-          : {}),
+        transfer_data: { destination: connectedAccountId, amount: driverAmountCents },
+        application_fee_amount: totalCents - driverAmountCents,
+        on_behalf_of: connectedAccountId,
       };
-
+      console.log("[PAY] driver_id:", driver_id);
+      console.log("[PAY] connectedAccountId:", connectedAccountId);
+      console.log("[PAY] mode:", connectedAccountId ? "destination_charge" : "platform_charge");
+      console.log("[PAY] totalCents:", totalCents, "companyFeeCents:", companyShareCents);
       const paymentIntent = await stripe.paymentIntents.create(intentParams);
 
       return res.json({
@@ -404,8 +411,8 @@ module.exports = async (req, res) => {
 
       return new Date(Date.now() + 2 * 60 * 1000);
     }
-    
-// end of function. it is used for the POST below
+
+    // end of function. it is used for the POST below
 
     if (req.method === 'POST' && path === '/claim-pending-ride') {
       try {
