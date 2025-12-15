@@ -1,6 +1,6 @@
 const { Stripe } = require('stripe');
 const { initializeApp, getApps, cert } = require('firebase-admin/app');
-const { getFirestore } = require('firebase-admin/firestore');
+const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 
 if (!getApps().length) {
   initializeApp({
@@ -36,6 +36,12 @@ function setCorsJson(res) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
 }
 
+function safeNumberCents(v) {
+  const n = typeof v === 'string' ? Number(v) : v;
+  return Number.isFinite(n) ? Math.trunc(n) : 0;
+}
+
+
 module.exports = async (req, res) => {
   setCorsJson(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -45,32 +51,26 @@ module.exports = async (req, res) => {
 
   try {
     if (req.method === 'POST' && path === '/create') {
+      console.log('[create] Pattern A deployed v1', { body: req.body });
       const {
         name,
         email,
         amount,
         tipAmount = '0',
         driverCommissionRate = 0.8,
-        driver_id,
-        // rideId,
-        customer_id
+        // driver_id,
+        customer_id,
       } = req.body || {};
 
       const missing = [];
-      // if (rideId == null) missing.push('rideId');
-      if (driver_id == null) missing.push('driver_id');
       if (!customer_id && !(name && email)) missing.push('customer_id or (name + email)');
       if (!name) missing.push('name');
       if (!email) missing.push('email');
       if (!amount) missing.push('amount');
 
       if (missing.length) {
-        console.error('[createTip] Missing fields:', missing, 'Body:', req.body);
+        console.error('[create] Missing fields:', missing, 'Body:', req.body);
         return res.status(400).json({ error: 'Missing required fields', missing });
-      }
-
-      if (!name || !email || !amount) {
-        return res.status(400).json({ error: 'Missing required fields' });
       }
 
       const fare = parseFloat(amount) || 0;
@@ -78,7 +78,6 @@ module.exports = async (req, res) => {
       const total = fare + tip;
 
       const totalCents = Math.round(total * 100);
-      const companyShareCents = Math.round(fare * (1 - driverCommissionRate) * 100);
 
       let customer;
       const list = await stripe.customers.list({ email, limit: 1 });
@@ -91,22 +90,12 @@ module.exports = async (req, res) => {
         customer = await stripe.customers.create({ name, email });
       }
 
-      const connectedAccountId = await getDriverConnectAccountId(driver_id);
-      if (!connectedAccountId) {
-        return res.status(400).json({
-          error: "missing_connect",
-          message: "Driver is missing stripe_connect_account_id or driver_id is not the clerkId",
-          driver_id
-        });
-      }
       const ephemeralKey = await stripe.ephemeralKeys.create(
         { customer: customer.id },
         { apiVersion: '2024-06-20' }
       );
 
-      const driverAmountCents = Math.round((fare * driverCommissionRate + tip) * 100);
-
-      const intentParams = {
+      const paymentIntent = await stripe.paymentIntents.create({
         amount: totalCents,
         currency: 'usd',
         customer: customer.id,
@@ -116,26 +105,119 @@ module.exports = async (req, res) => {
           fareAmount: String(fare.toFixed(2)),
           tipAmount: String(tip.toFixed(2)),
           driverCommissionRate: String(driverCommissionRate),
-          driver_id: driver_id || '',
+          pattern: 'A_platform_only',
         },
-        transfer_data: { destination: connectedAccountId, amount: driverAmountCents },
-        application_fee_amount: totalCents - driverAmountCents,
-        on_behalf_of: connectedAccountId,
-      };
-      console.log("[PAY] driver_id:", driver_id);
-      console.log("[PAY] connectedAccountId:", connectedAccountId);
-      console.log("[PAY] mode:", connectedAccountId ? "destination_charge" : "platform_charge");
-      console.log("[PAY] totalCents:", totalCents, "companyFeeCents:", companyShareCents);
-      const paymentIntent = await stripe.paymentIntents.create(intentParams);
+      });
 
       return res.json({
         paymentIntent,
         ephemeralKey,
         customer: customer.id,
-        connectedAccountId: connectedAccountId || null,
-        mode: connectedAccountId ? 'destination_charge' : 'platform_charge',
+        connectedAccountId: null,
+        mode: 'platform_charge',
       });
     }
+
+
+    if (req.method === 'POST' && path === '/payout-driver') {
+      const { rideId } = req.body || {};
+      if (!rideId) return res.status(400).json({ error: 'rideId is required' });
+
+      const rideRef = db.collection('rideRequests').doc(rideId);
+
+      try {
+        const rideData = await db.runTransaction(async (tx) => {
+          const snap = await tx.get(rideRef);
+          if (!snap.exists) throw new Error('Ride not found');
+          const r = snap.data() || {};
+
+          if (r.payout_transfer_id) {
+            return { alreadyPaid: true, payout_transfer_id: r.payout_transfer_id };
+          }
+
+          if (r.status !== 'completed') throw new Error('Ride not completed');
+          if (r.payment_status !== 'paid') throw new Error('Ride not paid');
+          if (!r.driver_id) throw new Error('Missing driver_id');
+
+          const driverShareCents =
+            safeNumberCents(r.driver_share) ||
+            Math.round((safeNumberCents(r.fare_price) || 0) * Number(r.driverCommissionRate || 0.8));
+
+          if (!Number.isFinite(driverShareCents) || driverShareCents <= 0) {
+            throw new Error('Invalid driver share amount');
+          }
+
+          tx.update(rideRef, {
+            payout_status: 'pending',
+            payout_started_at: FieldValue.serverTimestamp(),
+          });
+
+          return {
+            alreadyPaid: false,
+            driver_id: r.driver_id,
+            driverShareCents,
+          };
+        });
+
+        if (rideData.alreadyPaid) {
+          return res.json({ success: true, alreadyPaid: true, transferId: rideData.payout_transfer_id });
+        }
+
+        const destination = await getDriverConnectAccountId(rideData.driver_id);
+        if (!destination) {
+          await rideRef.update({
+            payout_status: 'failed',
+            payout_error: 'Driver missing stripe_connect_account_id',
+            payout_failed_at: FieldValue.serverTimestamp(),
+          });
+          return res.status(400).json({ error: 'Driver missing stripe_connect_account_id' });
+        }
+
+        const idem =
+          req.headers['x-idempotency-key'] ||
+          `payout_${rideId}_${rideData.driverShareCents}_${destination}`;
+
+        const transfer = await stripe.transfers.create(
+          {
+            amount: rideData.driverShareCents,
+            currency: 'usd',
+            destination,
+            transfer_group: rideId,
+            metadata: {
+              rideId,
+              driver_id: rideData.driver_id,
+              type: 'driver_payout',
+            },
+          },
+          { idempotencyKey: idem }
+        );
+
+        await rideRef.update({
+          payout_status: 'paid',
+          payout_transfer_id: transfer.id,
+          payout_paid_at: FieldValue.serverTimestamp(),
+          payout_destination_acct: destination,
+        });
+
+        return res.json({ success: true, transferId: transfer.id, destination });
+      } catch (e) {
+        console.error('[payout-driver] error:', e);
+
+        try {
+          await rideRef.update({
+            payout_status: 'failed',
+            payout_error: e?.message || String(e),
+            payout_failed_at: FieldValue.serverTimestamp(),
+          });
+        } catch { }
+
+        return res.status(400).json({
+          success: false,
+          error: e?.message || 'Failed to payout driver',
+        });
+      }
+    }
+
 
     if (req.method === 'POST' && path === '/createTip') {
       const { rideId, tipAmount, customer_id, driver_id } = req.body || {};
