@@ -186,7 +186,7 @@ const RideCompleted = () => {
                 <View style={styles.detailRow}>
                     <Text style={styles.detailLabel}>Ride Time:</Text>
                     <Text style={styles.detailValue}>
-                        {rideDetails.ride_time ?? rideDetails.ride_time_minutes} minutes CHANGE
+                        {rideDetails.ride_time ?? rideDetails.ride_time_minutes} minutes
                     </Text>
                 </View>
                 <View style={styles.detailRow}>
