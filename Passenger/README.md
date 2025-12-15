@@ -12,7 +12,6 @@
 - filter pets
 - make admin page to change pricing of rides
 - If the passenger cancels a ride, change the driver's UI to show passenger canceled the ride. Vice-versa
-- tip is showing up in the Connect account of the driver, but the fare share isn't **IMPORTANT**
 
 ## Future updates to features:
 - Be able to edit profile 
@@ -20,6 +19,7 @@
 - make batch payment flow
 
 ## Fixed Updates:
+- [FIXED]tip is showing up in the Connect account of the driver, but the fare share isn't -> made a new endpoint for driver share and changed /create to remove driverId
 - [FIXED]tipping page won't pop up for passenegers if the app refreshes. Make it so if the tip is false, they can't go to home screen? -> added listener to passenger root layout and added passenger acknowledgement
 - [FIXED]passenger can't see the driver when the driver has arrived -> uncommented driver marker from passenger map
 - [FIXED]Ride time for the ridecompleted page is innacurate. it shows the estimated ride time, but should show how long has passed since the ride began -> used ride_time_minutes
