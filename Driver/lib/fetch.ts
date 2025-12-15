@@ -321,6 +321,8 @@ export const completeRide = async (
       status: "completed",
       ride_end_time: serverTimestamp(),
       ride_time_minutes: rideMinutes,
+      passenger_completed_ack: false,
+      passenger_completed_ack_at: null,
     });
 
     const completedRideData = {
@@ -1031,11 +1033,11 @@ export async function getDriverOnboardingStatus(userId: string): Promise<{
 
 /** Create a Stripe onboarding link (bank setup) */
 export async function createStripeOnboardingLink(
-  userId: string, 
+  userId: string,
   email: string
 ): Promise<{
-  success: boolean; 
-  url?: string; 
+  success: boolean;
+  url?: string;
   error?: string;
 }> {
   return fetchAPI(API_ENDPOINTS.ONBOARD_DRIVER, {
@@ -1047,11 +1049,11 @@ export async function createStripeOnboardingLink(
 
 /** Create a Stripe Express dashboard link */
 export async function createStripeDashboardLink(
-  userId: string, 
+  userId: string,
   accountId?: string | null
 ): Promise<{
-  success: boolean; 
-  url?: string; 
+  success: boolean;
+  url?: string;
   error?: string;
 }> {
   const payload: any = { driver_id: userId };
@@ -1070,10 +1072,10 @@ export async function getWalletSummary(
 ): Promise<WalletData> {
   if (!userId) {
     return {
-      totalEarnings: 0, 
-      availableBalance: 0, 
-      pendingBalance: 0, 
-      recentPayments: [] 
+      totalEarnings: 0,
+      availableBalance: 0,
+      pendingBalance: 0,
+      recentPayments: []
     };
   }
 
