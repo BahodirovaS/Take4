@@ -8,7 +8,6 @@
 - driver image won't show up for passengers when ride is coming their way
 - FORMAT THE STYLE SECTION FOR SEVERAL COMPONENTS
 - passenger can't see the driver when the driver has arrived **IMPORTANT**
-- active ride screen for passenger can't scroll all the way down **IMPORTANT**
 
 ## Logic Updates:
 - see if you can use address strings instead of coordinate points when clicking "navigate"
@@ -25,6 +24,7 @@
 - tipping page won't pop up for passenegers if the app refreshes. Make it so if the tip is false, they can't go to home screen?
 
 ## Fixed Updates:
+- [FIXED]active ride screen for passenger can't scroll all the way down -> snappoints to 15%
 - [FIXED]"fetch request timeout" when driver accepts a ride. the ride is running in the background -> changed timeout in fetch code to 20000
 - [FIXED]active ride page for passenger has the back arrow and the location button too low (in RideLayout component)
 - [FIXED]put back the map button to go to the back screen for passengers

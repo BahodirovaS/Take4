@@ -76,9 +76,18 @@ const RideCompleted = () => {
         });
     };
 
-    const handleSuccessButtonPress = () => {
-        setSuccess(false);
-        handleGoHome();
+    const handleSuccessButtonPress = async () => {
+        try {
+            if (rideId) {
+                await updateDoc(doc(db, "rideRequests", String(rideId)), {
+                    passenger_completed_ack: true,
+                    passenger_completed_ack_at: new Date(),
+                });
+            }
+            router.push("/(root)/(tabs)/home");
+        } catch (e) {
+            Alert.alert("Error", "Could not finish. Please try again.");
+        }
     };
 
     const TipButton = ({ amount, isSelected, onPress }: { amount: string, isSelected: boolean, onPress: () => void }) => (
@@ -186,7 +195,7 @@ const RideCompleted = () => {
                 <View style={styles.detailRow}>
                     <Text style={styles.detailLabel}>Ride Time:</Text>
                     <Text style={styles.detailValue}>
-                        {rideDetails.ride_time ?? rideDetails.ride_time_minutes} minutes
+                        {rideDetails.ride_time_minutes ?? rideDetails.ride_time} minutes
                     </Text>
                 </View>
                 <View style={styles.detailRow}>
