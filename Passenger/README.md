@@ -4,24 +4,24 @@
 ## UI Updates:
 - format the scheduled ride request for drivers. it's ugly
 - tap to change photo for driver crashes the app
-- driver image won't show up for passengers when ride is coming their way
+- driver photo won't show up for passengers when ride is coming their way
 - FORMAT THE STYLE SECTION FOR SEVERAL COMPONENTS
-- passenger can't see the driver when the driver has arrived **IMPORTANT**
 
 ## Logic Updates:
 - see if you can use address strings instead of coordinate points when clicking "navigate"
 - filter pets
 - make admin page to change pricing of rides
 - If the passenger cancels a ride, change the driver's UI to show passenger canceled the ride. Vice-versa
+- tip is showing up in the Connect account of the driver, but the fare share isn't **IMPORTANT**
 
 ## Future updates to features:
 - Be able to edit profile 
 - have wallet feature for passengers **IMPORTANT**
 - make batch payment flow
-- tip is showing up in the Connect account of the driver, but the fare share isn't **IMPORTANT**
-- tipping page won't pop up for passenegers if the app refreshes. Make it so if the tip is false, they can't go to home screen?
 
 ## Fixed Updates:
+- [FIXED]tipping page won't pop up for passenegers if the app refreshes. Make it so if the tip is false, they can't go to home screen? -> added listener to passenger root layout and added passenger acknowledgement
+- [FIXED]passenger can't see the driver when the driver has arrived -> uncommented driver marker from passenger map
 - [FIXED]Ride time for the ridecompleted page is innacurate. it shows the estimated ride time, but should show how long has passed since the ride began -> used ride_time_minutes
 - [FIXED]active ride screen for passenger can't scroll all the way down -> snappoints to 15%
 - [FIXED]"fetch request timeout" when driver accepts a ride. the ride is running in the background -> changed timeout in fetch code to 20000
