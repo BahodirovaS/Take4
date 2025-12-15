@@ -1161,4 +1161,29 @@ export async function getWalletSummary(
   };
 }
 
+/**
+ * Trigger driver payout after a ride is completed
+ */
+export const payoutDriverForRide = async (
+  rideId: string
+): Promise<{ success: boolean; [key: string]: any }> => {
+  if (!rideId) {
+    throw new Error("Missing rideId for payout");
+  }
 
+  const res = await fetch(API_ENDPOINTS.PAYOUT_DRIVER, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ rideId }),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok || !data?.success) {
+    throw new Error(data?.error || "Driver payout failed");
+  }
+
+  return data;
+};

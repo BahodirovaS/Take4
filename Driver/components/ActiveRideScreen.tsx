@@ -23,6 +23,7 @@ import {
   startRide,
   completeRide,
   subscribeToUnreadCount,
+  payoutDriverForRide,
 } from '@/lib/fetch';
 import { useUser } from '@clerk/clerk-expo';
 import { collection, getDocs, limit, query, where } from 'firebase/firestore';
@@ -196,19 +197,31 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId }) => {
       destinationAddress: locationStore.destinationAddress || '',
     });
 
-    if (success) {
-      Alert.alert('Ride Completed', 'The ride has been marked as completed', [
-        {
-          text: 'OK',
-          onPress: () => {
-            router.replace('/(root)/(tabs)/home');
-          },
-        },
-      ]);
-    } else {
-      Alert.alert('Error', 'Could not complete the ride');
-    }
-  };
+    if (!success) {
+    Alert.alert("Error", "Could not complete the ride");
+    return;
+  }
+
+  try {
+    await payoutDriverForRide(rideId);
+  } catch (err: any) {
+    console.error("Driver payout failed:", err?.message || err);
+
+    Alert.alert(
+      "Ride completed",
+      "Ride was completed, but driver payout failed. Support has been notified."
+    );
+  }
+
+  Alert.alert("Ride Completed", "The ride has been marked as completed", [
+    {
+      text: "OK",
+      onPress: () => {
+        router.replace("/(root)/(tabs)/home");
+      },
+    },
+  ]);
+};
 
   const openNavigation = () => {
     if (!ride) return;
