@@ -17,7 +17,7 @@ import * as FileSystem from "expo-file-system";
 import { API_ENDPOINTS } from '@/lib/config';
 import { Linking } from 'react-native';
 
-const DEFAULT_TIMEOUT = 5000;
+const DEFAULT_TIMEOUT = 20000;
 
 export const fetchAPI = async (url: string, options?: RequestInit) => {
   const updatedOptions = {

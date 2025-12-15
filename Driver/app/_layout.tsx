@@ -73,6 +73,9 @@ const RideRequestListener: React.FC = () => {
       if (reqs.length > 0) {
         setNewRequest(reqs[0]);
         setModalVisible(true);
+      } else {
+        setNewRequest(null as any);
+        setModalVisible(false);
       }
     });
 
