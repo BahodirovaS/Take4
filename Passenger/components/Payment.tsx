@@ -81,7 +81,7 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
               email,
               amount,
               driverCommissionRate,
-              driver_id,
+              // driver_id,
             }),
           });
 

@@ -1,8 +1,8 @@
 const isDevelopment = __DEV__;
 
 export const API_CONFIG = {
-  VERCEL_BASE_URL: 'https://take4-rmbubzx4e-sabinas-projects-dedde209.vercel.app',
-  BASE_URL: 'https://take4-rmbubzx4e-sabinas-projects-dedde209.vercel.app',
+  VERCEL_BASE_URL: 'https://take4-517ord9zj-sabinas-projects-dedde209.vercel.app',
+  BASE_URL: 'https://take4-517ord9zj-sabinas-projects-dedde209.vercel.app',
 };
 
 export const API_ENDPOINTS = {
@@ -10,6 +10,7 @@ export const API_ENDPOINTS = {
   ONBOARD_DRIVER: `${API_CONFIG.BASE_URL}/api/onboard-driver`,
   EXPRESS_DASHBOARD: `${API_CONFIG.BASE_URL}/api/express-dashboard`,
   CREATE_PAYMENT: `${API_CONFIG.BASE_URL}/api/create`,
+  PAYOUT_DRIVER: `${API_CONFIG.BASE_URL}/api/payout-driver`,
   CREATE_TIP: `${API_CONFIG.BASE_URL}/api/createTip`,
   PROCESS_PAYMENT: `${API_CONFIG.BASE_URL}/api/pay`,
   ASSIGN_DRIVER: `${API_CONFIG.BASE_URL}/api/rides/assign-driver`,
