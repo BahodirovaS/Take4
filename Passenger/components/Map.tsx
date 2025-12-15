@@ -126,7 +126,7 @@ const Map = ({
             apikey={directionsAPI}
             strokeColor="#0286FF"
             strokeWidth={2}
-            lineDashPattern={[5, 4]}
+            // lineDashPattern={[5, 4]}
             mode="DRIVING"
             timePrecision="now"
             onReady={(res) => {

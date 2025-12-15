@@ -33,7 +33,7 @@ const RideLayout: React.FC<RideLayoutProps> = ({
 
   const defaultSnapPoints = rideStatus === "in_progress" 
   ? ["15%","45%"]
-  : ["15%", "50%", "80%"]
+  : ["50%", "80%"]
 
 
   // if in active ride, remove this
