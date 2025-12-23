@@ -234,12 +234,10 @@ declare interface LocationStore {
     latitude,
     longitude,
     address,
-    accuracy
   }: {
     latitude: number;
     longitude: number;
     address: string;
-    accuracy: number;
   }) => void;
   setDestinationLocation: ({
     latitude,
