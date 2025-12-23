@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.ridepal.take4.passenger",
-      "buildNumber": "9",
+      "buildNumber": "11",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }

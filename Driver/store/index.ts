@@ -1,41 +1,45 @@
 import { create } from "zustand";
 import { DriverStore, LocationStore, MarkerData, ReservationStore } from "@/types/type";
 
-export const useLocationStore = create<LocationStore>((set) => ({
+export const useLocationStore = create<LocationStore & {
+  userAccuracy: number | null;
+  routingLatitude: number | null;
+  routingLongitude: number | null;
+  setUserLocation: (p: { latitude: number; longitude: number; address: string; accuracy?: number }) => void;
+  setRoutingLocation: (p: { latitude: number; longitude: number }) => void;
+}>((set) => ({
   userLatitude: null,
   userLongitude: null,
   userAddress: null,
+
+  userAccuracy: null,
+  routingLatitude: null,
+  routingLongitude: null,
+
   destinationLatitude: null,
   destinationLongitude: null,
   destinationAddress: null,
-  setUserLocation: ({
-    latitude,
-    longitude,
-    address,
-  }: {
-    latitude: number;
-    longitude: number;
-    address: string;
-  }) => {
+
+  setUserLocation: ({ latitude, longitude, address, accuracy }) => {
     set(() => ({
       userLatitude: latitude,
       userLongitude: longitude,
       userAddress: address,
+      userAccuracy: typeof accuracy === "number" ? accuracy : null,
     }));
 
     const { selectedDriver, clearSelectedDriver } = useDriverStore.getState();
     if (selectedDriver) clearSelectedDriver();
   },
 
-  setDestinationLocation: ({
-    latitude,
-    longitude,
-    address,
-  }: {
-    latitude: number;
-    longitude: number;
-    address: string;
-  }) => {
+  setRoutingLocation: ({ latitude, longitude }) => {
+    set(() => ({
+      routingLatitude: latitude,
+      routingLongitude: longitude,
+    }));
+  },
+
+  setDestinationLocation: ({ latitude, longitude, address }) => {
     set(() => ({
       destinationLatitude: latitude,
       destinationLongitude: longitude,
@@ -46,6 +50,7 @@ export const useLocationStore = create<LocationStore>((set) => ({
     if (selectedDriver) clearSelectedDriver();
   },
 }));
+
 
 export const useDriverStore = create<DriverStore>((set) => ({
   drivers: [] as MarkerData[],
@@ -73,19 +78,19 @@ export const useReservationStore = create<ReservationStore>((set) => ({
   scheduledDate: null,
   scheduledTime: null,
   reservationId: null,
-  
-  setScheduledDateTime: (date, time) => set({ 
+
+  setScheduledDateTime: (date, time) => set({
     scheduledDate: date,
-    scheduledTime: time 
+    scheduledTime: time
   }),
-  
-  setReservationId: (id) => set({ 
-    reservationId: id 
+
+  setReservationId: (id) => set({
+    reservationId: id
   }),
-  
-  clearReservation: () => set({ 
+
+  clearReservation: () => set({
     scheduledDate: null,
     scheduledTime: null,
-    reservationId: null 
+    reservationId: null
   }),
 }));
