@@ -14,7 +14,7 @@ if (!getApps().length) {
 
 const db = getFirestore();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_default', {
-  apiVersion: '2023-10-16',
+  apiVersion: '2024-06-20',
 });
 
 async function getDriverConnectAccountId(driverClerkId) {
@@ -139,10 +139,9 @@ module.exports = async (req, res) => {
       } = req.body || {};
 
       const missing = [];
-      if (!customer_id && !(name && email)) missing.push('customer_id or (name + email)');
-      if (!name) missing.push('name');
-      if (!email) missing.push('email');
-      if (!amount) missing.push('amount');
+      if (!amount) missing.push("amount");
+      if (!customer_id && !(name && email)) missing.push("customer_id or (name + email)");
+
 
       if (missing.length) {
         console.error('[create] Missing fields:', missing, 'Body:', req.body);
@@ -156,14 +155,20 @@ module.exports = async (req, res) => {
       const totalCents = Math.round(total * 100);
 
       let customer;
-      const list = await stripe.customers.list({ email, limit: 1 });
-      if (list.data.length > 0) {
-        customer = list.data[0];
-        if (name && customer.name !== name) {
-          customer = await stripe.customers.update(customer.id, { name });
-        }
+
+      if (customer_id) {
+        customer = await stripe.customers.retrieve(customer_id);
       } else {
-        customer = await stripe.customers.create({ name, email });
+        const list = await stripe.customers.list({ email, limit: 1 });
+
+        if (list.data.length > 0) {
+          customer = list.data[0];
+          if (name && customer.name !== name) {
+            customer = await stripe.customers.update(customer.id, { name });
+          }
+        } else {
+          customer = await stripe.customers.create({ name, email });
+        }
       }
 
       const ephemeralKey = await stripe.ephemeralKeys.create(
@@ -192,6 +197,114 @@ module.exports = async (req, res) => {
         connectedAccountId: null,
         mode: 'platform_charge',
       });
+    }
+
+    /**
+    * ADD NEW PAYMENT CARD
+    */
+
+    if (req.method === 'POST' && path === '/setup-intent') {
+      console.log('[setup-intent]', { body: req.body });
+
+      const { customer_id, name, email } = req.body || {};
+
+      const missing = [];
+      if (!customer_id && !(name && email)) missing.push('customer_id or (name + email)');
+      if (missing.length) {
+        return res.status(400).json({ error: 'Missing required fields', missing });
+      }
+
+      let customer;
+      if (customer_id) {
+        customer = await stripe.customers.retrieve(customer_id);
+      } else {
+        const list = await stripe.customers.list({ email, limit: 1 });
+        if (list.data.length > 0) {
+          customer = list.data[0];
+          if (name && customer.name !== name) {
+            customer = await stripe.customers.update(customer.id, { name });
+          }
+        } else {
+          customer = await stripe.customers.create({ name, email });
+        }
+      }
+
+      const ephemeralKey = await stripe.ephemeralKeys.create(
+        { customer: customer.id },
+        { apiVersion: '2024-06-20' }
+      );
+
+      const setupIntent = await stripe.setupIntents.create({
+        customer: customer.id,
+        usage: 'off_session',
+      });
+
+      return res.json({
+        customerId: customer.id,
+        ephemeralKeySecret: ephemeralKey.secret,
+        setupIntentClientSecret: setupIntent.client_secret,
+      });
+    }
+
+    /**
+    * LIST SAVED PAYMENT CARDS
+    */
+
+    if (req.method === 'GET' && path === '/payment-methods') {
+      const customerId = url.searchParams.get('customerId');
+      if (!customerId) return res.status(400).json({ error: 'customerId is required' });
+
+      const customer = await stripe.customers.retrieve(customerId);
+      const defaultPM = customer?.invoice_settings?.default_payment_method;
+      const defaultPaymentMethodId =
+        typeof defaultPM === 'string' ? defaultPM : defaultPM?.id || null;
+
+      const list = await stripe.paymentMethods.list({
+        customer: customerId,
+        type: 'card',
+      });
+
+      const paymentMethods = (list.data || []).map((pm) => ({
+        id: pm.id,
+        brand: pm.card?.brand || null,
+        last4: pm.card?.last4 || null,
+        exp_month: pm.card?.exp_month || null,
+        exp_year: pm.card?.exp_year || null,
+      }));
+
+      return res.json({ paymentMethods, defaultPaymentMethodId });
+    }
+
+    /**
+    * SET DEFAULT PAYMENT CARD
+    */
+
+    if (req.method === 'POST' && path === '/set-default-payment-method') {
+      const { customerId, paymentMethodId } = req.body || {};
+      if (!customerId || !paymentMethodId) {
+        return res.status(400).json({ error: 'customerId and paymentMethodId are required' });
+      }
+
+      await stripe.customers.update(customerId, {
+        invoice_settings: { default_payment_method: paymentMethodId },
+      });
+
+      return res.json({ success: true });
+    }
+
+    /**
+    * DELETE PAYMENT CARD
+    */
+
+    if (req.method === 'POST' && path === '/detach-payment-method') {
+      const { paymentMethodId } = req.body || {};
+      if (!paymentMethodId) {
+        return res.status(400).json({ error: 'paymentMethodId is required' });
+      }
+
+      await stripe.paymentMethods.detach(paymentMethodId);
+
+      return res.json({ success: true });
     }
 
 

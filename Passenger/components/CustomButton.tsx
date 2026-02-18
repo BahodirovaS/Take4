@@ -122,6 +122,8 @@ const styles = StyleSheet.create({
   text: { 
     fontSize: 17, 
     fontFamily: "DMSans-Bold",
+    flex: 1,
+    textAlign: "center",
   },
   textSmall: {
     fontSize: 14,

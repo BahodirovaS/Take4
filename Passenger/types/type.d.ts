@@ -45,6 +45,7 @@ declare interface ProfileForm {
   email: string;
   phoneNumber: string;
   profilePhotoBase64: string;
+  stripeCustomerId?: string;
 }
 
 declare interface Message {
@@ -256,3 +257,22 @@ declare interface DriverInfoProps {
       longitude: number;
   };
 }
+
+export type CardPM = {
+  id: string;
+  brand?: string | null;
+  last4?: string | null;
+  exp_month?: number | null;
+  exp_year?: number | null;
+};
+
+export type PaymentMethodsResponse = {
+  paymentMethods: CardPM[];
+  defaultPaymentMethodId: string | null;
+};
+
+export type SetupIntentResponse = {
+  customerId: string;
+  ephemeralKeySecret: string;
+  setupIntentClientSecret: string;
+};

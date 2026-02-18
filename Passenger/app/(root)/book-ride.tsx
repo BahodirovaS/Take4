@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
-import { useUser } from "@clerk/clerk-expo";
+import { useAuth, useUser } from "@clerk/clerk-expo";
 import { useLocalSearchParams } from "expo-router";
 import { StripeProvider } from "@stripe/stripe-react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -10,11 +10,12 @@ import { icons } from "@/constants";
 import { formatTime } from "@/lib/utils";
 import { useLocationStore } from "@/store";
 import { usePriceCalculator } from "@/lib/price";
+import { fetchPassengerProfile } from "@/lib/fetch";
 
 const RIDE_TYPES = {
-  standard: { name: "Standard", seats: 4, multiplier: 1.0, icon: "car" },
-  comfort: { name: "Comfort", seats: 6, multiplier: 1.2, icon: "car-sport" },
-  xl: { name: "XL", seats: 7, multiplier: 1.5, icon: "bus" },
+    standard: { name: "Standard", seats: 4, multiplier: 1.0, icon: "car" },
+    comfort: { name: "Comfort", seats: 6, multiplier: 1.2, icon: "car-sport" },
+    xl: { name: "XL", seats: 7, multiplier: 1.5, icon: "bus" },
 };
 
 const BookRide: React.FC = () => {
@@ -39,21 +40,31 @@ const BookRide: React.FC = () => {
     );
 
     const adjustedPrice = price * selectedRideTypeData.multiplier;
+
+    const { userId } = useAuth();
+    const [passengerDocId, setPassengerDocId] = useState<string | null>(null);
+    const [stripeCustomerId, setStripeCustomerId] = useState<string>("");
+
+    useEffect(() => {
+        const load = async () => {
+            if (!userId) return;
+            const { data, docId } = await fetchPassengerProfile(userId);
+            if (docId) setPassengerDocId(docId);
+            if (data?.stripeCustomerId) setStripeCustomerId(data.stripeCustomerId);
+        };
+        load();
+    }, [userId]);
+
     return (
-        <StripeProvider
-            publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY!}
-            merchantIdentifier="merchant.com.uber"
-            urlScheme="myapp"
-        >
             <RideLayout title="Book Your Ride">
                 <>
                     <View style={styles.rideTypeBanner}>
                         <View style={styles.rideTypeHeader}>
                             <View style={styles.rideTypeIconContainer}>
-                                <Ionicons 
-                                    name={selectedRideTypeData.icon as any} 
-                                    size={24} 
-                                    color="#3f7564" 
+                                <Ionicons
+                                    name={selectedRideTypeData.icon as any}
+                                    size={24}
+                                    color="#3f7564"
                                 />
                             </View>
                             <View style={styles.rideTypeDetails}>
@@ -122,10 +133,11 @@ const BookRide: React.FC = () => {
                         isScheduled={false}
                         rideType={rideType as string}
                         requiredSeats={selectedRideTypeData.seats}
+                        passengerDocId={passengerDocId}
+                        passengerStripeCustomerId={stripeCustomerId}
                     />
                 </>
             </RideLayout>
-        </StripeProvider>
     );
 };
 

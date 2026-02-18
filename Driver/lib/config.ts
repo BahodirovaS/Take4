@@ -1,8 +1,8 @@
 const isDevelopment = __DEV__;
 
 export const API_CONFIG = {
-  VERCEL_BASE_URL: 'https://take4-ps2kn6x0r-sabinas-projects-dedde209.vercel.app',
-  BASE_URL: 'https://take4-ps2kn6x0r-sabinas-projects-dedde209.vercel.app',
+  VERCEL_BASE_URL: 'https://take4-bjtawz6s2-sabinas-projects-dedde209.vercel.app',
+  BASE_URL: 'https://take4-bjtawz6s2-sabinas-projects-dedde209.vercel.app',
 };
 
 export const API_ENDPOINTS = {

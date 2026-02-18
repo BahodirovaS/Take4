@@ -7,7 +7,7 @@ import { ReactNativeModal } from "react-native-modal";
 
 import CustomButton from "@/components/CustomButton";
 import { images } from "@/constants";
-import { fetchAPI } from "@/lib/fetch";
+import { fetchAPI, updatePassengerProfile } from "@/lib/fetch";
 import { useLocationStore, useReservationStore } from "@/store";
 import { PaymentProps } from "@/types/type";
 import { db } from "@/lib/firebase";
@@ -21,6 +21,8 @@ interface EnhancedPaymentProps extends PaymentProps {
   driverCommissionRate?: number;
   rideType?: string;
   requiredSeats?: number;
+  passengerDocId?: string | null;
+  passengerStripeCustomerId?: string;
 }
 
 type CreatePaymentResponse = {
@@ -41,6 +43,8 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
   rideType,
   requiredSeats,
   driverCommissionRate = 0.8,
+  passengerDocId,
+  passengerStripeCustomerId,
 }) => {
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
 
@@ -114,8 +118,18 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
           email,
           amount,
           driverCommissionRate,
+          customer_id: passengerStripeCustomerId || undefined,
         }),
       })) as CreatePaymentResponse;
+      if (!passengerStripeCustomerId && customer) {
+        try {
+          await updatePassengerProfile(passengerDocId ?? null, userId ?? "", {
+            stripeCustomerId: customer,
+          });
+        } catch (e) {
+          console.warn("Failed to persist stripeCustomerId:", e);
+        }
+      }
 
       lastPIRef.current = {
         id: paymentIntent.id,

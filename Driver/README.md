@@ -50,6 +50,6 @@ Attributes:
 - srip for schedule
 - erix for no result
 - muhammad_usman for no rides
-- Freepik for stripe
+- Freepik for stripe and credit cards
 - Pixel perfect for paypal
 - muhammad atho' for wallet

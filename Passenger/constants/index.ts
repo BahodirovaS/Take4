@@ -37,6 +37,8 @@ import calendar from "@/assets/images/calendar.png"
 import noRides from "@/assets/images/no-rides.png"
 import stripe from "@/assets/images/stripe.png"
 import paypal from "@/assets/images/paypal.png"
+import wallet from "@/assets/icons/wallet.png"
+import credit from "@/assets/images/credit.png"
 
 export const images = {
   check,
@@ -49,6 +51,7 @@ export const images = {
   stripe,
   paypal,
   favicon,
+  credit,
 };
 
 export const icons = {
@@ -81,5 +84,6 @@ export const icons = {
   to,
   car,
   taxi,
+  wallet,
 };
 

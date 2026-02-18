@@ -1,7 +1,31 @@
 import { useState, useEffect, useCallback } from "react";
-import { collection, query, where, onSnapshot, orderBy, getDocs, addDoc, updateDoc, doc, deleteDoc, getDoc, Timestamp } from "firebase/firestore";
+import { 
+  collection, 
+  query, 
+  where, 
+  onSnapshot, 
+  orderBy, 
+  getDocs, 
+  addDoc, 
+  updateDoc, 
+  doc, 
+  deleteDoc, 
+  getDoc, 
+  Timestamp 
+} from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { ActiveRideData, Ride, ProfileForm, RideRequest, Message, CompletedRideDetails, MarkerData } from "@/types/type";
+import { 
+  ActiveRideData, 
+  Ride, 
+  ProfileForm, 
+  RideRequest, 
+  Message, 
+  CompletedRideDetails, 
+  MarkerData, 
+  CardPM, 
+  PaymentMethodsResponse, 
+  SetupIntentResponse 
+} from "@/types/type";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
 import * as Location from "expo-location";
@@ -218,6 +242,7 @@ export const fetchPassengerProfile = async (userId: string): Promise<{
           email: "",
           phoneNumber: userData.phoneNumber || "",
           profilePhotoBase64: userData.profilePhotoBase64 || "",
+          stripeCustomerId: userData.stripeCustomerId || "",
         },
         docId: userDoc.id,
         error: null
@@ -284,44 +309,36 @@ export const createPassengerProfile = async (
 export const updatePassengerProfile = async (
   docId: string | null,
   userId: string,
-  data: {
+  data: Partial<{
     phoneNumber: string;
     profilePhotoBase64: string;
-  }
+    stripeCustomerId: string;
+  }>
 ): Promise<{
   success: boolean;
   newDocId: string | null;
   error: Error | null;
 }> => {
   try {
+    const cleaned = Object.fromEntries(
+      Object.entries(data).filter(([, v]) => v !== undefined)
+    );
+
     if (!docId) {
       const docRef = await addDoc(collection(db, "passengers"), {
-        ...data,
+        ...cleaned,
         clerkId: userId,
-        createdAt: new Date()
+        createdAt: new Date(),
       });
 
-      return {
-        success: true,
-        newDocId: docRef.id,
-        error: null
-      };
+      return { success: true, newDocId: docRef.id, error: null };
     } else {
-      await updateDoc(doc(db, "passengers", docId), data);
-
-      return {
-        success: true,
-        newDocId: null,
-        error: null
-      };
+      await updateDoc(doc(db, "passengers", docId), cleaned);
+      return { success: true, newDocId: null, error: null };
     }
   } catch (error) {
     console.error("Error updating passenger profile:", error);
-    return {
-      success: false,
-      newDocId: null,
-      error: error as Error
-    };
+    return { success: false, newDocId: null, error: error as Error };
   }
 };
 
@@ -790,7 +807,7 @@ export const getShortDestination = (address: string | undefined): string => {
 export const requestRideCompletion = async (
   rideId: string,
   driverId?: string
-): Promise<{ success: boolean; [key: string]: any }> => {
+): Promise<{ success: boolean;[key: string]: any }> => {
   if (!rideId) throw new Error("Missing rideId");
 
   const res = await fetch(API_ENDPOINTS.REQUEST_COMPLETE, {
@@ -811,7 +828,7 @@ export const requestRideCompletion = async (
 export const confirmRideCompletion = async (
   rideId: string,
   passengerId?: string
-): Promise<{ success: boolean; payout?: any; [key: string]: any }> => {
+): Promise<{ success: boolean; payout?: any;[key: string]: any }> => {
   if (!rideId) throw new Error("Missing rideId");
 
   const res = await fetch(API_ENDPOINTS.CONFIRM_COMPLETE, {
@@ -1051,3 +1068,47 @@ export const navigateToDriverChat = (
   });
 };
 
+// --------------------
+// Wallet / Payment Methods
+// --------------------
+
+export const fetchPaymentMethods = async (customerId: string): Promise<PaymentMethodsResponse> => {
+  if (!customerId) return { paymentMethods: [], defaultPaymentMethodId: null };
+
+  return await fetchAPI(`${API_ENDPOINTS.PAYMENT_METHODS}?customerId=${customerId}`, {
+    method: "GET",
+  });
+};
+
+export const createSetupIntent = async (payload: {
+  customer_id?: string;
+  name?: string;
+  email?: string;
+}): Promise<SetupIntentResponse> => {
+  return await fetchAPI(API_ENDPOINTS.SETUP_INTENT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+};
+
+export const setDefaultPaymentMethod = async (payload: {
+  customerId: string;
+  paymentMethodId: string | null;
+}): Promise<any> => {
+  return await fetchAPI(API_ENDPOINTS.DEFAULT_PAYMENT_METHOD, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+};
+
+export const detachPaymentMethod = async (payload: {
+  paymentMethodId: string;
+}): Promise<any> => {
+  return await fetchAPI(API_ENDPOINTS.DETACH_PAYMENT_METHOD, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+};

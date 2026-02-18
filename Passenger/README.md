@@ -1,5 +1,5 @@
 ## WHERE I LEFT OFF 
-
+added saved payment method to stripe payment. added a check so passenger marks ride as complete as well
 
 ## UI Updates:
 - format the scheduled ride request for drivers. it's ugly
@@ -15,8 +15,8 @@
 
 ## Future updates to features:
 - Be able to edit profile 
-- have wallet feature for passengers **IMPORTANT**
 - make batch payment flow
+- have wallet feature for passengers **IMPORTANT**
 
 ## Fixed Updates:
 - [FIXED]tip is showing up in the Connect account of the driver, but the fare share isn't -> made a new endpoint for driver share and changed /create to remove driverId
