@@ -41,6 +41,82 @@ function safeNumberCents(v) {
   return Number.isFinite(n) ? Math.trunc(n) : 0;
 }
 
+//helper for payout driver
+async function payoutDriverInternal({ rideId, headers }) {
+  const rideRef = db.collection('rideRequests').doc(rideId);
+
+  const rideData = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(rideRef);
+    if (!snap.exists) throw new Error('Ride not found');
+    const r = snap.data() || {};
+
+    if (r.payout_transfer_id) {
+      return { alreadyPaid: true, payout_transfer_id: r.payout_transfer_id };
+    }
+
+    if (r.status !== 'completed') throw new Error('Ride not completed');
+    if (r.payment_status !== 'paid') throw new Error('Ride not paid');
+    if (!r.driver_id) throw new Error('Missing driver_id');
+
+    const driverShareCents =
+      (Number.isFinite(r.driver_share) ? r.driver_share : safeNumberCents(r.driver_share)) ||
+      Math.round(((Number.isFinite(r.fare_price) ? r.fare_price : safeNumberCents(r.fare_price)) || 0) * 0.8);
+
+    if (!Number.isFinite(driverShareCents) || driverShareCents <= 0) {
+      throw new Error('Invalid driver share amount');
+    }
+
+    tx.update(rideRef, {
+      payout_status: 'pending',
+      payout_started_at: FieldValue.serverTimestamp(),
+    });
+
+    return {
+      alreadyPaid: false,
+      driver_id: r.driver_id,
+      driverShareCents,
+    };
+  });
+
+  if (rideData.alreadyPaid) {
+    return { success: true, alreadyPaid: true, transferId: rideData.payout_transfer_id };
+  }
+
+  const destination = await getDriverConnectAccountId(rideData.driver_id);
+  if (!destination) {
+    await rideRef.update({
+      payout_status: 'failed',
+      payout_error: 'Driver missing stripe_connect_account_id',
+      payout_failed_at: FieldValue.serverTimestamp(),
+    });
+    throw new Error('Driver missing stripe_connect_account_id');
+  }
+
+  const idem =
+    headers?.['x-idempotency-key'] ||
+    `payout_${rideId}_${rideData.driverShareCents}_${destination}`;
+
+  const transfer = await stripe.transfers.create(
+    {
+      amount: rideData.driverShareCents,
+      currency: 'usd',
+      destination,
+      transfer_group: rideId,
+      metadata: { rideId, driver_id: rideData.driver_id, type: 'driver_payout' },
+    },
+    { idempotencyKey: idem }
+  );
+
+  await rideRef.update({
+    payout_status: 'paid',
+    payout_transfer_id: transfer.id,
+    payout_paid_at: FieldValue.serverTimestamp(),
+    payout_destination_acct: destination,
+  });
+
+  return { success: true, transferId: transfer.id, destination };
+}
+
 
 module.exports = async (req, res) => {
   setCorsJson(res);
@@ -214,6 +290,75 @@ module.exports = async (req, res) => {
         return res.status(400).json({
           success: false,
           error: e?.message || 'Failed to payout driver',
+        });
+      }
+    }
+
+    if (req.method === 'POST' && path === '/request-complete') {
+      const { rideId, driverId } = req.body || {};
+      if (!rideId) return res.status(400).json({ error: 'rideId is required' });
+
+      const rideRef = db.collection('rideRequests').doc(rideId);
+
+      await db.runTransaction(async (tx) => {
+        const snap = await tx.get(rideRef);
+        if (!snap.exists) throw new Error('Ride not found');
+        const r = snap.data() || {};
+
+        if (r.status === 'completed') return;
+
+        if (driverId && r.driver_id && driverId !== r.driver_id) {
+          throw new Error('Driver mismatch');
+        }
+
+        tx.update(rideRef, {
+          status: 'awaiting_passenger_confirm',
+          completion_requested_at: FieldValue.serverTimestamp(),
+          completion_requested_by: driverId || null,
+        });
+      });
+
+      return res.json({ success: true });
+    }
+
+    if (req.method === 'POST' && path === '/confirm-complete') {
+      const { rideId, passengerId } = req.body || {};
+      if (!rideId) return res.status(400).json({ error: 'rideId is required' });
+
+      const rideRef = db.collection('rideRequests').doc(rideId);
+
+      await db.runTransaction(async (tx) => {
+        const snap = await tx.get(rideRef);
+        if (!snap.exists) throw new Error('Ride not found');
+        const r = snap.data() || {};
+
+        if (r.status === 'completed') return;
+
+        if (r.status !== 'awaiting_passenger_confirm') {
+          throw new Error('Ride is not awaiting passenger confirmation');
+        }
+
+        if (passengerId && r.user_id && passengerId !== r.user_id) {
+          throw new Error('Passenger mismatch');
+        }
+
+        tx.update(rideRef, {
+          status: 'completed',
+          completed_at: FieldValue.serverTimestamp(),
+          completed_by: 'passenger',
+          passenger_confirmed_complete: true,
+          passenger_confirmed_complete_at: FieldValue.serverTimestamp(),
+        });
+      });
+
+      // pay driver after completion (server-side)
+      try {
+        const payout = await payoutDriverInternal({ rideId, headers: req.headers });
+        return res.json({ success: true, payout });
+      } catch (e) {
+        return res.json({
+          success: true,
+          payout: { success: false, error: e?.message || String(e) },
         });
       }
     }
@@ -543,7 +688,7 @@ module.exports = async (req, res) => {
         const candidates = [];
         rideSnap.forEach((doc) => {
           const data = doc.data();
-          if (data.declined_driver_ids?.includes(driverId)) return; // skip declined ones
+          if (data.declined_driver_ids?.includes(driverId)) return;
           if (typeof data.origin_latitude !== 'number' || typeof data.origin_longitude !== 'number') return;
           const distance = haversineKm(lat, lng, data.origin_latitude, data.origin_longitude);
           candidates.push({ id: doc.id, data, distance });
@@ -569,7 +714,7 @@ module.exports = async (req, res) => {
             throw new Error('Ride no longer available');
           }
 
-          const expiry = computePreScheduledExpiry(current); // day-before cutoff
+          const expiry = computePreScheduledExpiry(current);
 
           tx.update(rideRef, {
             driver_id: driverId,
