@@ -23,6 +23,12 @@ interface EnhancedPaymentProps extends PaymentProps {
   requiredSeats?: number;
 }
 
+type CreatePaymentResponse = {
+  paymentIntent: { id: string; client_secret: string };
+  ephemeralKey: { secret: string };
+  customer: string;
+};
+
 const Payment: React.FC<EnhancedPaymentProps> = ({
   fullName,
   email,
@@ -37,6 +43,7 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
   driverCommissionRate = 0.8,
 }) => {
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
+
   const {
     userAddress,
     userLongitude,
@@ -45,6 +52,7 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
     destinationAddress,
     destinationLongitude,
   } = useLocationStore();
+
   const { clearReservation } = useReservationStore();
   const { userId } = useAuth();
 
@@ -52,7 +60,6 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
   const [rideId, setRideId] = useState<string | null>(null);
 
   const lastPIRef = useRef<{ id: string; clientSecret: string; customer: string } | null>(null);
-  const lastPMRef = useRef<string | null>(null);
 
   const buttonTitle = isScheduled ? "Pay & Confirm Reservation" : "Confirm Ride";
   const modalTitle = isScheduled ? "Reservation Confirmed" : "Booking placed successfully";
@@ -63,57 +70,79 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
 
   const driverShare = (parseFloat(amount) * driverCommissionRate).toFixed(2);
   const companyShare = (parseFloat(amount) * (1 - driverCommissionRate)).toFixed(2);
-  const initializePaymentSheet = async () => {
-    const { error } = await initPaymentSheet({
-      merchantDisplayName: "Cabbage Rides",
-      intentConfiguration: {
-        mode: {
-          amount: Math.round(parseFloat(amount) * 100),
-          currencyCode: "usd",
-          setupFutureUsage: "OffSession",
-        },
-        confirmHandler: async (paymentMethod, _shouldSave, intentCreationCallback) => {
-          const { paymentIntent, customer } = await fetchAPI(API_ENDPOINTS.CREATE_PAYMENT, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: fullName || email.split("@")[0],
-              email,
-              amount,
-              driverCommissionRate,
-              // driver_id,
-            }),
-          });
 
-          lastPIRef.current = {
-            id: paymentIntent.id,
-            clientSecret: paymentIntent.client_secret,
-            customer,
-          };
-          lastPMRef.current = paymentMethod.id;
+  const parseScheduledDateTime = (dateStr: string, timeStr: string) => {
+    const dateParts = dateStr.split(", ");
+    const dateString = dateParts.length > 1 ? dateParts[1] : dateStr;
 
-          intentCreationCallback({ clientSecret: paymentIntent.client_secret });
-        },
-      },
-      returnURL: isScheduled ? "myapp://reserve-book-ride" : "myapp://book-ride",
-    });
+    const months = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
 
-    if (!error) {
-      // ready
-    }
+    const [month, day] = dateString.split(" ");
+    const monthIndex = months.indexOf(month);
+    const currentYear = new Date().getFullYear();
+
+    const [timePart, modifier] = timeStr.split(" ");
+    const [hour, minute] = timePart.split(":").map(Number);
+
+    let adjustedHour = hour;
+    if (modifier === "PM" && hour !== 12) adjustedHour += 12;
+    if (modifier === "AM" && hour === 12) adjustedHour = 0;
+
+    return new Date(currentYear, monthIndex, parseInt(day, 10), adjustedHour, minute);
   };
 
   const openPaymentSheet = async () => {
-    await initializePaymentSheet();
-
-    const { error } = await presentPaymentSheet();
-
-    if (error) {
-      Alert.alert(`Error code: ${error.code}`, error.message);
-      return;
-    }
-
     try {
+      const { paymentIntent, ephemeralKey, customer } = (await fetchAPI(API_ENDPOINTS.CREATE_PAYMENT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: fullName || email.split("@")[0],
+          email,
+          amount,
+          driverCommissionRate,
+        }),
+      })) as CreatePaymentResponse;
+
+      lastPIRef.current = {
+        id: paymentIntent.id,
+        clientSecret: paymentIntent.client_secret,
+        customer,
+      };
+
+      const { error: initError } = await initPaymentSheet({
+        merchantDisplayName: "Cabbage Rides",
+        customerId: customer,
+        customerEphemeralKeySecret: ephemeralKey.secret,
+        paymentIntentClientSecret: paymentIntent.client_secret,
+        returnURL: isScheduled ? "myapp://reserve-book-ride" : "myapp://book-ride",
+      });
+
+      if (initError) {
+        Alert.alert("Payment setup failed", initError.message);
+        return;
+      }
+
+      const { error: presentError } = await presentPaymentSheet();
+
+      if (presentError) {
+        Alert.alert(`Error code: ${presentError.code}`, presentError.message);
+        return;
+      }
+
       const fareCents = Math.round(parseFloat(amount) * 100);
       const driverShareCents = Math.round(parseFloat(driverShare) * 100);
       const companyShareCents = Math.round(parseFloat(companyShare) * 100);
@@ -139,40 +168,13 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
       };
 
       if (lastPIRef.current?.id) baseRideData.payment_intent_id = lastPIRef.current.id;
-      if (lastPMRef.current) baseRideData.payment_method_id = lastPMRef.current;
       if (lastPIRef.current?.customer) baseRideData.stripe_id = lastPIRef.current.customer;
 
       if (isScheduled && scheduledDate && scheduledTime) {
-        const dateParts = scheduledDate.split(", ");
-        const dateString = dateParts.length > 1 ? dateParts[1] : scheduledDate;
-        const months = [
-          "January",
-          "February",
-          "March",
-          "April",
-          "May",
-          "June",
-          "July",
-          "August",
-          "September",
-          "October",
-          "November",
-          "December",
-        ];
-        const [month, day] = dateString.split(" ");
-        const monthIndex = months.indexOf(month);
-        const currentYear = new Date().getFullYear();
-        const [timePart, modifier] = scheduledTime.split(" ");
-        const [hour, minute] = timePart.split(":").map(Number);
-        let adjustedHour = hour;
-        if (modifier === "PM" && hour !== 12) adjustedHour += 12;
-        if (modifier === "AM" && hour === 12) adjustedHour = 0;
-        const scheduledDateTime = new Date(currentYear, monthIndex, parseInt(day), adjustedHour, minute);
-
         baseRideData.status = "scheduled_requested";
         baseRideData.scheduled_date = scheduledDate;
         baseRideData.scheduled_time = scheduledTime;
-        baseRideData.scheduled_datetime = scheduledDateTime;
+        baseRideData.scheduled_datetime = parseScheduledDateTime(scheduledDate, scheduledTime);
       } else {
         baseRideData.status = "requested";
       }

@@ -8,7 +8,7 @@ import * as Location from "expo-location";
 import { Alert } from "react-native";
 import { useLocationStore } from "@/store";
 import { router } from "expo-router";
-
+import { API_ENDPOINTS } from '@/lib/config';
 
 const DEFAULT_TIMEOUT = 5000;
 
@@ -152,7 +152,7 @@ export const checkActiveRides = (
     const activeRidesQuery = query(
       collection(db, "rideRequests"),
       where("user_id", "==", userId),
-      where("status", "in", ["requested", "accepted", "arrived_at_pickup", "in_progress"])
+      where("status", "in", ["requested", "accepted", "arrived_at_pickup", "in_progress", "awaiting_passenger_confirm"])
     );
 
     const unsubscribe = onSnapshot(activeRidesQuery, (snapshot) => {
@@ -782,6 +782,53 @@ export const getShortDestination = (address: string | undefined): string => {
   if (!address) return "destination";
   return address.split(',')[0];
 };
+
+/** 
+ * Request to complete ride 
+ */
+
+export const requestRideCompletion = async (
+  rideId: string,
+  driverId?: string
+): Promise<{ success: boolean; [key: string]: any }> => {
+  if (!rideId) throw new Error("Missing rideId");
+
+  const res = await fetch(API_ENDPOINTS.REQUEST_COMPLETE, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ rideId, driverId }),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok || !data?.success) {
+    throw new Error(data?.error || "Request completion failed");
+  }
+
+  return data;
+};
+
+export const confirmRideCompletion = async (
+  rideId: string,
+  passengerId?: string
+): Promise<{ success: boolean; payout?: any; [key: string]: any }> => {
+  if (!rideId) throw new Error("Missing rideId");
+
+  const res = await fetch(API_ENDPOINTS.CONFIRM_COMPLETE, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ rideId, passengerId }),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok || !data?.success) {
+    throw new Error(data?.error || "Confirm completion failed");
+  }
+
+  return data;
+};
+
 
 
 /**

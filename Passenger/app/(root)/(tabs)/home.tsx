@@ -1,6 +1,6 @@
 import { useUser } from "@clerk/clerk-expo";
 import { router } from "expo-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import React from "react";
 import {
     Text,
@@ -10,7 +10,8 @@ import {
     FlatList,
     StyleSheet,
     ActivityIndicator,
-    ScrollView
+    ScrollView,
+    Alert
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import GoogleTextInput from "@/components/GoogleTextInput";
@@ -21,7 +22,9 @@ import { icons, images } from "@/constants";
 import { useLocationStore } from "@/store";
 import { ActiveRideData, Ride } from "@/types/type";
 import { Ionicons } from "@expo/vector-icons";
-import { fetchRideHistory, checkActiveRides, determineRideStage } from "@/lib/fetch";
+import { fetchRideHistory, checkActiveRides, determineRideStage, confirmRideCompletion } from "@/lib/fetch";
+import { doc, onSnapshot } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 const Home = () => {
     const { user } = useUser();
@@ -66,6 +69,64 @@ const Home = () => {
 
         return unsubscribe;
     }, [user?.id]);
+
+
+const promptedRef = useRef(false);
+
+useEffect(() => {
+  if (!user?.id) return;
+  if (!activeRideData?.rideId) return;
+
+  const rideRef = doc(db, "rideRequests", activeRideData.rideId);
+
+  const unsub = onSnapshot(rideRef, (snap) => {
+    const d: any = snap.data();
+    const status = d?.status;
+
+    if (status === "awaiting_passenger_confirm") {
+      if (promptedRef.current) return;
+      promptedRef.current = true;
+
+      Alert.alert(
+        "Are you at your destination?",
+        "Your driver is trying to complete the ride.",
+        [
+          {
+            text: "Not yet",
+            style: "cancel",
+            onPress: () => {
+              promptedRef.current = false;
+            },
+          },
+          {
+            text: "Yes",
+            onPress: async () => {
+              try {
+                await confirmRideCompletion(activeRideData.rideId, user.id);
+              } catch (e: any) {
+                promptedRef.current = false;
+                Alert.alert("Error", e?.message || "Could not complete the ride.");
+              }
+            },
+          },
+        ],
+        { cancelable: false }
+      );
+    } else {
+      promptedRef.current = false;
+    }
+
+    if (status === "completed") {
+      router.replace({
+        pathname: "/(root)/ride-completed",
+        params: { rideId: activeRideData.rideId },
+      });
+    }
+  });
+
+  return () => unsub();
+}, [activeRideData?.rideId, user?.id]);
+
 
     const handleDestinationPress = (location: {
         latitude: number;
