@@ -1,8 +1,8 @@
 const isDevelopment = __DEV__;
 
 export const API_CONFIG = {
-  VERCEL_BASE_URL: 'https://take4-dncvah1vf-sabinas-projects-dedde209.vercel.app',
-  BASE_URL: 'https://take4-dncvah1vf-sabinas-projects-dedde209.vercel.app',
+  VERCEL_BASE_URL: 'https://take4-ps2kn6x0r-sabinas-projects-dedde209.vercel.app',
+  BASE_URL: 'https://take4-ps2kn6x0r-sabinas-projects-dedde209.vercel.app',
 };
 
 export const API_ENDPOINTS = {
@@ -18,4 +18,6 @@ export const API_ENDPOINTS = {
   DECLINE_RIDE: `${API_CONFIG.BASE_URL}/api/rides/decline-ride`,
   ACCEPT_SCHEDULED_RIDE: `${API_CONFIG.BASE_URL}/api/rides/accept-schedule`,
   CLAIM_PENDING_RIDE: `${API_CONFIG.BASE_URL}/api/claim-pending-ride`,
+  REQUEST_COMPLETE: `${API_CONFIG.BASE_URL}/api/request-complete`,
+  CONFIRM_COMPLETE: `${API_CONFIG.BASE_URL}/api/confirm-complete`,
 };

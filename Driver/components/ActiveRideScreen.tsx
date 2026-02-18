@@ -24,6 +24,7 @@ import {
   completeRide,
   subscribeToUnreadCount,
   payoutDriverForRide,
+  requestRideCompletion,
 } from '@/lib/fetch';
 import { useUser } from '@clerk/clerk-expo';
 import { collection, getDocs, limit, query, where } from 'firebase/firestore';
@@ -40,7 +41,8 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const { user } = useUser();
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
-
+  const [isRequestingComplete, setIsRequestingComplete] = useState(false);
+  const [completionRequested, setCompletionRequested] = useState(false);
   const locationStore = useLocationStore();
   const { setUserLocation, setDestinationLocation } = locationStore;
 
@@ -49,10 +51,10 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId }) => {
       status === 'accepted'
         ? 'to_pickup'
         : status === 'arrived_at_pickup'
-        ? 'to_destination'
-        : status === 'in_progress'
-        ? 'to_destination'
-        : 'to_pickup';
+          ? 'to_destination'
+          : status === 'in_progress'
+            ? 'to_destination'
+            : 'to_pickup';
     setRideStage(newRideStage);
   };
 
@@ -89,7 +91,7 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId }) => {
     if (!rideId) {
       setIsLoading(false);
       Alert.alert('Error', 'No ride ID provided');
-      return () => {};
+      return () => { };
     }
 
     const unsubscribeRide = subscribeToRideDetails(
@@ -187,41 +189,37 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId }) => {
   };
 
   const handleCompleteRide = async () => {
-    if (!ride) return;
-    const success = await completeRide(rideId, ride, {
-      userLatitude: locationStore.userLatitude,
-      userLongitude: locationStore.userLongitude,
-      userAddress: locationStore.userAddress || '',
-      destinationLatitude: locationStore.destinationLatitude,
-      destinationLongitude: locationStore.destinationLongitude,
-      destinationAddress: locationStore.destinationAddress || '',
-    });
+    if (!rideId) return;
 
-    if (!success) {
-    Alert.alert("Error", "Could not complete the ride");
-    return;
-  }
+    setIsRequestingComplete(true);
+    try {
+      await requestRideCompletion(rideId, user?.id);
+      setCompletionRequested(true);
 
-  try {
-    await payoutDriverForRide(rideId);
-  } catch (err: any) {
-    console.error("Driver payout failed:", err?.message || err);
+      Alert.alert(
+        "Waiting for passenger",
+        "We’ve asked the passenger to confirm they’re at the destination."
+      );
 
-    Alert.alert(
-      "Ride completed",
-      "Ride was completed, but driver payout failed. Support has been notified."
-    );
-  }
+      // IMPORTANT: do NOT navigate away
+    } catch (e: any) {
+      Alert.alert("Error", e?.message || "Could not request completion");
+    } finally {
+      setIsRequestingComplete(false);
+    }
+  };
 
-  Alert.alert("Ride Completed", "The ride has been marked as completed", [
-    {
-      text: "OK",
-      onPress: () => {
-        router.replace("/(root)/(tabs)/home");
-      },
-    },
-  ]);
-};
+  useEffect(() => {
+    if (ride?.status === "completed") {
+      Alert.alert("Ride Completed", "Passenger confirmed arrival.", [
+        {
+          text: "OK",
+          onPress: () => router.replace("/(root)/(tabs)/home"),
+        },
+      ]);
+    }
+  }, [ride?.status]);
+
 
   const openNavigation = () => {
     if (!ride) return;
@@ -431,10 +429,11 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId }) => {
             <CustomButton title="Start Ride" bgVariant="primary" onPress={handleStartRide} style={styles.customActionButton} />
           ) : (
             <CustomButton
-              title="Complete Ride"
+              title={completionRequested ? "Waiting for passenger…" : "Complete Ride"}
               bgVariant="primary"
               onPress={handleCompleteRide}
               style={styles.customActionButton}
+              disabled={isRequestingComplete || completionRequested}
             />
           )}
         </View>

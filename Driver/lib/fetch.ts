@@ -283,6 +283,51 @@ export const startRide = async (rideId: string) => {
   }
 };
 
+/** 
+ * Request to complete ride 
+ */
+
+export const requestRideCompletion = async (
+  rideId: string,
+  driverId?: string
+): Promise<{ success: boolean; [key: string]: any }> => {
+  if (!rideId) throw new Error("Missing rideId");
+
+  const res = await fetch(API_ENDPOINTS.REQUEST_COMPLETE, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ rideId, driverId }),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok || !data?.success) {
+    throw new Error(data?.error || "Request completion failed");
+  }
+
+  return data;
+};
+
+export const confirmRideCompletion = async (
+  rideId: string,
+  passengerId?: string
+): Promise<{ success: boolean; payout?: any; [key: string]: any }> => {
+  if (!rideId) throw new Error("Missing rideId");
+
+  const res = await fetch(API_ENDPOINTS.CONFIRM_COMPLETE, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ rideId, passengerId }),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok || !data?.success) {
+    throw new Error(data?.error || "Confirm completion failed");
+  }
+
+  return data;
+};
 
 
 /**
@@ -350,7 +395,6 @@ export const completeRide = async (
     return false;
   }
 };
-
 
 
 
