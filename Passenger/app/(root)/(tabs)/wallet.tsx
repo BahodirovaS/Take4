@@ -385,12 +385,12 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   action: {
-    fontSize: 13,
+    fontSize: 15,
     fontFamily: "DMSans-SemiBold",
     color: "#289dd2",
   },
   defaultPill: {
-    fontSize: 12,
+    fontSize: 15,
     fontFamily: "DMSans-SemiBold",
     color: "#3f7564",
     marginLeft: 8,
