@@ -1,5 +1,5 @@
 ## WHERE I LEFT OFF 
-added saved payment method to stripe payment. added a check so passenger marks ride as complete as well
+added saved payment method to stripe payment. added a check so passenger marks ride as complete as well. I added a wallet feature for passengers. I removed all existing accounts in firebase, removed all stripe customers and refunded payments.
 
 ## UI Updates:
 - format the scheduled ride request for drivers. it's ugly
@@ -16,9 +16,9 @@ added saved payment method to stripe payment. added a check so passenger marks r
 ## Future updates to features:
 - Be able to edit profile 
 - make batch payment flow
-- have wallet feature for passengers **IMPORTANT**
 
 ## Fixed Updates:
+- [FIXED]have wallet feature for passengers **IMPORTANT**
 - [FIXED]tip is showing up in the Connect account of the driver, but the fare share isn't -> made a new endpoint for driver share and changed /create to remove driverId
 - [FIXED]tipping page won't pop up for passenegers if the app refreshes. Make it so if the tip is false, they can't go to home screen? -> added listener to passenger root layout and added passenger acknowledgement
 - [FIXED]passenger can't see the driver when the driver has arrived -> uncommented driver marker from passenger map
