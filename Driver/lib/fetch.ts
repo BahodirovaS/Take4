@@ -679,68 +679,71 @@ export const fetchDriverInfo = async (userId: string): Promise<{
 };
 
 /**
-* Select an image from the device gallery
+* Take a profile photo
 */
-export const selectProfileImage = async (): Promise<{
+
+export const takeProfilePhoto = async (): Promise<{
   base64Image: string | null;
   error: Error | null;
 }> => {
   try {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
 
-    if (status !== 'granted') {
-      Alert.alert('Permission Required', 'We need permission to access your photos');
-      return { base64Image: null, error: new Error('Permission denied') };
+    if (status !== "granted") {
+      Alert.alert("Permission Required", "We need permission to use your camera");
+      return { base64Image: null, error: new Error("Permission denied") };
     }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
+    const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.5,
       base64: true,
+      cameraType: ImagePicker.CameraType.front, // nice for profile photos
     });
 
     if (result.canceled) {
       return { base64Image: null, error: null };
     }
 
-    let base64Image;
-
-    if (result.assets[0].base64) {
-      base64Image = result.assets[0].base64;
-    } else {
-      const fileUri = result.assets[0].uri;
-      const fileContent = await FileSystem.readAsStringAsync(fileUri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-      base64Image = fileContent;
+    const asset = result.assets?.[0];
+    if (!asset) {
+      return { base64Image: null, error: new Error("No image captured") };
     }
 
+    let base64Image: string;
+
+    if (asset.base64) {
+      base64Image = asset.base64;
+    } else {
+      // fallback (same as your current logic)
+      const fileUri = asset.uri;
+      base64Image = await FileSystem.readAsStringAsync(fileUri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+    }
+
+    // same size check you already had
     const imageSizeInBytes = base64Image.length * 0.75;
     const imageSizeInMB = imageSizeInBytes / (1024 * 1024);
 
     if (imageSizeInMB > 1) {
       Alert.alert(
         "Image Too Large",
-        "Please select a smaller image (under 1MB)",
+        "Please take a smaller image (under 1MB). Try again with better lighting / less detail.",
         [{ text: "OK" }]
       );
-      return { base64Image: null, error: new Error('Image too large') };
+      return { base64Image: null, error: new Error("Image too large") };
     }
 
-    return {
-      base64Image,
-      error: null
-    };
+    return { base64Image, error: null };
   } catch (error) {
-    console.error("Error picking image:", error);
-    return {
-      base64Image: null,
-      error: error as Error
-    };
+    console.error("Error taking photo:", error);
+    return { base64Image: null, error: error as Error };
   }
 };
+
 
 
 /**

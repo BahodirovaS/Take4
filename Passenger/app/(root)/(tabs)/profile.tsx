@@ -22,7 +22,7 @@ import { ProfileForm } from "@/types/type"
 import {
     fetchPassengerProfile,
     updatePassengerProfile,
-    selectProfileImage,
+    takeProfilePhoto,
     getCurrentLocation,
     formatPhoneNumber
 } from "@/lib/fetch";
@@ -96,7 +96,7 @@ const Profile = () => {
 
     const pickImage = async () => {
         setUploading(true);
-        const { base64Image, error } = await selectProfileImage();
+        const { base64Image, error } = await takeProfilePhoto();
         if (base64Image) {
             setForm(prevForm => ({
                 ...prevForm,
@@ -171,7 +171,7 @@ const Profile = () => {
                                     </View>
                                 )}
                             </TouchableOpacity>
-                            <Text style={styles.tapToChangeText}>Tap to change photo</Text>
+                            <Text style={styles.tapToChangeText}>Tap to take a photo</Text>
                         </View>
                         <View style={styles.infoContainer}>
                             <View style={styles.infoContent}>

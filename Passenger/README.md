@@ -1,5 +1,5 @@
 ## WHERE I LEFT OFF 
-added saved payment method to stripe payment. added a check so passenger marks ride as complete as well. I added a wallet feature for passengers. I removed all existing accounts in firebase, removed all stripe customers and refunded payments.
+
 
 ## UI Updates:
 - format the scheduled ride request for drivers. it's ugly

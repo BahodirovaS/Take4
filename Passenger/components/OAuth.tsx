@@ -29,7 +29,7 @@ const OAuth = () => {
       </View>
 
       <CustomButton
-        title="Log In with Google"
+        title="Sign In with Google"
         style={styles.googleButton}
         IconLeft={() => (
           <Image

@@ -17,7 +17,7 @@ import InputField from "@/components/InputField";
 import { useAuth, useUser } from "@clerk/clerk-expo";
 import {
     fetchDriverInfo,
-    selectProfileImage,
+    takeProfilePhoto,
     saveDriverProfile,
     updateDriverStatusOnSignOut,
 } from "@/lib/fetch";
@@ -94,7 +94,7 @@ const DriverInfo = () => {
 
     const pickImage = async () => {
         setUploading(true);
-        const { base64Image, error } = await selectProfileImage();
+        const { base64Image, error } = await takeProfilePhoto();
 
         if (base64Image) {
             setForm(prevForm => ({
@@ -197,7 +197,7 @@ const DriverInfo = () => {
                                 </View>
                             )}
                         </TouchableOpacity>
-                        <Text style={styles.tapToChangeText}>Tap to change photo</Text>
+                        <Text style={styles.tapToChangeText}>Tap to take a photo</Text>
                     </View>
 
                     <View style={styles.infoContainer}>
