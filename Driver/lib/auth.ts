@@ -42,7 +42,7 @@ export const googleOAuth = async (startOAuthFlow: any) => {
         const driversRef = collection(db, "drivers");
         const q = query(driversRef, where("email", "==", userEmail));
         const querySnapshot = await getDocs(q);
-        
+
         const driverExists = !querySnapshot.empty;
         const isNewDriver = !driverExists;
 
@@ -73,7 +73,7 @@ export const googleOAuth = async (startOAuthFlow: any) => {
               status: false,
               createdAt: new Date()
             });
-            
+
             await addDoc(collection(db, "users"), {
               firstName: signUp.firstName || "",
               lastName: signUp.lastName || "",
@@ -84,7 +84,7 @@ export const googleOAuth = async (startOAuthFlow: any) => {
             });
           }
         }
-        
+
         router.push("/(root)/(tabs)/home");
 
         return {
@@ -97,13 +97,24 @@ export const googleOAuth = async (startOAuthFlow: any) => {
 
     return {
       success: false,
-      message: "An error occurred while signing in with Google",
+      code: "cancelled",
+      message: "Cancelled",
     };
   } catch (err: any) {
+    const code = err?.code ?? err?.errors?.[0]?.code;
+
+    if (
+      code === "oauth_cancelled" ||
+      code === "user_cancelled" ||
+      code === "cancelled"
+    ) {
+      return { success: false, code: "cancelled", message: "Cancelled" };
+    }
+
     console.error(err);
     return {
       success: false,
-      code: err.code,
+      code: code,
       message: err?.errors?.[0]?.longMessage || "An unknown error occurred",
     };
   }

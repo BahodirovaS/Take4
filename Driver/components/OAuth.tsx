@@ -12,12 +12,19 @@ const OAuth = () => {
   const handleGoogleSignIn = async () => {
     const result = await googleOAuth(startOAuthFlow);
 
+    if (result.code === "cancelled") {
+      return;
+    }
     if (result.code === "session_exists") {
-      Alert.alert("Success", "Session exists. Redirecting to home screen.");
       router.replace("/(root)/(tabs)/home");
+      return;
+    }
+    if (result.success) {
+      router.replace("/(root)/(tabs)/home");
+      return;
     }
 
-    Alert.alert(result.success ? "Success" : "Error", result.message);
+    Alert.alert("Error", result.message);
   };
 
   return (

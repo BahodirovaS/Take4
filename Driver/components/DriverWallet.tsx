@@ -84,6 +84,8 @@ const DriverWallet: React.FC = () => {
     try {
       setOpeningDashboard(true);
       const resp = await createStripeDashboardLink(userId!, accountId);
+          console.log("createStripeDashboardLink resp:", resp);
+
       if (resp.success && resp.url) {
         Linking.openURL(resp.url);
       } else {

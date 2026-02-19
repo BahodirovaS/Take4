@@ -108,22 +108,28 @@ const Home = () => {
     }, [user?.id]);
 
     const checkSetup = useCallback(async () => {
-        if (!user?.id) return;
-        try {
-            setCheckingSetup(true);
-            const [profileExists, onboarding] = await Promise.all([
-                getDriverProfileExists(user.id),
-                getDriverOnboardingStatus(user.id),
-            ]);
-            setHasDriverProfile(profileExists);
-            setOnboardingCompleted(onboarding.onboardingCompleted);
-        } catch {
-            setHasDriverProfile(false);
-            setOnboardingCompleted(false);
-        } finally {
-            setCheckingSetup(false);
-        }
-    }, [user?.id]);
+    if (!user?.id) {
+        console.log("checkSetup: no user id");
+        return;
+    }
+
+    try {
+        setCheckingSetup(true);
+
+        const profileExists = await getDriverProfileExists(user.id);
+
+        const onboarding = await getDriverOnboardingStatus(user.id);
+
+        setHasDriverProfile(profileExists);
+        setOnboardingCompleted(onboarding?.onboardingCompleted);
+
+    } catch (error) {
+        setHasDriverProfile(false);
+        setOnboardingCompleted(false);
+    } finally {
+        setCheckingSetup(false);
+    }
+}, [user?.id]);
 
     useEffect(() => {
         checkSetup();
@@ -268,16 +274,12 @@ const Home = () => {
                                     </Text>
                                 </View>
                                 <View style={styles.setupPromptActions}>
-                                    {!hasDriverProfile && (
-                                        <TouchableOpacity onPress={() => router.push("/(root)/(tabs)/profile")}>
-                                            <Text style={styles.setupPromptLink}>Complete Profile</Text>
-                                        </TouchableOpacity>
-                                    )}
-                                    {!onboardingCompleted && (
-                                        <TouchableOpacity onPress={() => router.push("/(root)/(tabs)/wallet")}>
-                                            <Text style={styles.setupPromptLink}>Set Up Bank</Text>
-                                        </TouchableOpacity>
-                                    )}
+                                    <TouchableOpacity onPress={() => router.push("/(root)/(tabs)/profile")}>
+                                        <Text style={styles.setupPromptLink}>Complete Profile</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={() => router.push("/(root)/(tabs)/wallet")}>
+                                        <Text style={styles.setupPromptLink}>Set Up Bank</Text>
+                                    </TouchableOpacity>
                                 </View>
                             </View>
                         )}
