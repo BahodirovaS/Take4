@@ -1,15 +1,6 @@
 import * as Linking from "expo-linking";
 import * as SecureStore from "expo-secure-store";
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  addDoc,
-  updateDoc,
-  doc,
-  limit,
-} from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, updateDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { router } from "expo-router";
 
@@ -17,6 +8,9 @@ export const tokenCache = {
   async getToken(key: string) {
     try {
       const item = await SecureStore.getItemAsync(key);
+      if (item) {
+      } else {
+      }
       return item;
     } catch (error) {
       console.error("SecureStore get item error: ", error);
@@ -27,7 +21,7 @@ export const tokenCache = {
   async saveToken(key: string, value: string) {
     try {
       return SecureStore.setItemAsync(key, value);
-    } catch {
+    } catch (err) {
       return;
     }
   },
@@ -35,103 +29,76 @@ export const tokenCache = {
 
 export const googleOAuth = async (startOAuthFlow: any) => {
   try {
-    const { createdSessionId, setActive, signUp, signIn } = await startOAuthFlow({
+    const { createdSessionId, setActive, signUp } = await startOAuthFlow({
       redirectUrl: Linking.createURL("/(root)/(tabs)/home"),
     });
 
-    if (!createdSessionId || !setActive) {
-      return { success: false, message: "An error occurred while signing in with Google" };
-    }
+    if (createdSessionId) {
+      if (setActive) {
+        await setActive({ session: createdSessionId });
 
-    await setActive({ session: createdSessionId });
+        const userEmail = signUp.emailAddress;
 
-    const clerkId =
-      signUp?.createdUserId ||
-      signIn?.createdUserId ||
-      signIn?.userId ||
-      null;
+        const driversRef = collection(db, "drivers");
+        const q = query(driversRef, where("email", "==", userEmail));
+        const querySnapshot = await getDocs(q);
+        
+        const driverExists = !querySnapshot.empty;
+        const isNewDriver = !driverExists;
 
-    const email =
-      signUp?.emailAddress ||
-      signIn?.emailAddress ||
-      "";
+        if (signUp.createdUserId) {
+          if (querySnapshot.docs.length > 0) {
+            const driverDocId = querySnapshot.docs[0].id;
+            await updateDoc(doc(db, "drivers", driverDocId), {
+              clerkId: signUp.createdUserId,
+              firstName: signUp.firstName || "",
+              lastName: signUp.lastName || "",
+              updatedAt: new Date()
+            });
+          } else {
+            await addDoc(collection(db, "drivers"), {
+              firstName: signUp.firstName || "",
+              lastName: signUp.lastName || "",
+              email: signUp.emailAddress,
+              clerkId: signUp.createdUserId,
+              phoneNumber: "",
+              address: "",
+              dob: "",
+              licence: "",
+              vMake: "",
+              vPlate: "",
+              vInsurance: "",
+              pets: false,
+              carSeats: 4,
+              status: false,
+              createdAt: new Date()
+            });
+            
+            await addDoc(collection(db, "users"), {
+              firstName: signUp.firstName || "",
+              lastName: signUp.lastName || "",
+              email: signUp.emailAddress,
+              clerkId: signUp.createdUserId,
+              isDriver: true,
+              createdAt: new Date()
+            });
+          }
+        }
+        
+        router.push("/(root)/(tabs)/home");
 
-    const firstName = signUp?.firstName || "";
-    const lastName = signUp?.lastName || "";
-
-    if (!clerkId) {
-      return { success: false, message: "Missing Clerk user id" };
-    }
-    if (!email) {
-      return { success: false, message: "Google sign-in did not return an email" };
-    }
-
-    
-    const usersRef = collection(db, "users");
-    const usersQ = query(usersRef, where("email", "==", email), limit(1));
-    const usersSnap = await getDocs(usersQ);
-
-    if (!usersSnap.empty) {
-      
-      const userDoc = usersSnap.docs[0];
-      const userData = userDoc.data();
-      const isDriver = !!userData.isDriver;
-
-      await updateDoc(doc(db, "users", userDoc.id), {
-        clerkId,
-        updatedAt: new Date(),
-      });
-
-      const roleCollection = isDriver ? "drivers" : "passengers";
-      const roleRef = collection(db, roleCollection);
-      const roleQ = query(roleRef, where("email", "==", email), limit(1));
-      const roleSnap = await getDocs(roleQ);
-
-      if (!roleSnap.empty) {
-        await updateDoc(doc(db, roleCollection, roleSnap.docs[0].id), {
-          clerkId,
-          updatedAt: new Date(),
-        });
+        return {
+          success: true,
+          code: "success",
+          message: "You have successfully signed in with Google",
+        };
       }
-
-      router.replace("/(root)/(tabs)/home");
-      return { success: true, code: "success", message: "Signed in with Google" };
     }
 
-    
-    await addDoc(collection(db, "drivers"), {
-      firstName,
-      lastName,
-      email,
-      clerkId,
-      phoneNumber: "",
-      address: "",
-      dob: "",
-      licence: "",
-      vMake: "",
-      vPlate: "",
-      vInsurance: "",
-      pets: false,
-      carSeats: 4,
-      carColor: "",               
-      status: false,
-      createdAt: new Date(),
-      stripe_connect_account_id: null,
-      onboarding_completed: false,
-    });
-
-    await addDoc(collection(db, "users"), {
-      firstName,
-      lastName,
-      email,
-      clerkId,
-      isDriver: true,
-      authorize: "google",         
-      createdAt: new Date(),
-    });
-
-    router.replace("/(root)/(tabs)/home");
-    return { success: true, code: "success", message: "Signed in with Google" };
+    return {
+      success: false,
+      message: "An error occurred while signing in with Google",
+    };
   } catch (err: any) {
     console.error(err);
     return {

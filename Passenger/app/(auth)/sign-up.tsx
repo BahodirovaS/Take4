@@ -80,7 +80,6 @@ const SignUp = () => {
                         email: form.email,
                         clerkId: completeSignUp.createdUserId,
                         isDriver: false, // This is a regular user, not a driver
-                        authorize: "password",
                         createdAt: new Date()
                     });
 

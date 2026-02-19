@@ -102,22 +102,28 @@ export const fetchPassengerInfo = async (userId: string): Promise<PassengerInfo 
 
     if (!passengersSnapshot.empty) {
       const passengerDoc = passengersSnapshot.docs[0];
-      const data = passengerDoc.data();
+      const data = passengerDoc.data() as any;
+
+      const photoUrl =
+        data.profilePhotoBase64
+          ? `data:image/jpeg;base64,${data.profilePhotoBase64}`
+          : data.photoUrl || undefined;
+
       return {
         id: userId,
         firstName: data.firstName || "Unknown",
         lastName: data.lastName || "",
-        photoUrl: data.photoUrl,
-        phone: data.phoneNumber
-      };
-    } else {
-      return {
-        id: userId,
-        firstName: "Passenger",
-        lastName: "",
-        phone: "",
+        photoUrl,
+        phone: data.phoneNumber || data.phone || "",
       };
     }
+
+    return {
+      id: userId,
+      firstName: "Passenger",
+      lastName: "",
+      phone: "",
+    };
   } catch (error) {
     console.error("Error fetching passenger info:", error);
     return {
@@ -128,6 +134,7 @@ export const fetchPassengerInfo = async (userId: string): Promise<PassengerInfo 
     };
   }
 };
+
 
 /**
 * Sets up a subscription to ride details and returns the unsubscribe function
@@ -759,39 +766,32 @@ export const saveDriverProfile = async (
   error: Error | null;
 }> => {
   try {
+    const cleaned = Object.fromEntries(
+      Object.entries(driverData).filter(([, v]) => v !== undefined)
+    ) as Partial<DriverProfileForm>;
+
     const formattedDriverData = {
-      ...driverData,
+      ...cleaned,
       clerkId: userId,
       updatedAt: new Date(),
     };
 
     if (driverDocId) {
       await updateDoc(doc(db, "drivers", driverDocId), formattedDriverData);
-      return {
-        success: true,
-        newDocId: driverDocId,
-        error: null
-      };
+      return { success: true, newDocId: driverDocId, error: null };
     } else {
       const docRef = await addDoc(collection(db, "drivers"), {
         ...formattedDriverData,
-        createdAt: new Date()
+        createdAt: new Date(),
       });
-      return {
-        success: true,
-        newDocId: docRef.id,
-        error: null
-      };
+      return { success: true, newDocId: docRef.id, error: null };
     }
   } catch (error) {
     console.error("Error saving driver profile:", error);
-    return {
-      success: false,
-      newDocId: null,
-      error: error as Error
-    };
+    return { success: false, newDocId: null, error: error as Error };
   }
 };
+
 
 /**
 * Update driver status during sign out

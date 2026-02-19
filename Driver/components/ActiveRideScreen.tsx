@@ -8,6 +8,7 @@ import {
   Linking,
   Platform,
   SafeAreaView,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Ride, PassengerInfo, ActiveRideProps } from '@/types/type';
@@ -367,12 +368,24 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId }) => {
 
       <View style={styles.rideInfoContainer}>
         <View style={styles.headerContainer}>
-          <Text style={styles.stageText}>
-            {rideStage === 'to_pickup'
-              ? `Heading to pickup ${passengerInfo?.firstName || 'passenger'}`
-              : `Taking ${passengerInfo?.firstName || 'passenger'} to destination`}
-          </Text>
+          <View style={styles.passengerRow}>
+            <Image
+              source={
+                passengerInfo?.photoUrl
+                  ? { uri: passengerInfo.photoUrl }
+                  : require("@/assets/icons/person.png")
+              }
+              style={styles.passengerImage}
+            />
+
+            <Text style={styles.stageText}>
+              {rideStage === 'to_pickup'
+                ? `Heading to pickup ${passengerInfo?.firstName || 'passenger'}`
+                : `Taking ${passengerInfo?.firstName || 'passenger'} to destination`}
+            </Text>
+          </View>
         </View>
+
 
         <Text style={styles.addressText}>
           {rideStage === 'to_pickup' ? ride.origin_address : ride.destination_address}
@@ -497,6 +510,18 @@ const styles = StyleSheet.create({
   headerContainer: {
     marginBottom: 8,
   },
+  passengerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  passengerImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    marginRight: 12,
+  },
+
   rideInfoContainer: {
     position: 'absolute',
     bottom: 0,

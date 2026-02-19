@@ -24,289 +24,319 @@ import {
 import { DriverProfileForm } from "@/types/type"
 
 const DriverInfo = () => {
-    const router = useRouter();
-    const { user } = useUser();
-    const { signOut } = useAuth();
+  const router = useRouter();
+  const { user } = useUser();
+  const { signOut } = useAuth();
 
-    const [form, setForm] = useState<DriverProfileForm>({
-        firstName: "",
-        lastName: "",
-        email: "",
-        phoneNumber: "",
-        address: "",
-        dob: "",
-        licence: "",
-        vMake: "",
-        vPlate: "",
-        vInsurance: "",
-        pets: false,
-        carSeats: 4,
-        carColor: "",
-        status: false,
-        profilePhotoBase64: "",
-    });
+  const [form, setForm] = useState<DriverProfileForm>({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phoneNumber: "",
+    address: "",
+    dob: "",
+    licence: "",
+    vMake: "",
+    vPlate: "",
+    vInsurance: "",
+    pets: false,
+    carSeats: 4,
+    carColor: "",
+    status: false,
+    profilePhotoBase64: "",
+    profilePhotoUrl: "", 
+  });
 
-    const [driverDocId, setDriverDocId] = useState<string | null>(null);
-    const [uploading, setUploading] = useState(false);
+  const [driverDocId, setDriverDocId] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
-    useEffect(() => {
-        const loadDriverInfo = async () => {
-            if (!user) return;
+  useEffect(() => {
+    const loadDriverInfo = async () => {
+      if (!user) return;
 
-            setForm((prevForm) => ({
-                ...prevForm,
-                firstName: user?.firstName || "",
-                lastName: user?.lastName || "",
-                email: user?.primaryEmailAddress?.emailAddress || "",
-            }));
+      setForm((prevForm) => ({
+        ...prevForm,
+        firstName: user?.firstName || "",
+        lastName: user?.lastName || "",
+        email: user?.primaryEmailAddress?.emailAddress || "",
+      }));
 
-            const { driverData, driverDocId: docId, error } = await fetchDriverInfo(user.id);
+      const { driverData, driverDocId: docId, error } = await fetchDriverInfo(user.id);
 
-            if (error) {
-                Alert.alert("Error", "Failed to load driver information.");
-                return;
-            }
+      if (error) {
+        Alert.alert("Error", "Failed to load driver information.");
+        return;
+      }
 
-            if (driverData) {
-                setDriverDocId(docId);
+      if (driverData) {
+        setDriverDocId(docId);
 
-                setForm({
-                    ...driverData,
-                    firstName: user?.firstName || driverData.firstName || "",
-                    lastName: user?.lastName || driverData.lastName || "",
-                    email: user?.primaryEmailAddress?.emailAddress || "",
-                });
-            }
-        };
-
-        loadDriverInfo();
-    }, [user]);
-
-    const handleSignOut = async () => {
-        try {
-            await updateDriverStatusOnSignOut(driverDocId);
-            await signOut();
-            router.replace("/(auth)/sign-in");
-        } catch (error) {
-            console.error('Error during sign out:', error);
-        }
+        setForm({
+          ...driverData,
+          firstName: user?.firstName || driverData.firstName || "",
+          lastName: user?.lastName || driverData.lastName || "",
+          email: user?.primaryEmailAddress?.emailAddress || "",
+          profilePhotoUrl: driverData.profilePhotoUrl || "", 
+        });
+      }
     };
 
-    const pickImage = async () => {
-        setUploading(true);
-        const { base64Image, error } = await takeProfilePhoto();
+    loadDriverInfo();
+  }, [user]);
 
-        if (base64Image) {
-            setForm(prevForm => ({
-                ...prevForm,
-                profilePhotoBase64: base64Image
-            }));
-        } else if (error && error.message !== 'Permission denied') {
-            Alert.alert("Error", "Failed to select image");
-        }
+  
+  useEffect(() => {
+    const saveClerkPhotoUrlIfMissing = async () => {
+      if (!user?.id) return;
+      if (!driverDocId) return;
 
-        setUploading(false);
+      
+      if (form.profilePhotoBase64) return;
+
+      
+      if (form.profilePhotoUrl) return;
+
+      const clerkUrl = user?.externalAccounts?.[0]?.imageUrl ?? user?.imageUrl ?? "";
+      if (!clerkUrl) return;
+
+      const { success } = await saveDriverProfile(
+        user.id,
+        { ...form, profilePhotoUrl: clerkUrl },
+        driverDocId
+      );
+
+      if (success) {
+        setForm((prev) => ({ ...prev, profilePhotoUrl: clerkUrl }));
+      }
     };
 
-    const onSubmit = async () => {
-        if (!user) {
-            return Alert.alert("Error", "User not found. Please log in again.");
-        }
+    saveClerkPhotoUrlIfMissing().catch(() => {});
+  }, [user?.id, driverDocId, form.profilePhotoBase64, form.profilePhotoUrl]);
 
-        const {
-            firstName, lastName, email, phoneNumber, address, dob, licence,
-            vMake, vPlate, carSeats, carColor
-        } = form;
+  const handleSignOut = async () => {
+    try {
+      await updateDriverStatusOnSignOut(driverDocId);
+      await signOut();
+      router.replace("/(auth)/sign-in");
+    } catch (error) {
+      console.error("Error during sign out:", error);
+    }
+  };
 
-        if (
-            !firstName ||
-            !lastName ||
-            !email ||
-            !phoneNumber ||
-            !address ||
-            !dob ||
-            !licence ||
-            !vMake ||
-            !vPlate ||
-            // !vInsurance ||
-            carSeats === null ||
-            carSeats === undefined ||
-            !carColor
-        ) {
-            return Alert.alert("Error", "Please fill out all required fields.");
-        }
+  const pickImage = async () => {
+    setUploading(true);
+    const { base64Image, error } = await takeProfilePhoto();
 
-        const { success, newDocId, error } = await saveDriverProfile(user.id, form, driverDocId);
+    if (base64Image) {
+      setForm((prevForm) => ({
+        ...prevForm,
+        profilePhotoBase64: base64Image,
+        profilePhotoUrl: "", 
+      }));
+    } else if (error && error.message !== "Permission denied") {
+      Alert.alert("Error", "Failed to select image");
+    }
 
-        if (success) {
-            if (newDocId && !driverDocId) {
-                setDriverDocId(newDocId);
-            }
-            Alert.alert("Success", "Information updated successfully.");
-        } else {
-            Alert.alert("Error", "An error occurred. Please try again.");
-        }
-    };
+    setUploading(false);
+  };
 
-    const formatPhoneNumber = (value: string) => {
-        let formattedValue = value.replace(/\D/g, '');
-        if (formattedValue.length > 3 && formattedValue.length <= 6) {
-            formattedValue = `${formattedValue.slice(0, 3)}-${formattedValue.slice(3)}`;
-        } else if (formattedValue.length > 6) {
-            formattedValue = `${formattedValue.slice(0, 3)}-${formattedValue.slice(3, 6)}-${formattedValue.slice(6, 10)}`;
-        }
-        return formattedValue;
-    };
+  const onSubmit = async () => {
+    if (!user) {
+      return Alert.alert("Error", "User not found. Please log in again.");
+    }
 
-    const carSeatOptions = [
-        { label: "Standard - 4 seats", value: 4 },
-        { label: "Comfort - 6 seats", value: 6 },
-        { label: "XL - 7 seats", value: 7 }
-    ];
+    const {
+      firstName,
+      lastName,
+      email,
+      phoneNumber,
+      address,
+      dob,
+      licence,
+      vMake,
+      vPlate,
+      carSeats,
+      carColor,
+    } = form;
 
-    const profileImageSource = form.profilePhotoBase64
-        ? { uri: `data:image/jpeg;base64,${form.profilePhotoBase64}` }
-        : { uri: user?.externalAccounts[0]?.imageUrl ?? user?.imageUrl };
+    if (
+      !firstName ||
+      !lastName ||
+      !email ||
+      !phoneNumber ||
+      !address ||
+      !dob ||
+      !licence ||
+      !vMake ||
+      !vPlate ||
+      carSeats === null ||
+      carSeats === undefined ||
+      !carColor
+    ) {
+      return Alert.alert("Error", "Please fill out all required fields.");
+    }
 
-    return (
-        <SafeAreaView style={styles.safeArea}>
-            <KeyboardAvoidingView
-                style={styles.keyboardAvoiding}
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
-            >
-                <ScrollView
-                    style={styles.scrollView}
-                    contentContainerStyle={styles.scrollViewContent}
-                >
+    const { success, newDocId } = await saveDriverProfile(user.id, form, driverDocId);
+
+    if (success) {
+      if (newDocId && !driverDocId) setDriverDocId(newDocId);
+      Alert.alert("Success", "Information updated successfully.");
+    } else {
+      Alert.alert("Error", "An error occurred. Please try again.");
+    }
+  };
+
+  const formatPhoneNumber = (value: string) => {
+    let formattedValue = value.replace(/\D/g, "");
+    if (formattedValue.length > 3 && formattedValue.length <= 6) {
+      formattedValue = `${formattedValue.slice(0, 3)}-${formattedValue.slice(3)}`;
+    } else if (formattedValue.length > 6) {
+      formattedValue = `${formattedValue.slice(0, 3)}-${formattedValue.slice(3, 6)}-${formattedValue.slice(6, 10)}`;
+    }
+    return formattedValue;
+  };
+
+  const carSeatOptions = [
+    { label: "Standard - 4 seats", value: 4 },
+    { label: "Comfort - 6 seats", value: 6 },
+    { label: "XL - 7 seats", value: 7 },
+  ];
+
+  const profileImageSource =
+    form.profilePhotoBase64
+      ? { uri: `data:image/jpeg;base64,${form.profilePhotoBase64}` }
+      : form.profilePhotoUrl
+        ? { uri: form.profilePhotoUrl }
+        : { uri: user?.externalAccounts?.[0]?.imageUrl ?? user?.imageUrl };
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoiding}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollViewContent}>
+          <Text style={styles.title}>My Cabbage Profile</Text>
+
+          <View style={styles.profileImageContainer}>
+            <TouchableOpacity onPress={pickImage} disabled={uploading}>
+              <Image source={profileImageSource} style={styles.profileImage} />
+              <View style={styles.editIconContainer}>
+                <Text style={styles.editIcon}>📷</Text>
+              </View>
+              {uploading && (
+                <View style={styles.uploadingOverlay}>
+                  <Text style={styles.uploadingText}>Processing...</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            <Text style={styles.tapToChangeText}>Tap to take a photo</Text>
+          </View>
+
+          <View style={styles.infoContainer}>
+            <View style={styles.infoContent}>
+              <InputField label="First Name" value={form.firstName} editable={false} />
+              <InputField label="Last Name" value={form.lastName} editable={false} />
+              <InputField label="Email" value={form.email} editable={false} />
+
+              <InputField
+                label="Phone Number"
+                placeholder="Format 123-456-7890"
+                value={form.phoneNumber}
+                onChangeText={(value) =>
+                  setForm({ ...form, phoneNumber: formatPhoneNumber(value) })
+                }
+              />
+
+              <InputField
+                label="Address"
+                placeholder="Enter your address"
+                value={form.address}
+                onChangeText={(value) => setForm({ ...form, address: value })}
+              />
+
+              <InputField
+                label="Date of Birth"
+                placeholder="YYYY-MM-DD"
+                value={form.dob}
+                onChangeText={(value) => setForm({ ...form, dob: value })}
+              />
+
+              <InputField
+                label="Driver's License"
+                placeholder="Enter license number"
+                value={form.licence}
+                onChangeText={(value) => setForm({ ...form, licence: value })}
+              />
+
+              <InputField
+                label="Vehicle Make and Model"
+                placeholder="Eg Toyota Rav4"
+                value={form.vMake}
+                onChangeText={(value) => setForm({ ...form, vMake: value })}
+              />
+
+              <InputField
+                label="Vehicle Color"
+                placeholder="Eg white"
+                value={form.carColor}
+                onChangeText={(value) => setForm({ ...form, carColor: value })}
+              />
+
+              <InputField
+                label="Vehicle Plate"
+                placeholder="Enter license plate number"
+                value={form.vPlate}
+                onChangeText={(value) => setForm({ ...form, vPlate: value })}
+              />
+
+              <Text style={styles.carSeatsTitle}>Car Seats</Text>
+              <View style={styles.carSeatOptions}>
+                {carSeatOptions.map((option) => (
+                  <TouchableOpacity
+                    key={option.value}
+                    onPress={() => setForm({ ...form, carSeats: option.value })}
+                    style={[
+                      styles.carSeatOption,
+                      form.carSeats === option.value ? styles.carSeatSelected : styles.carSeatUnselected,
+                    ]}
+                  >
                     <Text
-                        style={styles.title}>
-                        My Cabbage Profile
+                      style={[
+                        styles.carSeatText,
+                        form.carSeats === option.value ? styles.carSeatTextSelected : styles.carSeatTextUnselected,
+                      ]}
+                    >
+                      {option.label}
                     </Text>
-                    <View style={styles.profileImageContainer}>
-                        <TouchableOpacity onPress={pickImage} disabled={uploading}>
-                            <Image
-                                source={profileImageSource}
-                                style={styles.profileImage}
-                            />
-                            <View style={styles.editIconContainer}>
-                                <Text style={styles.editIcon}>📷</Text>
-                            </View>
-                            {uploading && (
-                                <View style={styles.uploadingOverlay}>
-                                    <Text style={styles.uploadingText}>Processing...</Text>
-                                </View>
-                            )}
-                        </TouchableOpacity>
-                        <Text style={styles.tapToChangeText}>Tap to take a photo</Text>
-                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
 
-                    <View style={styles.infoContainer}>
-                        <View style={styles.infoContent}>
-                            <InputField
-                                label="First Name"
-                                value={form.firstName}
-                                onChangeText={(value) => setForm({ ...form, firstName: value })}
-                                editable={false}
-                            />
-                            <InputField
-                                label="Last Name"
-                                value={form.lastName}
-                                onChangeText={(value) => setForm({ ...form, lastName: value })}
-                                editable={false}
-                            />
-                            <InputField
-                                label="Email"
-                                value={form.email}
-                                onChangeText={(value) => setForm({ ...form, email: value })}
-                                editable={false}
-                            />
-                            <InputField
-                                label="Phone Number"
-                                placeholder="Format 123-456-7890"
-                                value={form.phoneNumber}
-                                onChangeText={(value) => setForm({
-                                    ...form,
-                                    phoneNumber: formatPhoneNumber(value)
-                                })}
-                            />
-                            <InputField
-                                label="Address"
-                                placeholder="Enter your address"
-                                value={form.address}
-                                onChangeText={(value) => setForm({ ...form, address: value })}
-                            />
-                            <InputField
-                                label="Date of Birth"
-                                placeholder="YYYY-MM-DD"
-                                value={form.dob}
-                                onChangeText={(value) => setForm({ ...form, dob: value })}
-                            />
-                            <InputField
-                                label="Driver's License"
-                                placeholder="Enter license number"
-                                value={form.licence}
-                                onChangeText={(value) => setForm({ ...form, licence: value })}
-                            />
-                            <InputField
-                                label="Vehicle Make and Model"
-                                placeholder="Eg Toyota Rav4"
-                                value={form.vMake}
-                                onChangeText={(value) => setForm({ ...form, vMake: value })}
-                            />
-                            <InputField
-                                label="Vehicle Color"
-                                placeholder="Eg white"
-                                value={form.carColor}
-                                onChangeText={(value) => setForm({ ...form, carColor: value })}
-                            />
-                            <InputField
-                                label="Vehicle Plate"
-                                placeholder="Enter license plate number"
-                                value={form.vPlate}
-                                onChangeText={(value) => setForm({ ...form, vPlate: value })}
-                            />
-                            {/* <InputField
-                                label="Insurance Number"
-                                placeholder="Enter insurance number"
-                                value={form.vInsurance}
-                                onChangeText={(value) => setForm({ ...form, vInsurance: value })}
-                            /> */}
-                            <Text style={styles.carSeatsTitle}>Car Seats</Text>
-                            <View style={styles.carSeatOptions}>
-                                {carSeatOptions.map((option) => (
-                                    <TouchableOpacity
-                                        key={option.value}
-                                        onPress={() => setForm({ ...form, carSeats: option.value })}
-                                        style={[styles.carSeatOption, form.carSeats === option.value ? styles.carSeatSelected : styles.carSeatUnselected]}
-                                    >
-                                        <Text style={[styles.carSeatText, form.carSeats === option.value ? styles.carSeatTextSelected : styles.carSeatTextUnselected]}>
-                                            {option.label}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
-                            <View style={styles.petsContainer}>
-                                <Text style={styles.petsLabel}>Will you allow pets?</Text>
-                                <CustomButton
-                                    title={form.pets ? 'Yes' : 'No'}
-                                    onPress={() => setForm({ ...form, pets: !form.pets })}
-                                    bgVariant={form.pets ? "primary" : "danger"}
-                                    style={styles.petsButton}
-                                />
-                            </View>
-                            <CustomButton title="Update Profile" onPress={onSubmit} style={styles.updateButton} />
-                        </View>
-                    </View>
-                    <CustomButton
-                        title="Log Out"
-                        onPress={handleSignOut}
-                        bgVariant="danger"
-                        style={styles.signOutButton}
-                    />
-                </ScrollView>
-            </KeyboardAvoidingView>
-        </SafeAreaView>
-    );
+              <View style={styles.petsContainer}>
+                <Text style={styles.petsLabel}>Will you allow pets?</Text>
+                <CustomButton
+                  title={form.pets ? "Yes" : "No"}
+                  onPress={() => setForm({ ...form, pets: !form.pets })}
+                  bgVariant={form.pets ? "primary" : "danger"}
+                  style={styles.petsButton}
+                />
+              </View>
+
+              <CustomButton title="Update Profile" onPress={onSubmit} style={styles.updateButton} />
+            </View>
+          </View>
+
+          <CustomButton
+            title="Log Out"
+            onPress={handleSignOut}
+            bgVariant="danger"
+            style={styles.signOutButton}
+          />
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
 };
 
 export default DriverInfo;

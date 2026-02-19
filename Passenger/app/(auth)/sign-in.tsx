@@ -7,8 +7,6 @@ import CustomButton from "@/components/CustomButton";
 import InputField from "@/components/InputField";
 import OAuth from "@/components/OAuth";
 import { icons, images } from "@/constants";
-import { collection, getDocs, limit, query, where } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 
 const SignIn = () => {
     const { signIn, setActive, isLoaded } = useSignIn();
@@ -18,49 +16,29 @@ const SignIn = () => {
         password: "",
     });
 
-   const onSignInPress = useCallback(async () => {
-  if (!isLoaded) return;
+    const onSignInPress = useCallback(async () => {
+        if (!isLoaded) return;
 
-  try {
-    const usersQ = query(
-      collection(db, "users"),
-      where("email", "==", form.email),
-      limit(1)
-    );
+        try {
+            const signInAttempt = await signIn.create({
+                identifier: form.email,
+                password: form.password,
+            });
 
-    const snap = await getDocs(usersQ);
-
-    if (!snap.empty) {
-      const userData = snap.docs[0].data();
-      if (userData.authorize === "google") {
-        Alert.alert(
-          "Use Google Sign-In",
-          "This account was created with Google. Please sign in with Google."
-        );
-        return;
-      }
-    }
-
-    const signInAttempt = await signIn.create({
-      identifier: form.email,
-      password: form.password,
-    });
-
-    if (signInAttempt.status === "complete") {
-      await setActive({ session: signInAttempt.createdSessionId });
-      router.replace("/(root)/(tabs)/home");
-    } else {
-      Alert.alert("Error", "Log in failed. Please try again.");
-    }
-  } catch (error) {
-    console.error(error);
-    if (error instanceof Error) {
-      Alert.alert("Error", error.message);
-    } else {
-      Alert.alert("Error", "An unknown error occurred.");
-    }
-  }
-}, [isLoaded, form.email, form.password]);
+            if (signInAttempt.status === "complete") {
+                await setActive({ session: signInAttempt.createdSessionId });
+                router.replace("/(root)/(tabs)/home");
+            } else {
+                Alert.alert("Error", "Log in failed. Please try again.");
+            }
+        } catch (error) {
+            if (error instanceof Error) {
+                Alert.alert("Error", error.message);
+            } else {
+                Alert.alert("Error", "An unknown error occurred.");
+            }
+        }
+    }, [isLoaded, form]);
 
     return (
         <SafeAreaView style={styles.safeArea}>

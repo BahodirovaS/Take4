@@ -268,12 +268,16 @@ const Home = () => {
                                     </Text>
                                 </View>
                                 <View style={styles.setupPromptActions}>
-                                    <TouchableOpacity onPress={() => router.push("/(root)/(tabs)/profile")}>
-                                        <Text style={styles.setupPromptLink}>Complete Profile</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity onPress={() => router.push("/(root)/(tabs)/wallet")}>
-                                        <Text style={styles.setupPromptLink}>Set Up Bank</Text>
-                                    </TouchableOpacity>
+                                    {!hasDriverProfile && (
+                                        <TouchableOpacity onPress={() => router.push("/(root)/(tabs)/profile")}>
+                                            <Text style={styles.setupPromptLink}>Complete Profile</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                    {!onboardingCompleted && (
+                                        <TouchableOpacity onPress={() => router.push("/(root)/(tabs)/wallet")}>
+                                            <Text style={styles.setupPromptLink}>Set Up Bank</Text>
+                                        </TouchableOpacity>
+                                    )}
                                 </View>
                             </View>
                         )}

@@ -50,6 +50,7 @@ declare interface DriverProfileForm {
   carColor: string;
   status: boolean;
   profilePhotoBase64: string;
+  profilePhotoUrl?: string;
 }
 
 declare interface PassengerInfo {
