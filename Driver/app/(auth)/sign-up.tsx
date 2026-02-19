@@ -99,7 +99,7 @@ const SignUp = () => {
                         throw new Error("Failed to get user ID from signup");
                     }
 
-                    // Create driver record in Firestore
+                    
                     await addDoc(collection(db, "drivers"), {
                         firstName: form.firstName,
                         lastName: form.lastName,
@@ -116,22 +116,23 @@ const SignUp = () => {
                         carSeats: 4,
                         status: false,
                         createdAt: new Date(),
-                        // Stripe Connect fields
+                        
                         stripe_connect_account_id: null,
                         onboarding_completed: false,
                     });
 
-                    // Create user record for reference
+                    
                     await addDoc(collection(db, "users"), {
                         firstName: form.firstName,
                         lastName: form.lastName,
                         email: form.email,
                         clerkId: userId,
                         isDriver: true,
+                        authorize: "password",
                         createdAt: new Date()
                     });
 
-                    // Create Stripe Connect onboarding link
+                    
                     const onboardingUrl = await createStripeOnboardingLink(userId);
                     
                     if (onboardingUrl) {

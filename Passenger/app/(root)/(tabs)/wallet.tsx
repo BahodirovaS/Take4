@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
   addButton: {
     width: "70%",
     alignSelf: "center",
-    marginTop: 10,
+    marginTop: 30,
     backgroundColor: "#289dd2",
   },
 
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingTop: 20,
+    paddingTop: 0,
   },
   emptyText: {
     fontSize: 18,

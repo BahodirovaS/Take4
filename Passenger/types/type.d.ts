@@ -46,6 +46,7 @@ declare interface ProfileForm {
   phoneNumber: string;
   profilePhotoBase64: string;
   stripeCustomerId?: string;
+  profilePhotoUrl?: string;
 }
 
 declare interface Message {

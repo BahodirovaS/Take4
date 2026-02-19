@@ -48,6 +48,10 @@ const ActiveRide = () => {
 
   const [didPromptConfirm, setDidPromptConfirm] = useState(false);
 
+  const [driverPhotoBase64, setDriverPhotoBase64] = useState<string>("");
+  const [driverPhotoUrl, setDriverPhotoUrl] = useState<string>("");
+
+
   useEffect(() => {
     if (paramRideId) {
       setRideId(paramRideId as string);
@@ -88,7 +92,7 @@ const ActiveRide = () => {
           setDestination({ latitude: Number(d.destination_latitude), longitude: Number(d.destination_longitude) });
         }
         if (!originAddress && d?.origin_address) setOriginAddress(String(d.origin_address));
-      } catch {}
+      } catch { }
     })();
   }, [rideId]);
 
@@ -175,7 +179,7 @@ const ActiveRide = () => {
       (completedRideId: string) => {
         router.replace({ pathname: "/(root)/ride-completed", params: { rideId: completedRideId } });
       },
-      () => {}
+      () => { }
     );
 
     return () => unsubscribe();
@@ -186,14 +190,15 @@ const ActiveRide = () => {
 
     fetchDriverDetails(
       driverId,
-      (name: string | null) => {
-        if (name) setDriverName(name);
+      ({ driverName, profilePhotoBase64, profilePhotoUrl }) => {
+        if (driverName) setDriverName(driverName);
+        if (profilePhotoBase64) setDriverPhotoBase64(profilePhotoBase64);
+        if (profilePhotoUrl) setDriverPhotoUrl(profilePhotoUrl);
       },
-      (error: any) => {
-        console.error("Error fetching driver details:", error);
-      }
+      (error: any) => console.error("Error fetching driver details:", error)
     );
   }, [driverId]);
+
 
   useEffect(() => {
     if (!apiKey || !pickup || !driverLocation) return;
@@ -228,8 +233,8 @@ const ActiveRide = () => {
       return driverEtaMin != null
         ? `Arriving in ${driverEtaMin} min.`
         : driverName
-        ? `${driverName} is on the way!`
-        : "Your driver is on the way!";
+          ? `${driverName} is on the way!`
+          : "Your driver is on the way!";
     } else if (rideStatus === "arrived_at_pickup") {
       return "Your driver is here!";
     } else if (rideStatus === "in_progress") {
@@ -311,14 +316,18 @@ const ActiveRide = () => {
         )}
 
         {["accepted", "arrived_at_pickup", "in_progress", "awaiting_passenger_confirm"].includes(rideStatus) &&
-        driverId &&
-        hasDriverFix ? (
+          driverId &&
+          hasDriverFix ? (
           <LiveDriver
-            driverId={driverId}
-            rideId={rideId}
-            driverLocation={driverLocation!}
-            rideStatus={rideStatus}
-          />
+  driverId={driverId}
+  rideId={rideId}
+  driverLocation={driverLocation!}
+  rideStatus={rideStatus}
+  driverName={driverName}
+  driverPhotoBase64={driverPhotoBase64}
+  driverPhotoUrl={driverPhotoUrl}
+/>
+
         ) : rideStatus === "requested" ? (
           <RequestLoading rideId={rideId} />
         ) : (

@@ -115,7 +115,7 @@ const DriverInfo = () => {
 
         const {
             firstName, lastName, email, phoneNumber, address, dob, licence,
-            vMake, vPlate, vInsurance, carSeats, carColor
+            vMake, vPlate, carSeats, carColor
         } = form;
 
         if (
@@ -128,7 +128,7 @@ const DriverInfo = () => {
             !licence ||
             !vMake ||
             !vPlate ||
-            !vInsurance ||
+            // !vInsurance ||
             carSeats === null ||
             carSeats === undefined ||
             !carColor
@@ -248,14 +248,14 @@ const DriverInfo = () => {
                                 onChangeText={(value) => setForm({ ...form, licence: value })}
                             />
                             <InputField
-                                label="Vehicle Make"
-                                placeholder="Enter vehicle make"
+                                label="Vehicle Make and Model"
+                                placeholder="Eg Toyota Rav4"
                                 value={form.vMake}
                                 onChangeText={(value) => setForm({ ...form, vMake: value })}
                             />
                             <InputField
                                 label="Vehicle Color"
-                                placeholder="Enter vehicle color"
+                                placeholder="Eg white"
                                 value={form.carColor}
                                 onChangeText={(value) => setForm({ ...form, carColor: value })}
                             />
@@ -265,12 +265,12 @@ const DriverInfo = () => {
                                 value={form.vPlate}
                                 onChangeText={(value) => setForm({ ...form, vPlate: value })}
                             />
-                            <InputField
+                            {/* <InputField
                                 label="Insurance Number"
                                 placeholder="Enter insurance number"
                                 value={form.vInsurance}
                                 onChangeText={(value) => setForm({ ...form, vInsurance: value })}
-                            />
+                            /> */}
                             <Text style={styles.carSeatsTitle}>Car Seats</Text>
                             <View style={styles.carSeatOptions}>
                                 {carSeatOptions.map((option) => (

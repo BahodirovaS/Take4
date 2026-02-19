@@ -40,6 +40,7 @@
     "expo-blur": "~14.1.5",
     "expo-constants": "~17.1.6",
     "expo-crypto": "~14.1.5",
+    "expo-dev-client": "~5.2.4",
     "expo-font": "~13.3.1",
     "expo-haptics": "~14.1.4",
     "expo-image-picker": "~16.1.4",
@@ -61,7 +62,7 @@
     "react-native-google-places-autocomplete": "^2.5.7",
     "react-native-maps": "1.20.1",
     "react-native-maps-directions": "^1.9.0",
-    "react-native-modal": "^13.0.1",
+    "react-native-modal": "^14.0.0-rc.1",
     "react-native-modal-datetime-picker": "^18.0.0",
     "react-native-ratings": "^8.1.0",
     "react-native-reanimated": "~3.17.4",
@@ -72,8 +73,7 @@
     "react-native-webview": "13.13.5",
     "stripe": "^17.6.0",
     "uuid": "^11.0.5",
-    "zustand": "^5.0.3",
-    "expo-dev-client": "~5.2.4"
+    "zustand": "^5.0.3"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

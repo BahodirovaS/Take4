@@ -312,6 +312,7 @@ export const updatePassengerProfile = async (
   data: Partial<{
     phoneNumber: string;
     profilePhotoBase64: string;
+    profilePhotoUrl: string;
     stripeCustomerId: string;
   }>
 ): Promise<{
@@ -904,13 +905,18 @@ export const formatFarePrice = (priceInCents: number): string => {
  */
 export const fetchDriverDetails = (
   driverId: string,
-  onSuccess: (driverName: string | null) => void,
+  onSuccess: (payload: {
+    driverName: string | null;
+    profilePhotoBase64?: string;
+    profilePhotoUrl?: string;
+  }) => void,
   onError: (error: any) => void
 ): void => {
   if (!driverId) {
-    onSuccess(null);
+    onSuccess({ driverName: null });
     return;
   }
+
   try {
     const fetchData = async () => {
       const driversRef = collection(db, "drivers");
@@ -918,16 +924,24 @@ export const fetchDriverDetails = (
       const querySnapshot = await getDocs(driverQuery);
 
       if (!querySnapshot.empty) {
-        const driverData = querySnapshot.docs[0].data();
-        onSuccess(
-          driverData.firstName || null
-        );
+        const driverData: any = querySnapshot.docs[0].data();
+
+        const driverName =
+          driverData.firstName || driverData.lastName
+            ? `${driverData.firstName || ""} ${driverData.lastName || ""}`.trim()
+            : null;
+
+        onSuccess({
+          driverName,
+          profilePhotoBase64: driverData.profilePhotoBase64 || "",
+          profilePhotoUrl: driverData.profilePhotoUrl || "",
+        });
       } else {
-        onSuccess(null);
+        onSuccess({ driverName: null });
       }
     };
 
-    fetchData().catch(error => {
+    fetchData().catch((error) => {
       console.error("Error fetching driver details:", error);
       onError(error);
     });
@@ -936,6 +950,7 @@ export const fetchDriverDetails = (
     onError(error);
   }
 };
+
 
 
 /**

@@ -37,6 +37,7 @@ const Profile = () => {
         email: "",
         phoneNumber: "",
         profilePhotoBase64: "",
+        profilePhotoUrl: "",
     });
     const [passengerDocId, setPassengerDocId] = useState<string | null>(null);
     const [uploading, setUploading] = useState(false);
@@ -77,6 +78,7 @@ const Profile = () => {
                         email: user?.primaryEmailAddress?.emailAddress || "",
                         phoneNumber: data.phoneNumber,
                         profilePhotoBase64: data.profilePhotoBase64,
+                        profilePhotoUrl: data.profilePhotoUrl || "",
                     });
                 }
             } catch (error) {
@@ -86,6 +88,27 @@ const Profile = () => {
         };
         loadPassengerProfile();
     }, [user]);
+
+    useEffect(() => {
+        const saveClerkPhotoUrlIfMissing = async () => {
+            if (!user) return;
+            if (!passengerDocId) return;
+            if (form.profilePhotoBase64) return;
+            if (form.profilePhotoUrl) return;
+            const clerkPhotoUrl =
+                user?.externalAccounts?.[0]?.imageUrl ?? user?.imageUrl ?? "";
+
+            if (!clerkPhotoUrl) return;
+            const res = await updatePassengerProfile(passengerDocId, user.id, {
+                profilePhotoUrl: clerkPhotoUrl,
+            });
+            if (res?.success) {
+                setForm((prev) => ({ ...prev, profilePhotoUrl: clerkPhotoUrl }));
+            }
+        };
+
+        saveClerkPhotoUrlIfMissing();
+    }, [user?.id, passengerDocId, form.profilePhotoBase64, form.profilePhotoUrl]);
 
 
     const handleSignOut = () => {
@@ -142,9 +165,13 @@ const Profile = () => {
     };
 
 
-    const profileImageSource = form.profilePhotoBase64
-        ? { uri: `data:image/jpeg;base64,${form.profilePhotoBase64}` }
-        : { uri: user?.externalAccounts[0]?.imageUrl ?? user?.imageUrl };
+    const profileImageSource =
+        form.profilePhotoBase64
+            ? { uri: `data:image/jpeg;base64,${form.profilePhotoBase64}` }
+            : form.profilePhotoUrl
+                ? { uri: form.profilePhotoUrl }
+                : { uri: user?.externalAccounts?.[0]?.imageUrl ?? user?.imageUrl };
+
 
     return (
         <SafeAreaView style={styles.container}>
