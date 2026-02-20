@@ -32,7 +32,7 @@ const RideLayout: React.FC<RideLayoutProps> = ({
   const pathname = usePathname();
 
   const defaultSnapPoints = rideStatus === "in_progress" 
-  ? ["15%","45%"]
+  ? ["25%","65%"]
   : ["50%", "80%"]
 
 

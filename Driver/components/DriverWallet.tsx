@@ -83,62 +83,79 @@ const DriverWallet: React.FC = () => {
   const openStripeDashboard = async () => {
     try {
       setOpeningDashboard(true);
-      const resp = await createStripeDashboardLink(userId!, accountId);
-          console.log("createStripeDashboardLink resp:", resp);
+
+      if (!userId) {
+        Alert.alert("Not signed in", "Please sign in again.");
+        return;
+      }
+
+      if (!accountId) {
+        Alert.alert(
+          "Bank setup needed",
+          "Your Stripe account isn’t linked yet. Let’s set up your bank details first.",
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Set Up Now", onPress: openBankingInfo },
+          ]
+        );
+        return;
+      }
+
+      const resp = await createStripeDashboardLink(userId, accountId);
 
       if (resp.success && resp.url) {
         Linking.openURL(resp.url);
       } else {
-        Alert.alert('Error', resp?.error || 'Unable to open Stripe dashboard. Please try again.');
+        Alert.alert("Error", resp?.error || "Unable to open Stripe dashboard.");
       }
     } catch (error) {
-      console.error('Error opening Stripe dashboard:', error);
-      Alert.alert('Error', 'Failed to open dashboard. Please check your connection.');
+      console.error("Error opening Stripe dashboard:", error);
+      Alert.alert("Error", "Failed to open dashboard. Please try again.");
     } finally {
       setOpeningDashboard(false);
     }
   };
 
   const openBankingInfo = async () => {
-  try {
-    // 1) Narrow userId first
-    if (!userId) {
-      Alert.alert('Not signed in', 'Please sign in again.');
-      return;
-    }
+    try {
+      // 1) Narrow userId first
+      if (!userId) {
+        Alert.alert('Not signed in', 'Please sign in again.');
+        return;
+      }
 
-    // 2) Ensure a non-empty email string
-    const emailToUse = (driverEmail && driverEmail.trim()) || 'driver@email.com';
+      // 2) Ensure a non-empty email string
+      const emailToUse = (driverEmail && driverEmail.trim()) || 'driver@email.com';
 
-    // 3) Now userId is a string, so this matches the helper signature
-    const resp = await createStripeOnboardingLink(userId, emailToUse); // { success, url?, error? }
+      // 3) Now userId is a string, so this matches the helper signature
+      const resp = await createStripeOnboardingLink(userId, emailToUse); // { success, url?, error? }
 
-    if (resp.success && resp.url) {
-      Alert.alert(
-        'Bank Account Setup',
-        "You'll be redirected to Stripe to set up your bank account. After completing the setup:\n\n1. Close the browser\n2. Return to this app\n3. Pull down to refresh",
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Continue to Stripe',
-            onPress: async () => {
-              // 4) Guard url before opening
-              if (resp.url) await Linking.openURL(resp.url);
-              setTimeout(() => {
-                Alert.alert('📱 Return to App', 'After setup, pull to refresh to update your status.');
-              }, 1200);
+      if (resp.success && resp.url) {
+        Alert.alert(
+          'Bank Account Setup',
+          "You'll be redirected to Stripe to set up your bank account. After completing the setup:\n\n1. Close the browser\n2. Return to this app\n3. Pull down to refresh",
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Continue to Stripe',
+              onPress: async () => {
+                // 4) Guard url before opening
+                if (resp.url) await Linking.openURL(resp.url);
+                setTimeout(() => {
+                  Alert.alert('📱 Return to App', 'After setup, pull to refresh to update your status.');
+                }, 1200);
+              },
             },
-          },
-        ]
-      );
-    } else {
-      Alert.alert('Error', resp?.error || 'Unable to start bank account setup. Please try again.');
+          ]
+        );
+      } else {
+        Alert.alert('Error', resp?.error || 'Unable to start bank account setup. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error creating onboarding link:', error);
+      Alert.alert('Error', 'Failed to start setup process. Please check your connection.');
     }
-  } catch (error) {
-    console.error('Error creating onboarding link:', error);
-    Alert.alert('Error', 'Failed to start setup process. Please check your connection.');
-  }
-};
+  };
   const formatDate = (date: Date) =>
     date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
@@ -195,6 +212,7 @@ const DriverWallet: React.FC = () => {
       </SafeAreaView>
     );
   }
+  const canOpenDashboard = Boolean(accountId) && onboardingCompleted;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -251,10 +269,14 @@ const DriverWallet: React.FC = () => {
           <Text style={styles.sectionTitle}>Transfer to Bank</Text>
 
           <CustomButton
-            title={accountExists ? (openingDashboard ? 'Opening...' : 'Open Stripe Dashboard') : 'Set Up Bank Account'}
-            onPress={accountExists ? openStripeDashboard : openBankingInfo}
-            disabled={openingDashboard || (!accountExists && !driverEmail)}
-            style={accountExists ? styles.transferButton : styles.manageButton}
+            title={
+              canOpenDashboard
+                ? (openingDashboard ? "Opening..." : "Open Stripe Dashboard")
+                : "Set Up Bank Account"
+            }
+            onPress={canOpenDashboard ? openStripeDashboard : openBankingInfo}
+            disabled={openingDashboard || (!driverEmail && !canOpenDashboard)}
+            style={canOpenDashboard ? styles.transferButton : styles.manageButton}
           />
         </View>
 

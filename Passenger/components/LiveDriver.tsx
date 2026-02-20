@@ -103,7 +103,7 @@ const LiveDriver: React.FC<ExtendedDriverInfoProps> = ({
         rideStatus={rideStatus}
         onMessagePress={handleContactDriverMessage}
         onCallPress={handleContactDriverPhone}
-        driverName={driverName}
+        // driverName={driverName}
         driverPhotoBase64={driverPhotoBase64}
         driverPhotoUrl={driverPhotoUrl}
       />

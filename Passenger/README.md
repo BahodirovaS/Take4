@@ -13,9 +13,9 @@
 
 ## Future updates to features:
 - Be able to edit profile 
-- make batch payment flow
 
 ## Fixed Updates:
+- [FIXED]make batch payment flow
 - [FIXED]If the passenger cancels a ride, change the driver's UI to show passenger canceled the ride. Vice-versa
 - [FIXED]driver photo won't show up for passengers when ride is coming their way
 - [FIXED]have wallet feature for passengers **IMPORTANT**

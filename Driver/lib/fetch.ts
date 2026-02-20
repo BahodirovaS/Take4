@@ -722,11 +722,30 @@ export const takeProfilePhoto = async (): Promise<{
   error: Error | null;
 }> => {
   try {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    const current = await ImagePicker.getCameraPermissionsAsync();
 
-    if (status !== "granted") {
-      Alert.alert("Permission Required", "We need permission to use your camera");
-      return { base64Image: null, error: new Error("Permission denied") };
+    if (!current.granted) {
+      const requested = await ImagePicker.requestCameraPermissionsAsync();
+
+      if (!requested.granted) {
+        const blocked = requested.canAskAgain === false;
+
+        Alert.alert(
+          "Camera Access Needed 📷",
+          blocked
+            ? "Camera access is currently turned off. Please enable it in Settings to take a profile photo."
+            : "We need camera access to take your profile photo.",
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Open Settings",
+              onPress: () => Linking.openSettings(),
+            },
+          ]
+        );
+
+        return { base64Image: null, error: new Error("Permission denied") };
+      }
     }
 
     const result = await ImagePicker.launchCameraAsync({
@@ -735,7 +754,7 @@ export const takeProfilePhoto = async (): Promise<{
       aspect: [1, 1],
       quality: 0.5,
       base64: true,
-      cameraType: ImagePicker.CameraType.front, // nice for profile photos
+      cameraType: ImagePicker.CameraType.front,
     });
 
     if (result.canceled) {
@@ -744,6 +763,7 @@ export const takeProfilePhoto = async (): Promise<{
 
     const asset = result.assets?.[0];
     if (!asset) {
+      Alert.alert("Camera Error", "We couldn't capture a photo. Please try again.");
       return { base64Image: null, error: new Error("No image captured") };
     }
 
@@ -752,14 +772,12 @@ export const takeProfilePhoto = async (): Promise<{
     if (asset.base64) {
       base64Image = asset.base64;
     } else {
-      // fallback (same as your current logic)
       const fileUri = asset.uri;
       base64Image = await FileSystem.readAsStringAsync(fileUri, {
         encoding: FileSystem.EncodingType.Base64,
       });
     }
 
-    // same size check you already had
     const imageSizeInBytes = base64Image.length * 0.75;
     const imageSizeInMB = imageSizeInBytes / (1024 * 1024);
 
@@ -775,10 +793,10 @@ export const takeProfilePhoto = async (): Promise<{
     return { base64Image, error: null };
   } catch (error) {
     console.error("Error taking photo:", error);
+    Alert.alert("Camera Error", "Something went wrong opening the camera. Please try again.");
     return { base64Image: null, error: error as Error };
   }
 };
-
 
 
 /**

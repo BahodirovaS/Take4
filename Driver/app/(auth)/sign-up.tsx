@@ -22,6 +22,7 @@ import InputField from "@/components/InputField";
 import OAuth from "@/components/OAuth";
 import { icons, images } from "@/constants";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { API_ENDPOINTS } from "@/lib/config";
 
 const SignUp = () => {
     const { isLoaded, signUp, setActive } = useSignUp();
@@ -63,24 +64,20 @@ const SignUp = () => {
 
     const createStripeOnboardingLink = async (userId: string) => {
         try {
-            const response = await fetchAPI('/(api)/(stripe)/onboard-driver', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+            const response = await fetchAPI(API_ENDPOINTS.ONBOARD_DRIVER, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     driver_id: userId,
                     email: form.email,
                 }),
             });
 
-            if (response.success) {
-                return response.url;
-            } else {
-                throw new Error(response.error || 'Failed to create onboarding link');
-            }
+            if (response?.success && response?.url) return response.url;
+
+            throw new Error(response?.error || "Failed to create onboarding link");
         } catch (error) {
-            console.error('Error creating Stripe onboarding:', error);
+            console.error("Error creating Stripe onboarding:", error);
             return null;
         }
     };
@@ -94,7 +91,7 @@ const SignUp = () => {
             if (completeSignUp.status === "complete") {
                 try {
                     const userId = completeSignUp.createdUserId;
-                    
+
                     if (!userId) {
                         throw new Error("Failed to get user ID from signup");
                     }
@@ -133,7 +130,7 @@ const SignUp = () => {
 
                     // Create Stripe Connect onboarding link
                     const onboardingUrl = await createStripeOnboardingLink(userId);
-                    
+
                     if (onboardingUrl) {
                         setStripeOnboardingUrl(onboardingUrl);
                     }
@@ -274,7 +271,7 @@ const SignUp = () => {
                         </ReactNativeModal>
 
                         {/* Success Modal */}
-                        <ReactNativeModal 
+                        <ReactNativeModal
                             isVisible={showSuccessModal}
                             onModalHide={() => {
                                 if (stripeOnboardingUrl) {
@@ -295,6 +292,8 @@ const SignUp = () => {
                                     title="Continue"
                                     onPress={() => {
                                         setShowSuccessModal(false);
+                                        router.replace("/(root)/(tabs)/home");
+
                                     }}
                                     style={styles.browseButton}
                                 />
@@ -415,7 +414,7 @@ const styles = StyleSheet.create({
     },
     verifyButton: {
         marginTop: 20,
-        backgroundColor: "#0f0",
+        backgroundColor: "#3f7564",
     },
     successImage: {
         width: 110,
@@ -466,6 +465,8 @@ const styles = StyleSheet.create({
     },
     skipButton: {
         marginTop: 0,
+        backgroundColor: "#3f7564",
+
     },
 });
 
