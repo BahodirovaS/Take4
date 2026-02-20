@@ -10,11 +10,12 @@
 - see if you can use address strings instead of coordinate points when clicking "navigate"
 - filter pets
 - make admin page to change pricing of rides
+- if no drivers available, let the passenger know and say "try again later". maybe alert a driver "possible ride"
 
 ## Future updates to features:
-- Be able to edit profile 
 
 ## Fixed Updates:
+- [FIXED]Be able to edit profile photo
 - [FIXED]make batch payment flow
 - [FIXED]If the passenger cancels a ride, change the driver's UI to show passenger canceled the ride. Vice-versa
 - [FIXED]driver photo won't show up for passengers when ride is coming their way
