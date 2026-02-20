@@ -1,30 +1,30 @@
 import { useState, useEffect, useCallback } from "react";
-import { 
-  collection, 
-  query, 
-  where, 
-  onSnapshot, 
-  orderBy, 
-  getDocs, 
-  addDoc, 
-  updateDoc, 
-  doc, 
-  deleteDoc, 
-  getDoc, 
-  Timestamp 
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  orderBy,
+  getDocs,
+  addDoc,
+  updateDoc,
+  doc,
+  deleteDoc,
+  getDoc,
+  Timestamp
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { 
-  ActiveRideData, 
-  Ride, 
-  ProfileForm, 
-  RideRequest, 
-  Message, 
-  CompletedRideDetails, 
-  MarkerData, 
-  CardPM, 
-  PaymentMethodsResponse, 
-  SetupIntentResponse 
+import {
+  ActiveRideData,
+  Ride,
+  ProfileForm,
+  RideRequest,
+  Message,
+  CompletedRideDetails,
+  MarkerData,
+  CardPM,
+  PaymentMethodsResponse,
+  SetupIntentResponse
 } from "@/types/type";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
@@ -1034,13 +1034,24 @@ export const cancelRideRequest = (
 
   const cancelRide = async () => {
     const rideIdString = Array.isArray(rideId) ? rideId[0] : (rideId as string);
-    const rideRef = doc(db, "rideRequests", rideIdString);
 
-    await updateDoc(rideRef, {
-      status: "cancelled_by_user",
-      cancelledAt: new Date(),
-      cancelledReason: reason ?? null,
+    const response = await fetch(API_ENDPOINTS.CANCEL_RIDE, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        rideId: rideIdString,
+        cancelledBy: "user",
+        reason: reason ?? null,
+      }),
     });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data?.error || "Failed to cancel ride");
+    }
 
     onSuccess();
   };

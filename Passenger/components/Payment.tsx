@@ -172,7 +172,7 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
         fare_price: fareCents,
         driver_share: driverShareCents,
         company_share: companyShareCents,
-        payment_status: "paid",
+        payment_status: "authorized",
         user_id: userId ?? null,
         user_name: fullName ?? (email ? email.split("@")[0] : null),
         driver_id: "",

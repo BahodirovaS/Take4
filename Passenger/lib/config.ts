@@ -1,8 +1,8 @@
 const isDevelopment = __DEV__;
 
 export const API_CONFIG = {
-  VERCEL_BASE_URL: 'https://take4-bjtawz6s2-sabinas-projects-dedde209.vercel.app',
-  BASE_URL: 'https://take4-bjtawz6s2-sabinas-projects-dedde209.vercel.app',
+  VERCEL_BASE_URL: 'https://take4-9deybwl3e-sabinas-projects-dedde209.vercel.app',
+  BASE_URL: 'https://take4-9deybwl3e-sabinas-projects-dedde209.vercel.app',
 };
 
 export const API_ENDPOINTS = {
@@ -21,6 +21,7 @@ export const API_ENDPOINTS = {
   PAYMENT_METHODS: `${API_CONFIG.BASE_URL}/api/payment-methods`,
   DEFAULT_PAYMENT_METHOD: `${API_CONFIG.BASE_URL}/api/set-default-payment-method`,
   DETACH_PAYMENT_METHOD: `${API_CONFIG.BASE_URL}/api/detach-payment-method`,
+  CANCEL_RIDE: `${API_CONFIG.BASE_URL}/api/cancel-ride`,
 
 
 

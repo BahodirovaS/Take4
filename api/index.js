@@ -55,7 +55,7 @@ async function payoutDriverInternal({ rideId, headers }) {
     }
 
     if (r.status !== 'completed') throw new Error('Ride not completed');
-    if (r.payment_status !== 'paid') throw new Error('Ride not paid');
+    if (r.payment_status !== 'captured') throw new Error('Ride not captured');
     if (!r.driver_id) throw new Error('Missing driver_id');
 
     const driverShareCents =
@@ -181,7 +181,7 @@ module.exports = async (req, res) => {
         currency: 'usd',
         customer: customer.id,
         automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
-        setup_future_usage: 'off_session',
+        capture_method: 'manual',
         metadata: {
           fareAmount: String(fare.toFixed(2)),
           tipAmount: String(tip.toFixed(2)),
@@ -325,7 +325,7 @@ module.exports = async (req, res) => {
           }
 
           if (r.status !== 'completed') throw new Error('Ride not completed');
-          if (r.payment_status !== 'paid') throw new Error('Ride not paid');
+          if (r.payment_status !== 'captured') throw new Error('Ride not captured');
           if (!r.driver_id) throw new Error('Missing driver_id');
 
           const driverShareCents =
@@ -464,7 +464,50 @@ module.exports = async (req, res) => {
         });
       });
 
-      // pay driver after completion (server-side)
+      const rideSnap = await rideRef.get();
+      const ride = rideSnap.data() || {};
+      const paymentIntentId = ride.payment_intent_id;
+
+      if (!paymentIntentId) {
+        await rideRef.update({
+          payment_status: 'capture_failed',
+          payment_error: 'Missing payment_intent_id',
+          payment_failed_at: FieldValue.serverTimestamp(),
+        });
+        return res.status(400).json({ success: false, error: 'Missing payment_intent_id' });
+      }
+
+      if (ride.payment_status !== 'captured') {
+        const idem = req.headers['x-idempotency-key'] || `capture_${rideId}_${paymentIntentId}`;
+
+        try {
+          const captured = await stripe.paymentIntents.capture(
+            paymentIntentId,
+            {},
+            { idempotencyKey: idem }
+          );
+
+          await rideRef.update({
+            payment_status: 'captured',
+            payment_captured_at: FieldValue.serverTimestamp(),
+            payment_capture_id: captured.id,
+          });
+        } catch (e) {
+          await rideRef.update({
+            payment_status: 'capture_failed',
+            payment_error: e?.message || String(e),
+            payment_failed_at: FieldValue.serverTimestamp(),
+            status: 'awaiting_passenger_confirm',
+          });
+
+          return res.status(400).json({
+            success: false,
+            error: 'Payment capture failed',
+            details: e?.message || String(e),
+          });
+        }
+      }
+
       try {
         const payout = await payoutDriverInternal({ rideId, headers: req.headers });
         return res.json({ success: true, payout });
@@ -475,7 +518,6 @@ module.exports = async (req, res) => {
         });
       }
     }
-
 
     if (req.method === 'POST' && path === '/createTip') {
       const { rideId, tipAmount, customer_id, driver_id } = req.body || {};
@@ -848,6 +890,120 @@ module.exports = async (req, res) => {
       } catch (e) {
         console.error('claim-pending-ride error:', e);
         return res.status(500).json({ success: false, error: e?.message || 'claim failed' });
+      }
+    }
+
+    if (req.method === 'POST' && path === '/cancel-ride') {
+      const { rideId, cancelledBy = 'user', reason = null, actorId = null } = req.body || {};
+      if (!rideId) return res.status(400).json({ success: false, error: 'rideId is required' });
+
+      const rideRef = db.collection('rideRequests').doc(rideId);
+
+      let rideAfterUpdate;
+
+      try {
+        rideAfterUpdate = await db.runTransaction(async (tx) => {
+          const snap = await tx.get(rideRef);
+          if (!snap.exists) {
+            const err = new Error('Ride not found');
+            err._http = 404;
+            throw err;
+          }
+
+          const r = snap.data() || {};
+          const status = String(r.status || '');
+
+          if (status === 'completed') {
+            const err = new Error('Cannot cancel a completed ride');
+            err._http = 409;
+            throw err;
+          }
+
+          if (status.startsWith('cancelled')) {
+            return { ...r, status };
+          }
+
+          const newStatus = cancelledBy === 'driver' ? 'cancelled_by_driver' : 'cancelled_by_user';
+
+          tx.update(rideRef, {
+            status: newStatus,
+            cancelledAt: FieldValue.serverTimestamp(),
+            cancelledReason: reason,
+            cancelledBy: cancelledBy,
+            cancelledById: actorId,
+          });
+
+          return { ...r, status: newStatus };
+        });
+      } catch (e) {
+        const http = e?._http || 500;
+        return res.status(http).json({ success: false, error: e?.message || String(e) });
+      }
+
+      const paymentIntentId = rideAfterUpdate?.payment_intent_id || null;
+      const currentPaymentStatus = String(rideAfterUpdate?.payment_status || '');
+
+      if (!paymentIntentId) {
+        await rideRef.update({
+          payment_status: currentPaymentStatus || 'no_payment_intent',
+          payment_cancelled_at: FieldValue.serverTimestamp(),
+        });
+
+        return res.json({ success: true, cancelled: true, payment: { skipped: true, reason: 'no_payment_intent_id' } });
+      }
+
+      if (currentPaymentStatus === 'captured') {
+        return res.json({
+          success: true,
+          cancelled: true,
+          payment: { skipped: true, reason: 'already_captured' },
+        });
+      }
+
+      const idem = req.headers['x-idempotency-key'] || `cancel_${rideId}_${paymentIntentId}`;
+
+      try {
+        const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+        if (pi.status === 'canceled') {
+          await rideRef.update({
+            payment_status: 'cancelled',
+            payment_cancelled_at: FieldValue.serverTimestamp(),
+          });
+
+          return res.json({ success: true, cancelled: true, payment: { status: 'cancelled', already: true } });
+        }
+
+        if (pi.status === 'succeeded') {
+          await rideRef.update({
+            payment_status: 'captured',
+            payment_captured_at: FieldValue.serverTimestamp(),
+          });
+
+          return res.json({ success: true, cancelled: true, payment: { status: 'captured', note: 'pi_succeeded' } });
+        }
+
+        await stripe.paymentIntents.cancel(paymentIntentId, {}, { idempotencyKey: idem });
+
+        await rideRef.update({
+          payment_status: 'cancelled',
+          payment_cancelled_at: FieldValue.serverTimestamp(),
+        });
+
+        return res.json({ success: true, cancelled: true, payment: { status: 'cancelled' } });
+      } catch (e) {
+        await rideRef.update({
+          payment_status: 'cancel_failed',
+          payment_error: e?.message || String(e),
+          payment_failed_at: FieldValue.serverTimestamp(),
+        });
+
+        return res.status(400).json({
+          success: false,
+          cancelled: true,
+          error: 'Failed to cancel payment authorization',
+          details: e?.message || String(e),
+        });
       }
     }
 

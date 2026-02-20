@@ -1142,97 +1142,106 @@ export async function createStripeDashboardLink(
 }
 
 /** Build WalletData summary from Firestore rides */
-export async function getWalletSummary(
-  userId: string
-): Promise<WalletData> {
+export async function getWalletSummary(userId: string): Promise<WalletData> {
   if (!userId) {
     return {
       totalEarnings: 0,
       availableBalance: 0,
       pendingBalance: 0,
-      recentPayments: []
+      recentPayments: [],
     };
   }
 
-  const ridesQ = query(
-    collection(db, 'rideRequests'),
-    where('driver_id', '==', userId),
-    where('payment_status', '==', 'paid')
-  );
+  const ridesQ = query(collection(db, "rideRequests"), where("driver_id", "==", userId));
   const snap = await getDocs(ridesQ);
-  const allRides: Ride[] = snap.docs.map(d => ({ id: d.id, ...d.data() } as Ride));
 
-  const pendingRides = allRides.filter(r =>
-    r.status === 'accepted' || r.status === 'arrived_at_pickup' || r.status === 'in_progress'
-  );
-  const completedRides = allRides.filter(r =>
-    r.status === 'completed' || r.status === 'rated'
-  );
-
-  const pendingEarnings = pendingRides.reduce((sum, r: any) => sum + (r.driver_share || 0), 0);
-  const availableEarnings = completedRides.reduce((sum, r: any) => sum + (r.driver_share || 0), 0);
-  const totalEarnings = pendingEarnings + availableEarnings;
+  const allRides: any[] = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
   const toDate = (ts: any): Date => {
+    if (!ts) return new Date(0);
     if (ts?.toDate) return ts.toDate();
     if (ts?.seconds) return new Date(ts.seconds * 1000);
     if (ts?._seconds) return new Date(ts._seconds * 1000);
-    return new Date();
+    if (ts instanceof Date) return ts;
+    const parsed = new Date(ts);
+    return isNaN(parsed.getTime()) ? new Date(0) : parsed;
   };
+
+  const isCancelled = (status: string) =>
+    status === "cancelled_by_user" || status === "cancelled_by_driver";
+
+  const isCompletedStatus = (status: string) => status === "completed" || status === "rated";
+
+  const isAvailable = (status: string, paymentStatus: string) =>
+    isCompletedStatus(status) && paymentStatus === "captured";
+
+  const shouldIncludeForWallet = (paymentStatus: string) => {
+    const ps = String(paymentStatus || "");
+    return ps === "authorized" || ps === "paid" || ps === "captured" || ps === "capture_failed";
+  };
+
+  let availableCents = 0;
+  let pendingCents = 0;
 
   const recentPayments: Payment[] = [];
 
-  for (const ride of allRides as any[]) {
-    const baseFarePrice = ride.fare_price || 0;
-    const tipAmountCents = ride.tip_amount ? parseFloat(ride.tip_amount.toString()) * 100 : 0;
-    const baseDriverShare = (ride.driver_share || 0) - tipAmountCents;
+  for (const ride of allRides) {
+    const status = String(ride.status || "");
+    const paymentStatus = String(ride.payment_status || "");
 
-    const createdAt = toDate(ride.createdAt);
+    if (isCancelled(status)) continue;
+    if (!shouldIncludeForWallet(paymentStatus)) continue;
 
-    if (baseDriverShare > 0) {
-      let paymentStatus: 'pending' | 'completed' =
-        (ride.status === 'completed' || ride.status === 'rated') ? 'completed' : 'pending';
+    const driverShareCents = Number(ride.driver_share || 0);
+    if (!Number.isFinite(driverShareCents) || driverShareCents <= 0) continue;
 
-      recentPayments.push({
-        id: ride.id,
-        amount: baseFarePrice / 100,
-        driverShare: baseDriverShare / 100,
-        createdAt,
-        rideId: ride.id,
-        passengerName: ride.user_name || 'Unknown',
-        status: paymentStatus,
-        type: 'ride',
-      });
-    }
+    const createdAt = toDate(ride.createdAt ?? ride.created_at ?? ride.completed_at);
 
-    if (ride.tip_amount && parseFloat(ride.tip_amount.toString()) > 0 &&
-      (ride.status === 'completed' || ride.status === 'rated')) {
+    const paymentItemStatus: "pending" | "available" =
+      isAvailable(status, paymentStatus) ? "available" : "pending";
+
+    if (paymentItemStatus === "available") availableCents += driverShareCents;
+    else pendingCents += driverShareCents;
+
+    recentPayments.push({
+      id: ride.id,
+      amount: Number(ride.fare_price || 0) / 100,
+      driverShare: driverShareCents / 100,
+      createdAt,
+      rideId: ride.id,
+      passengerName: ride.user_name || "Unknown",
+      status: paymentItemStatus,
+      type: "ride",
+    });
+
+    const tipAmount = Number(ride.tip_amount || 0);
+    if (Number.isFinite(tipAmount) && tipAmount > 0 && isCompletedStatus(status)) {
       const tipDate =
-        ride.tipped_at?.toDate?.() ??
-        ride.rated_at?.toDate?.() ??
+        toDate(ride.tipped_at) ||
+        toDate(ride.rated_at) ||
+        toDate(ride.completed_at) ||
         createdAt;
 
       recentPayments.push({
         id: `${ride.id}_tip`,
-        amount: parseFloat(ride.tip_amount.toString()),
-        driverShare: parseFloat(ride.tip_amount.toString()),
+        amount: tipAmount,
+        driverShare: tipAmount,
         createdAt: tipDate,
         rideId: ride.id,
-        passengerName: ride.user_name || 'Unknown',
-        status: 'completed',
-        type: 'tip',
+        passengerName: ride.user_name || "Unknown",
+        status: "available",
+        type: "tip",
       });
     }
   }
 
   recentPayments.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-  const limitedPayments = recentPayments.slice(0, 10);
 
   return {
-    totalEarnings: totalEarnings / 100,
-    availableBalance: availableEarnings / 100,
-    pendingBalance: pendingEarnings / 100,
-    recentPayments: limitedPayments,
+    totalEarnings: (availableCents + pendingCents) / 100,
+    availableBalance: availableCents / 100,
+    pendingBalance: pendingCents / 100,
+    recentPayments: recentPayments.slice(0, 10),
   };
 }
 
