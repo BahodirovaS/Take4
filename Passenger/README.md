@@ -4,17 +4,16 @@
 ## UI Updates:
 - tap to change photo for driver crashes the app
 - FORMAT THE STYLE SECTION FOR SEVERAL COMPONENTS
-- format the scheduled ride request for drivers. it's ugly
 
 ## Logic Updates:
 - see if you can use address strings instead of coordinate points when clicking "navigate"
-- filter pets
 - make admin page to change pricing of rides
-- if no drivers available, let the passenger know and say "try again later". maybe alert a driver "possible ride"
 
 ## Future updates to features:
 
 ## Fixed Updates:
+- [FIXED]filter pets
+- [FIXED]if no drivers available, let the passenger know and say "try again later". maybe alert a driver "possible ride"
 - [FIXED]Be able to edit profile photo
 - [FIXED]make batch payment flow
 - [FIXED]If the passenger cancels a ride, change the driver's UI to show passenger canceled the ride. Vice-versa
