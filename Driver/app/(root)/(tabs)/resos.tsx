@@ -28,6 +28,7 @@ const Reservations = () => {
   const [fetchComplete, setFetchComplete] = useState(false);
   const { user } = useUser();
   const { clearReservation } = useReservationStore();
+  
 
   useEffect(() => {
     loadScheduledRides();
