@@ -163,3 +163,15 @@ export const useReservationStore = create<ReservationStore>((set) => ({
     reservationId: null 
   }),
 }));
+
+type RidePrefsState = {
+  travelingWithPet: boolean;
+  setTravelingWithPet: (value: boolean) => void;
+  resetRidePrefs: () => void;
+};
+
+export const useRidePrefsStore = create<RidePrefsState>((set) => ({
+  travelingWithPet: false,
+  setTravelingWithPet: (value) => set({ travelingWithPet: value }),
+  resetRidePrefs: () => set({ travelingWithPet: false }),
+}));

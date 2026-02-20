@@ -684,7 +684,7 @@ export const fetchDriverInfo = async (userId: string): Promise<{
           address: data.address || "",
           dob: data.dob || "",
           licence: data.licence || "",
-          carColor: data.car_color || "",
+          carColor: data.carColor || "",
           vMake: data.vMake || "",
           vPlate: data.vPlate || "",
           vInsurance: data.vInsurance || "",

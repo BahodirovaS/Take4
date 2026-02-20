@@ -8,7 +8,7 @@ import { ReactNativeModal } from "react-native-modal";
 import CustomButton from "@/components/CustomButton";
 import { images } from "@/constants";
 import { fetchAPI, updatePassengerProfile } from "@/lib/fetch";
-import { useLocationStore, useReservationStore } from "@/store";
+import { useLocationStore, useReservationStore, useRidePrefsStore } from "@/store";
 import { PaymentProps } from "@/types/type";
 import { db } from "@/lib/firebase";
 import { collection, addDoc } from "firebase/firestore";
@@ -62,6 +62,8 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
 
   const [success, setSuccess] = useState<boolean>(false);
   const [rideId, setRideId] = useState<string | null>(null);
+
+  const { travelingWithPet, resetRidePrefs } = useRidePrefsStore();
 
   const lastPIRef = useRef<{ id: string; clientSecret: string; customer: string } | null>(null);
 
@@ -179,6 +181,7 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
         createdAt: new Date(),
         ride_type: rideType ?? null,
         required_seats: typeof requiredSeats === "number" ? requiredSeats : null,
+        traveling_with_pet: !!travelingWithPet,
       };
 
       if (lastPIRef.current?.id) baseRideData.payment_intent_id = lastPIRef.current.id;
@@ -233,7 +236,7 @@ const Payment: React.FC<EnhancedPaymentProps> = ({
 
   const handleSuccessButtonPress = () => {
     setSuccess(false);
-
+    resetRidePrefs();
     if (isScheduled) {
       clearReservation();
       router.push("/(root)/(tabs)/resos");

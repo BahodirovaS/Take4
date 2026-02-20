@@ -1,4 +1,4 @@
-// api/assign-driver.js
+
 const { getApps, initializeApp, cert } = require('firebase-admin/app');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 
@@ -31,7 +31,7 @@ module.exports = async (req, res) => {
     const { rideId, rideType, pickupLatitude, pickupLongitude, isScheduled = false } = req.body || {};
     const idemKey = req.headers['x-idempotency-key'];
 
-    // Basic validation
+    
     if (!rideId || !rideType || typeof pickupLatitude !== 'number' || typeof pickupLongitude !== 'number') {
       return res.status(422).json({ success: false, code: 'VALIDATION_ERROR', message: 'Missing or invalid fields' });
     }
@@ -39,22 +39,41 @@ module.exports = async (req, res) => {
     const seatRequirement = seatByType(rideType);
     console.log('[assign-driver] seatRequirement:', seatRequirement);
 
-    // ---- Query drivers (handle missing composite index) ----
+    
+    const rideSnap = await adminDb.collection('rideRequests').doc(rideId).get();
+    if (!rideSnap.exists) {
+      return res.status(404).json({ success: false, code: 'RIDE_NOT_FOUND', message: 'Ride not found' });
+    }
+    const rideData = rideSnap.data() || {};
+    const travelingWithPet = !!rideData.traveling_with_pet;
+    console.log('[assign-driver] travelingWithPet:', travelingWithPet);
+
+    
     let driversSnapshot;
     try {
-      driversSnapshot = await adminDb
+      let q = adminDb
         .collection('drivers')
         .where('carSeats', '>=', seatRequirement)
-        .where('status', '==', true)
-        .get();
+        .where('status', '==', true);
+
+      
+      if (travelingWithPet) {
+        q = q.where('pets', '==', true);
+      }
+
+      driversSnapshot = await q.get();
     } catch (err) {
-      // Firestore throws failed-precondition when a composite index is missing
+      
       if (err && (err.code === 9 || err.code === 'failed-precondition') && /index/i.test(String(err.message))) {
-        console.error('Index required for (status == true, carSeats >= N). Create the composite index in Firestore.');
+        console.error('Index required for driver query.', err.message);
+
+        
         return res.status(400).json({
           success: false,
           code: 'INDEX_REQUIRED',
-          message: 'Create Firestore composite index on drivers: status (ASC), carSeats (ASC).',
+          message: travelingWithPet
+            ? 'Create Firestore composite index on drivers: status (ASC), carSeats (ASC), pets (ASC).'
+            : 'Create Firestore composite index on drivers: status (ASC), carSeats (ASC).',
           details: err.message,
         });
       }
@@ -75,7 +94,7 @@ module.exports = async (req, res) => {
         return res.status(202).json({
           success: true,
           code: 'QUEUED_AWAITING_DRIVER',
-          message: `No ${rideType} drivers online right now. The ride is queued until a driver comes online.`,
+          message: `No ${rideType} drivers online right now${travelingWithPet ? ' (pet-friendly required)' : ''}. The ride is queued until a driver comes online.`,
           retryAfterSec: 30,
           ride: { id: rideId },
         });
@@ -84,20 +103,20 @@ module.exports = async (req, res) => {
       return res.status(404).json({
         success: false,
         code: 'NO_ACTIVE_DRIVERS',
-        message: `No ${rideType} drivers available at this time`,
+        message: `No ${rideType} drivers available at this time${travelingWithPet ? ' that allow pets' : ''}`,
         retryAfterSec: 15,
         ride: { id: rideId },
       });
     }
 
-    // Collect geo-usable drivers
+    
     const availableDrivers = [];
     driversSnapshot.forEach((d) => {
       const driver = d.data() || {};
       const lat = Number(driver.latitude);
       const lng = Number(driver.longitude);
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-      if (!driver.clerkId) return; // skip if missing identity used for assignments
+      if (!driver.clerkId) return; 
 
       const distance = calculateDistance(pickupLatitude, pickupLongitude, lat, lng);
       availableDrivers.push({
@@ -143,24 +162,24 @@ module.exports = async (req, res) => {
     availableDrivers.sort((a, b) => a.distance - b.distance);
     const target = availableDrivers[0];
 
-    // Assign inside a transaction
+    
     const result = await adminDb.runTransaction(async (trx) => {
       const rideRef = adminDb.collection('rideRequests').doc(rideId);
-      const rideSnap = await trx.get(rideRef);
-      if (!rideSnap.exists) {
+      const rideSnap2 = await trx.get(rideRef);
+      if (!rideSnap2.exists) {
         const err = new Error('Ride not found');
         err._code = 'RIDE_NOT_FOUND';
         err._http = 404;
         throw err;
       }
-      const ride = rideSnap.data() || {};
+      const ride = rideSnap2.data() || {};
 
-      // Idempotency
+      
       if (idemKey && ride.lastAssignmentRequestId === idemKey) {
         return { kind: 'IDEMPOTENT_REPEAT', target };
       }
 
-      // State guard
+      
       if (ride.driver_acceptance === 'accepted' || ride.status === 'accepted') {
         const err = new Error('Ride already accepted');
         err._code = 'RIDE_STATE_CONFLICT';
@@ -237,7 +256,7 @@ function calculateDistance(lat1, lng1, lat2, lng2) {
   const dLng = (lng2 - lng1) * Math.PI / 180;
   const a =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat1 * Math.PI / 180) *
     Math.sin(dLng / 2) ** 2;
   return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }

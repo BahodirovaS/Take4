@@ -6,16 +6,19 @@ import CustomButton from "@/components/CustomButton";
 import GoogleTextInput from "@/components/GoogleTextInput";
 import RideLayout from "@/components/RideLayout";
 import { icons } from "@/constants";
-import { useLocationStore } from "@/store";
+import { useLocationStore, useRidePrefsStore } from "@/store";
 import { getCurrentLocation } from "@/lib/fetch";
 
 const FindRide: React.FC = () => {
+
   const {
     userAddress,
     destinationAddress,
     setDestinationLocation,
     setUserLocation,
   } = useLocationStore();
+
+  const { travelingWithPet, setTravelingWithPet } = useRidePrefsStore();
 
   useEffect(() => {
     const loadLocation = async () => {
@@ -51,7 +54,15 @@ const FindRide: React.FC = () => {
           handlePress={(location) => setDestinationLocation(location)}
         />
       </View>
-
+      <View style={styles.petsContainer}>
+        <Text style={styles.petsLabel}>Traveling with a pet?</Text>
+        <CustomButton
+          title={travelingWithPet ? "Yes" : "No"}
+          onPress={() => setTravelingWithPet(!travelingWithPet)}
+          bgVariant={travelingWithPet ? "primary" : "danger"}
+          style={styles.petsButton}
+        />
+      </View>
       <View style={styles.buttonContainer}>
         <CustomButton
           title="Find Now"
@@ -76,6 +87,23 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: "DMSans-SemiBold",
     marginBottom: 12,
+  },
+  petsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  petsLabel: {
+    fontSize: 18,
+    fontFamily: "DMSans-SemiBold",
+    marginRight: 12,
+  },
+  petsButton: {
+    width: "20%",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 9999,
   },
   buttonContainer: {
     flexDirection: "row",

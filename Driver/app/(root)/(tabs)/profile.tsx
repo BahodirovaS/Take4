@@ -1,25 +1,25 @@
 import { useEffect, useState } from "react";
 import {
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    View,
-    Alert,
-    Text,
-    SafeAreaView,
-    TouchableOpacity,
-    StyleSheet,
-    Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  View,
+  Alert,
+  Text,
+  SafeAreaView,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
 } from "react-native";
 import { useRouter } from "expo-router";
 import CustomButton from "@/components/CustomButton";
 import InputField from "@/components/InputField";
 import { useAuth, useUser } from "@clerk/clerk-expo";
 import {
-    fetchDriverInfo,
-    takeProfilePhoto,
-    saveDriverProfile,
-    updateDriverStatusOnSignOut,
+  fetchDriverInfo,
+  takeProfilePhoto,
+  saveDriverProfile,
+  updateDriverStatusOnSignOut,
 } from "@/lib/fetch";
 import { DriverProfileForm } from "@/types/type"
 
@@ -44,7 +44,7 @@ const DriverInfo = () => {
     carColor: "",
     status: false,
     profilePhotoBase64: "",
-    profilePhotoUrl: "", 
+    profilePhotoUrl: "",
   });
 
   const [driverDocId, setDriverDocId] = useState<string | null>(null);
@@ -62,7 +62,7 @@ const DriverInfo = () => {
       }));
 
       const { driverData, driverDocId: docId, error } = await fetchDriverInfo(user.id);
-
+      
       if (error) {
         Alert.alert("Error", "Failed to load driver information.");
         return;
@@ -71,29 +71,30 @@ const DriverInfo = () => {
       if (driverData) {
         setDriverDocId(docId);
 
-        setForm({
+        setForm((prev) => ({
+          ...prev,
           ...driverData,
           firstName: user?.firstName || driverData.firstName || "",
           lastName: user?.lastName || driverData.lastName || "",
           email: user?.primaryEmailAddress?.emailAddress || "",
-          profilePhotoUrl: driverData.profilePhotoUrl || "", 
-        });
+          profilePhotoUrl: driverData.profilePhotoUrl || prev.profilePhotoUrl || "",
+        }));
       }
     };
 
     loadDriverInfo();
   }, [user]);
 
-  
+
   useEffect(() => {
     const saveClerkPhotoUrlIfMissing = async () => {
       if (!user?.id) return;
       if (!driverDocId) return;
 
-      
+
       if (form.profilePhotoBase64) return;
 
-      
+
       if (form.profilePhotoUrl) return;
 
       const clerkUrl = user?.externalAccounts?.[0]?.imageUrl ?? user?.imageUrl ?? "";
@@ -110,7 +111,7 @@ const DriverInfo = () => {
       }
     };
 
-    saveClerkPhotoUrlIfMissing().catch(() => {});
+    saveClerkPhotoUrlIfMissing().catch(() => { });
   }, [user?.id, driverDocId, form.profilePhotoBase64, form.profilePhotoUrl]);
 
   const handleSignOut = async () => {
@@ -131,7 +132,7 @@ const DriverInfo = () => {
       setForm((prevForm) => ({
         ...prevForm,
         profilePhotoBase64: base64Image,
-        profilePhotoUrl: "", 
+        profilePhotoUrl: "",
       }));
     } else if (error && error.message !== "Permission denied") {
       Alert.alert("Error", "Failed to select image");
@@ -244,59 +245,89 @@ const DriverInfo = () => {
                 placeholder="Format 123-456-7890"
                 value={form.phoneNumber}
                 onChangeText={(value) =>
-                  setForm({ ...form, phoneNumber: formatPhoneNumber(value) })
-                }
+                  setForm((prev) => ({
+                    ...prev,
+                    phoneNumber: formatPhoneNumber(value),
+                  }))}
               />
 
               <InputField
                 label="Address"
                 placeholder="Enter your address"
                 value={form.address}
-                onChangeText={(value) => setForm({ ...form, address: value })}
-              />
+                onChangeText={(value) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    address: value,
+                  }))
+                } />
 
               <InputField
                 label="Date of Birth"
                 placeholder="YYYY-MM-DD"
                 value={form.dob}
-                onChangeText={(value) => setForm({ ...form, dob: value })}
-              />
+                onChangeText={(value) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    dob: value,
+                  }))
+                } />
 
               <InputField
                 label="Driver's License"
                 placeholder="Enter license number"
                 value={form.licence}
-                onChangeText={(value) => setForm({ ...form, licence: value })}
-              />
+                onChangeText={(value) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    licence: value,
+                  }))
+                } />
 
               <InputField
                 label="Vehicle Make and Model"
                 placeholder="Eg Toyota Rav4"
                 value={form.vMake}
-                onChangeText={(value) => setForm({ ...form, vMake: value })}
-              />
+                onChangeText={(value) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    vMake: value,
+                  }))
+                } />
 
               <InputField
                 label="Vehicle Color"
                 placeholder="Eg white"
                 value={form.carColor}
-                onChangeText={(value) => setForm({ ...form, carColor: value })}
-              />
+                onChangeText={(value) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    carColor: value,
+                  }))
+                } />
 
               <InputField
                 label="Vehicle Plate"
                 placeholder="Enter license plate number"
                 value={form.vPlate}
-                onChangeText={(value) => setForm({ ...form, vPlate: value })}
-              />
+                onChangeText={(value) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    vPlate: value,
+                  }))
+                } />
 
               <Text style={styles.carSeatsTitle}>Car Seats</Text>
               <View style={styles.carSeatOptions}>
                 {carSeatOptions.map((option) => (
                   <TouchableOpacity
                     key={option.value}
-                    onPress={() => setForm({ ...form, carSeats: option.value })}
-                    style={[
+                    onPress={() =>
+                      setForm((prev) => ({
+                        ...prev,
+                        carSeats: option.value,
+                      }))
+                    } style={[
                       styles.carSeatOption,
                       form.carSeats === option.value ? styles.carSeatSelected : styles.carSeatUnselected,
                     ]}
@@ -317,8 +348,12 @@ const DriverInfo = () => {
                 <Text style={styles.petsLabel}>Will you allow pets?</Text>
                 <CustomButton
                   title={form.pets ? "Yes" : "No"}
-                  onPress={() => setForm({ ...form, pets: !form.pets })}
-                  bgVariant={form.pets ? "primary" : "danger"}
+                  onPress={() =>
+                    setForm((prev) => ({
+                      ...prev,
+                      pets: !prev.pets,
+                    }))
+                  } bgVariant={form.pets ? "primary" : "danger"}
                   style={styles.petsButton}
                 />
               </View>
@@ -342,160 +377,160 @@ const DriverInfo = () => {
 export default DriverInfo;
 
 const styles = StyleSheet.create({
-    safeArea: {
-        flex: 1,
-        backgroundColor: "white",
-    },
-    keyboardAvoiding: {
-        flex: 1,
-    },
-    scrollView: {
-        flex: 1,
-        backgroundColor: "white",
-    },
-    scrollViewContent: {
-        paddingBottom: 150,
-        paddingHorizontal: 20,
-    },
-    title: {
-        fontSize: 30,
-        fontFamily: "DMSans-Bold",
-        marginBottom: 20,
-        marginTop: 30,
-        alignSelf: "center",
-    },
-    profileImageContainer: {
-        alignItems: "center",
-        justifyContent: "center",
-        marginVertical: 20,
-    },
-    profileImage: {
-        width: 110,
-        height: 110,
-        borderRadius: 55,
-        borderWidth: 3,
-        borderColor: "white",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 5,
-    },
-    editIconContainer: {
-        position: 'absolute',
-        bottom: 0,
-        right: 0,
-        backgroundColor: '#FFFFFF',
-        width: 30,
-        height: 30,
-        borderRadius: 15,
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 3,
-        elevation: 2,
-    },
-    editIcon: {
-        fontSize: 16,
-    },
-    infoContainer: {
-        backgroundColor: "white",
-        borderRadius: 8,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 5,
-        paddingVertical: 15,
-        paddingHorizontal: 20,
-    },
-    infoContent: {
-        flexDirection: "column",
-        justifyContent: "center",
-        width: "100%",
-    },
-    uploadingOverlay: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        borderRadius: 55,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    uploadingText: {
-        color: 'white',
-        fontFamily: 'DMSans-Medium',
-        fontSize: 14,
-    },
-    tapToChangeText: {
-        marginTop: 8,
-        fontSize: 14,
-        color: '#666',
-        fontFamily: 'DMSans',
-    },
-    carSeatsTitle: {
-        marginTop: 16,
-        marginBottom: 8,
-        fontSize: 18,
-        fontFamily: "DMSans-SemiBold",
-    },
-    carSeatOptions: {
-        marginBottom: 20,
-    },
-    carSeatOption: {
-        flexDirection: "row",
-        justifyContent: "center",
-        alignItems: "center",
-        borderRadius: 9999,
-        padding: 12,
-        marginBottom: 12,
-    },
-    carSeatText: {
-        fontSize: 14,
-        fontFamily: "DMSans-SemiBold",
-    },
-    carSeatSelected: {
-        backgroundColor: "#edc985",
-    },
-    carSeatUnselected: {
-        backgroundColor: "#f3f4f6",
-    },
-    carSeatTextSelected: {
-        color: "black",
-    },
-    carSeatTextUnselected: {
-        color: "black",
-    },
-    petsContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginBottom: 16,
-    },
-    petsLabel: {
-        fontSize: 18,
-        fontFamily: "DMSans-SemiBold",
-        marginRight: 12,
-    },
-    petsButton: {
-        width: "auto",
-        paddingVertical: 10,
-        paddingHorizontal: 20,
-        borderRadius: 9999,
-    },
-    updateButton: {
-        marginTop: 20,
-        marginBottom: 20,
-        justifyContent: 'center',
-        alignSelf: "center",
-        width: "70%"
-    },
-    signOutButton: {
-        marginTop: 30,
-        justifyContent: 'center',
-        alignSelf: "center",
-        width: "70%"
-    },
+  safeArea: {
+    flex: 1,
+    backgroundColor: "white",
+  },
+  keyboardAvoiding: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+    backgroundColor: "white",
+  },
+  scrollViewContent: {
+    paddingBottom: 150,
+    paddingHorizontal: 20,
+  },
+  title: {
+    fontSize: 30,
+    fontFamily: "DMSans-Bold",
+    marginBottom: 20,
+    marginTop: 30,
+    alignSelf: "center",
+  },
+  profileImageContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginVertical: 20,
+  },
+  profileImage: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    borderWidth: 3,
+    borderColor: "white",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+  },
+  editIconContainer: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  editIcon: {
+    fontSize: 16,
+  },
+  infoContainer: {
+    backgroundColor: "white",
+    borderRadius: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+  },
+  infoContent: {
+    flexDirection: "column",
+    justifyContent: "center",
+    width: "100%",
+  },
+  uploadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 55,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  uploadingText: {
+    color: 'white',
+    fontFamily: 'DMSans-Medium',
+    fontSize: 14,
+  },
+  tapToChangeText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#666',
+    fontFamily: 'DMSans',
+  },
+  carSeatsTitle: {
+    marginTop: 16,
+    marginBottom: 8,
+    fontSize: 18,
+    fontFamily: "DMSans-SemiBold",
+  },
+  carSeatOptions: {
+    marginBottom: 20,
+  },
+  carSeatOption: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 9999,
+    padding: 12,
+    marginBottom: 12,
+  },
+  carSeatText: {
+    fontSize: 14,
+    fontFamily: "DMSans-SemiBold",
+  },
+  carSeatSelected: {
+    backgroundColor: "#edc985",
+  },
+  carSeatUnselected: {
+    backgroundColor: "#f3f4f6",
+  },
+  carSeatTextSelected: {
+    color: "black",
+  },
+  carSeatTextUnselected: {
+    color: "black",
+  },
+  petsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  petsLabel: {
+    fontSize: 18,
+    fontFamily: "DMSans-SemiBold",
+    marginRight: 12,
+  },
+  petsButton: {
+    width: "auto",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 9999,
+  },
+  updateButton: {
+    marginTop: 20,
+    marginBottom: 20,
+    justifyContent: 'center',
+    alignSelf: "center",
+    width: "70%"
+  },
+  signOutButton: {
+    marginTop: 30,
+    justifyContent: 'center',
+    alignSelf: "center",
+    width: "70%"
+  },
 });
