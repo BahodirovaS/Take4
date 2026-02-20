@@ -2,21 +2,21 @@
 
 
 ## UI Updates:
-- format the scheduled ride request for drivers. it's ugly
 - tap to change photo for driver crashes the app
 - FORMAT THE STYLE SECTION FOR SEVERAL COMPONENTS
+- format the scheduled ride request for drivers. it's ugly
 
 ## Logic Updates:
 - see if you can use address strings instead of coordinate points when clicking "navigate"
 - filter pets
 - make admin page to change pricing of rides
-- If the passenger cancels a ride, change the driver's UI to show passenger canceled the ride. Vice-versa
 
 ## Future updates to features:
 - Be able to edit profile 
 - make batch payment flow
 
 ## Fixed Updates:
+- [FIXED]If the passenger cancels a ride, change the driver's UI to show passenger canceled the ride. Vice-versa
 - [FIXED]driver photo won't show up for passengers when ride is coming their way
 - [FIXED]have wallet feature for passengers **IMPORTANT**
 - [FIXED]tip is showing up in the Connect account of the driver, but the fare share isn't -> made a new endpoint for driver share and changed /create to remove driverId
