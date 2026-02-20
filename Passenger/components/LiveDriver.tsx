@@ -2,9 +2,10 @@ import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, ActivityIndicator, Alert, Linking } from "react-native";
 import { router } from "expo-router";
 import CustomButton from "@/components/CustomButton";
-import { MarkerData, DriverInfoProps } from "@/types/type";
+import { MarkerData, DriverInfoProps, CancelReason } from "@/types/type";
 import LiveDriverCard from "./LiveDriverCard";
 import { fetchDriverInfo, cancelRideRequest, navigateToDriverChat } from "@/lib/fetch";
+import CancelRideSheet from "@/components/CancelRideSheet";
 
 interface ExtendedDriverInfoProps extends DriverInfoProps {
   rideStatus?: string;
@@ -28,6 +29,7 @@ const LiveDriver: React.FC<ExtendedDriverInfoProps> = ({
   const [eta, setEta] = useState("Calculating...");
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [cancelOpen, setCancelOpen] = useState(false);
 
   useEffect(() => {
     fetchDriverInfo(
@@ -57,33 +59,22 @@ const LiveDriver: React.FC<ExtendedDriverInfoProps> = ({
       Alert.alert("Contact Info", "Phone number is not available");
       return;
     }
-
     Linking.openURL(`tel:${phoneNumber}`).catch((err) => {
       Alert.alert("Error", "Could not open phone dialer");
       console.error("An error occurred", err);
     });
   };
 
-  const handleCancelRide = () => {
-    Alert.alert("Cancel Ride", "Are you sure you want to cancel this ride?", [
-      { text: "No", style: "cancel" },
-      {
-        text: "Yes",
-        onPress: () => {
-          cancelRideRequest(
-            rideId,
-            () => {
-              Alert.alert("Ride Canceled", "Your ride has been canceled successfully.", [
-                { text: "OK", onPress: () => router.back() },
-              ]);
-            },
-            () => {
-              Alert.alert("Error", "Failed to cancel ride. Please try again.");
-            }
-          );
-        },
-      },
-    ]);
+  const onConfirmCancel = async (reason: CancelReason | null) => {
+    await new Promise<void>((resolve, reject) => {
+      // If you later update cancelRideRequest to accept `reason`, pass it here.
+      cancelRideRequest(
+        rideId,
+        () => resolve(),
+        (err) => reject(err)
+      );
+    });
+    // IMPORTANT: do NOT navigate here; let the sheet show success + Done
   };
 
   if (loading) {
@@ -120,11 +111,22 @@ const LiveDriver: React.FC<ExtendedDriverInfoProps> = ({
       {rideStatus !== "arrived_at_pickup" && rideStatus !== "in_progress" && (
         <CustomButton
           title="Cancel Ride"
-          onPress={handleCancelRide}
+          onPress={() => setCancelOpen(true)}
           bgVariant="danger"
           style={styles.cancelButton}
         />
       )}
+
+      <CancelRideSheet
+        visible={cancelOpen}
+        onClose={() => setCancelOpen(false)}
+        rideStatus={rideStatus}
+        onConfirmCancel={onConfirmCancel}
+        onDone={() => {
+          setCancelOpen(false);
+          router.replace("/(root)/(tabs)/home");
+        }}
+      />
     </View>
   );
 };

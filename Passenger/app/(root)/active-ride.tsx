@@ -12,7 +12,6 @@ import { useLocalSearchParams, router } from "expo-router";
 import { useUser } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
 import { doc, getDoc } from "firebase/firestore";
-
 import RideLayout from "@/components/RideLayout";
 import RequestLoading from "@/components/RequestLoading";
 import LiveDriver from "@/components/LiveDriver";
@@ -25,6 +24,7 @@ import {
   confirmRideCompletion,
 } from "@/lib/fetch";
 import { getEtaMinutes, LatLng } from "@/lib/eta";
+import CustomButton from "@/components/CustomButton";
 
 const ActiveRide = () => {
   const { user } = useUser();
@@ -50,6 +50,8 @@ const ActiveRide = () => {
 
   const [driverPhotoBase64, setDriverPhotoBase64] = useState<string>("");
   const [driverPhotoUrl, setDriverPhotoUrl] = useState<string>("");
+
+  const [cancelOpen, setCancelOpen] = useState(false);
 
 
   useEffect(() => {
@@ -315,21 +317,32 @@ const ActiveRide = () => {
           </View>
         )}
 
-        {["accepted", "arrived_at_pickup", "in_progress", "awaiting_passenger_confirm"].includes(rideStatus) &&
-          driverId &&
-          hasDriverFix ? (
+                {["accepted", "arrived_at_pickup", "in_progress", "awaiting_passenger_confirm"].includes(rideStatus) &&
+        driverId &&
+        hasDriverFix ? (
           <LiveDriver
-  driverId={driverId}
-  rideId={rideId}
-  driverLocation={driverLocation!}
-  rideStatus={rideStatus}
-  driverName={driverName}
-  driverPhotoBase64={driverPhotoBase64}
-  driverPhotoUrl={driverPhotoUrl}
-/>
-
+            driverId={driverId}
+            rideId={rideId}
+            driverLocation={driverLocation!}
+            rideStatus={rideStatus}
+            driverName={driverName}
+            driverPhotoBase64={driverPhotoBase64}
+            driverPhotoUrl={driverPhotoUrl}
+          />
         ) : rideStatus === "requested" ? (
           <RequestLoading rideId={rideId} />
+        ) : rideStatus === "cancelled_by_user" ? (
+          <View style={styles.endStateCard}>
+            <Text style={styles.endTitle}>Ride canceled</Text>
+            <Text style={styles.endBody}>
+              You can request a new ride anytime.
+            </Text>
+            <CustomButton
+              title="Back to Home"
+              onPress={() => router.replace("/(root)/(tabs)/home")}
+              style={styles.endButton}
+            />
+          </View>
         ) : (
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>
@@ -411,6 +424,29 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontFamily: "DMSans",
     color: "#FF3B30",
+  },
+    endStateCard: {
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: "#F5F5F5",
+  },
+  endTitle: {
+    fontSize: 18,
+    fontFamily: "DMSans-Bold",
+    textAlign: "center",
+    marginBottom: 6,
+    color: "#111",
+  },
+  endBody: {
+    fontSize: 14,
+    fontFamily: "DMSans",
+    textAlign: "center",
+    color: "#666",
+    marginBottom: 12,
+  },
+  endButton: {
+    marginTop: 4,
   },
   confirmCard: {
     marginBottom: 12,

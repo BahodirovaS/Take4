@@ -64,17 +64,39 @@ const RideRequestBottomSheet: React.FC = () => {
           limit(1)
         );
         const passengersSnapshot = await getDocs(passengersQuery);
+
+        let firstName: string | undefined;
+        let lastName: string | undefined;
+        let photoUrl: string | undefined;
+
         if (!passengersSnapshot.empty) {
-          const passengerDoc = passengersSnapshot.docs[0];
-          const data = passengerDoc.data();
-          setPassengerInfo({
-            first_name: data.firstName || "Unknown",
-            last_name: data.lastName || "",
-            photo_url: data.photo_url,
-          });
-        } else {
-          setPassengerInfo({ first_name: "Passenger", last_name: "" });
+          const p = passengersSnapshot.docs[0].data() as any;
+          firstName = p.firstName;
+          lastName = p.lastName;
+          photoUrl = p.profilePhotoUrl || p.photo_url;
         }
+
+        // Fallback to users if passenger missing names
+        if (!firstName) {
+          const usersQ = query(
+            collection(db, "users"),
+            where("clerkId", "==", ride.user_id),
+            limit(1)
+          );
+          const usersSnap = await getDocs(usersQ);
+
+          if (!usersSnap.empty) {
+            const u = usersSnap.docs[0].data() as any;
+            firstName = u.firstName;
+            lastName = u.lastName;
+          }
+        }
+
+        setPassengerInfo({
+          first_name: firstName || "Passenger",
+          last_name: lastName || "",
+          photo_url: photoUrl,
+        });
       } catch {
         setPassengerInfo({ first_name: "Passenger", last_name: "" });
       } finally {
@@ -305,9 +327,9 @@ const RideRequestBottomSheet: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    justifyContent: "flex-end" 
+  container: {
+    flex: 1,
+    justifyContent: "flex-end"
   },
   backdrop: { flex: 1, backgroundColor: "#000" },
   bottomSheet: {

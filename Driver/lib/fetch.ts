@@ -92,6 +92,7 @@ export const fetchPassengerInfo = async (userId: string): Promise<PassengerInfo 
   if (!userId) return null;
 
   try {
+    // 1) Try passenger doc first
     const passengersQuery = query(
       collection(db, "passengers"),
       where("clerkId", "==", userId),
@@ -100,29 +101,51 @@ export const fetchPassengerInfo = async (userId: string): Promise<PassengerInfo 
 
     const passengersSnapshot = await getDocs(passengersQuery);
 
+    let firstName: string | undefined;
+    let lastName: string | undefined;
+    let phone: string | undefined;
+    let photoUrl: string | undefined;
+
     if (!passengersSnapshot.empty) {
-      const passengerDoc = passengersSnapshot.docs[0];
-      const data = passengerDoc.data() as any;
+      const p = passengersSnapshot.docs[0].data() as any;
 
-      const photoUrl =
-        data.profilePhotoBase64
-          ? `data:image/jpeg;base64,${data.profilePhotoBase64}`
-          : data.photoUrl || undefined;
+      firstName = p.firstName;
+      lastName = p.lastName;
+      phone = p.phoneNumber || p.phone;
 
-      return {
-        id: userId,
-        firstName: data.firstName || "Unknown",
-        lastName: data.lastName || "",
-        photoUrl,
-        phone: data.phoneNumber || data.phone || "",
-      };
+      // ✅ FIX: your real field is profilePhotoUrl
+      photoUrl =
+        (p.profilePhotoBase64 ? `data:image/jpeg;base64,${p.profilePhotoBase64}` : undefined) ||
+        p.profilePhotoUrl || // ✅ this exists in your doc
+        p.photoUrl ||
+        p.photo_url;
+    }
+
+    // 2) Fallback to users doc for names (and optionally photo)
+    if (!firstName || !lastName) {
+      const usersQ = query(
+        collection(db, "users"),
+        where("clerkId", "==", userId),
+        limit(1)
+      );
+      const usersSnap = await getDocs(usersQ);
+
+      if (!usersSnap.empty) {
+        const u = usersSnap.docs[0].data() as any;
+        firstName = firstName || u.firstName;
+        lastName = lastName || u.lastName;
+
+        // Optional: if you ever store photo on users later
+        photoUrl = photoUrl || u.profilePhotoUrl || u.photoUrl;
+      }
     }
 
     return {
       id: userId,
-      firstName: "Passenger",
-      lastName: "",
-      phone: "",
+      firstName: firstName || "Passenger",
+      lastName: lastName || "",
+      photoUrl,
+      phone: phone || "",
     };
   } catch (error) {
     console.error("Error fetching passenger info:", error);
@@ -147,15 +170,23 @@ export const subscribeToRideDetails = (
 ) => {
   if (!rideId) {
     onError("No ride ID provided");
-    return () => { };
+    return () => {};
   }
 
   try {
     const rideRef = doc(db, "rideRequests", rideId);
 
-    const unsubscribe = onSnapshot(rideRef, (docSnap) => {
-      if (docSnap.exists()) {
+    const unsubscribe = onSnapshot(
+      rideRef,
+      (docSnap) => {
+        if (!docSnap.exists()) {
+          onError("Ride not found");
+          return;
+        }
+
         const data = docSnap.data();
+        const status = String(data.status || "");
+
         const ride: Ride = {
           id: docSnap.id,
           origin_address: data.origin_address,
@@ -177,26 +208,23 @@ export const subscribeToRideDetails = (
             car_seats: data.driver?.car_seats || 0,
             car_color: data.driver?.car_color || "",
           },
-          status: data.status,
+          status,
         };
 
         onRideUpdate(ride);
-
-        if (data.status) {
-          onRideStatusChange(data.status);
-        }
-
-        if (data.status === 'cancelled') {
-          Alert.alert('Ride Cancelled', 'This ride has been cancelled by the passenger.');
-        }
+        if (status) onRideStatusChange(status);
+      },
+      (error) => {
+        console.error("Error fetching ride details:", error);
+        onError("Failed to load ride details");
       }
-    });
+    );
 
     return unsubscribe;
   } catch (error) {
     console.error("Error fetching ride details:", error);
     onError("Failed to load ride details");
-    return () => { };
+    return () => {};
   }
 };
 

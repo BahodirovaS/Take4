@@ -1024,34 +1024,31 @@ export const fetchDriverInfo = (
 export const cancelRideRequest = (
   rideId: string | string[] | undefined,
   onSuccess: () => void,
-  onError: (error: any) => void
+  onError: (error: any) => void,
+  reason?: string
 ): void => {
   if (!rideId) {
     onError(new Error("No rideId provided"));
     return;
   }
 
-  try {
-    const cancelRide = async () => {
-      const rideIdString = Array.isArray(rideId) ? rideId[0] : rideId as string;
-      const rideRef = doc(db, "rideRequests", rideIdString);
+  const cancelRide = async () => {
+    const rideIdString = Array.isArray(rideId) ? rideId[0] : (rideId as string);
+    const rideRef = doc(db, "rideRequests", rideIdString);
 
-      await updateDoc(rideRef, {
-        status: "cancelled_by_user",
-        cancelledAt: new Date()
-      });
-
-      onSuccess();
-    };
-
-    cancelRide().catch(error => {
-      console.error("Error cancelling ride:", error);
-      onError(error);
+    await updateDoc(rideRef, {
+      status: "cancelled_by_user",
+      cancelledAt: new Date(),
+      cancelledReason: reason ?? null,
     });
-  } catch (error) {
-    console.error("Error in ride cancellation:", error);
+
+    onSuccess();
+  };
+
+  cancelRide().catch((error) => {
+    console.error("Error cancelling ride:", error);
     onError(error);
-  }
+  });
 };
 
 

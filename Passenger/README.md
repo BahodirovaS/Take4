@@ -4,7 +4,6 @@
 ## UI Updates:
 - format the scheduled ride request for drivers. it's ugly
 - tap to change photo for driver crashes the app
-- driver photo won't show up for passengers when ride is coming their way
 - FORMAT THE STYLE SECTION FOR SEVERAL COMPONENTS
 
 ## Logic Updates:
@@ -18,6 +17,7 @@
 - make batch payment flow
 
 ## Fixed Updates:
+- [FIXED]driver photo won't show up for passengers when ride is coming their way
 - [FIXED]have wallet feature for passengers **IMPORTANT**
 - [FIXED]tip is showing up in the Connect account of the driver, but the fare share isn't -> made a new endpoint for driver share and changed /create to remove driverId
 - [FIXED]tipping page won't pop up for passenegers if the app refreshes. Make it so if the tip is false, they can't go to home screen? -> added listener to passenger root layout and added passenger acknowledgement

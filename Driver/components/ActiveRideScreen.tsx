@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -22,9 +22,7 @@ import {
   setupLocationTracking,
   markArrivedAtPickup,
   startRide,
-  completeRide,
   subscribeToUnreadCount,
-  payoutDriverForRide,
   requestRideCompletion,
 } from '@/lib/fetch';
 import { useUser } from '@clerk/clerk-expo';
@@ -38,12 +36,12 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId }) => {
   const [rideStage, setRideStage] = useState<'to_pickup' | 'to_destination'>('to_pickup');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [passengerInfo, setPassengerInfo] = useState<PassengerInfo | null>(null);
-  const [loadingPassenger, setLoadingPassenger] = useState<boolean>(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const { user } = useUser();
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
   const [isRequestingComplete, setIsRequestingComplete] = useState(false);
   const [completionRequested, setCompletionRequested] = useState(false);
+  const cancelHandledRef = useRef(false);
   const locationStore = useLocationStore();
   const { setUserLocation, setDestinationLocation } = locationStore;
 
@@ -51,22 +49,18 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId }) => {
     const newRideStage =
       status === 'accepted'
         ? 'to_pickup'
-        : status === 'arrived_at_pickup'
-          ? 'to_destination'
-          : status === 'in_progress'
-            ? 'to_destination'
-            : 'to_pickup';
+        : status === 'arrived_at_pickup' || status === 'in_progress'
+        ? 'to_destination'
+        : 'to_pickup';
     setRideStage(newRideStage);
   };
 
   const loadPassengerInfo = async (userId: string) => {
     if (!userId) return;
-    setLoadingPassenger(true);
     const info = await fetchPassengerInfo(userId);
-    if (info) setPassengerInfo(info);
-    setLoadingPassenger(false);
-    if (info?.phone || info?.phone) {
-      setPhoneNumber(info.phone ?? info.phone);
+    if (info) {
+      setPassengerInfo(info);
+      if (info.phone) setPhoneNumber(info.phone);
     }
   };
 
@@ -78,9 +72,8 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId }) => {
 
   const handleRideUpdate = (updatedRide: Ride) => {
     setRide(updatedRide);
-    if (updatedRide.user_id) {
-      loadPassengerInfo(updatedRide.user_id);
-    }
+    if (updatedRide.user_id) loadPassengerInfo(updatedRide.user_id);
+
     setDestinationLocation({
       latitude: rideStage === 'to_pickup' ? updatedRide.origin_latitude : updatedRide.destination_latitude,
       longitude: rideStage === 'to_pickup' ? updatedRide.origin_longitude : updatedRide.destination_longitude,
@@ -92,117 +85,107 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId }) => {
     if (!rideId) {
       setIsLoading(false);
       Alert.alert('Error', 'No ride ID provided');
-      return () => { };
+      return;
     }
 
     const unsubscribeRide = subscribeToRideDetails(
       rideId,
       handleRideUpdate,
       handleRideStatusChange,
-      errorMsg => {
-        setIsLoading(false);
-        Alert.alert('Error', errorMsg);
-      }
+      (msg) => Alert.alert("Error", msg)
     );
 
-    const setupLocation = async () => {
-      const locationSubscription = await setupLocationTracking(
-        rideId,
-        location => {
-          setCurrentLocation(location);
-          setUserLocation({
-            latitude: location.latitude,
-            longitude: location.longitude,
-            address: '',
-          });
-        },
-        address => {
-          const updatedLocation = {
-            ...currentLocation,
-            latitude: currentLocation?.latitude || 0,
-            longitude: currentLocation?.longitude || 0,
-            address,
-          };
-          setUserLocation(updatedLocation);
-        },
-        errorMsg => Alert.alert('Location Error', errorMsg)
-      );
-
-      setIsLoading(false);
-      return locationSubscription;
-    };
-
     let locationSubscription: any;
-    setupLocation().then(sub => {
+
+    setupLocationTracking(
+      rideId,
+      location => {
+        setCurrentLocation(location);
+        setUserLocation({ latitude: location.latitude, longitude: location.longitude, address: '' });
+      },
+      address => {
+        if (!currentLocation) return;
+        setUserLocation({ ...currentLocation, address });
+      },
+      errorMsg => Alert.alert('Location Error', errorMsg)
+    ).then(sub => {
       locationSubscription = sub;
+      setIsLoading(false);
     });
 
     return () => {
       unsubscribeRide();
-      if (locationSubscription) {
-        locationSubscription.remove();
-      }
+      if (locationSubscription) locationSubscription.remove();
     };
   }, [rideId]);
 
   useEffect(() => {
-    if (ride) {
-      setDestinationLocation({
-        latitude: rideStage === 'to_pickup' ? ride.origin_latitude : ride.destination_latitude,
-        longitude: rideStage === 'to_pickup' ? ride.origin_longitude : ride.destination_longitude,
-        address: rideStage === 'to_pickup' ? ride.origin_address : ride.destination_address,
-      });
+    if (!ride) return;
+    setDestinationLocation({
+      latitude: rideStage === 'to_pickup' ? ride.origin_latitude : ride.destination_latitude,
+      longitude: rideStage === 'to_pickup' ? ride.origin_longitude : ride.destination_longitude,
+      address: rideStage === 'to_pickup' ? ride.origin_address : ride.destination_address,
+    });
+  }, [rideStage, ride]);
+
+  useEffect(() => {
+    if (ride?.status === "completed") {
+      Alert.alert("Ride Completed", "Passenger confirmed arrival.", [
+        { text: "OK", onPress: () => router.replace("/(root)/(tabs)/home") },
+      ]);
     }
-  }, [rideStage, ride, setDestinationLocation]);
+  }, [ride?.status]);
+
+  useEffect(() => {
+    if (ride?.status === "cancelled_by_user" && !cancelHandledRef.current) {
+      cancelHandledRef.current = true;
+      Alert.alert("Ride Cancelled", "The passenger cancelled the ride.", [
+        { text: "OK", onPress: () => router.replace("/(root)/(tabs)/home") },
+      ]);
+    }
+  }, [ride?.status]);
 
   const handleArriveAtPickup = async () => {
     const success = await markArrivedAtPickup(rideId);
-    if (success) {
-      setRideStage('to_destination');
-      if (ride) {
-        setDestinationLocation({
-          latitude: ride.destination_latitude,
-          longitude: ride.destination_longitude,
-          address: ride.destination_address,
-        });
-      }
-      Alert.alert('Arrived', "Let the passenger know you've arrived");
-    } else {
+    if (!success) {
       Alert.alert('Error', 'Could not update ride status');
+      return;
     }
+    setRideStage('to_destination');
+    if (ride) {
+      setDestinationLocation({
+        latitude: ride.destination_latitude,
+        longitude: ride.destination_longitude,
+        address: ride.destination_address,
+      });
+    }
+    Alert.alert('Arrived', "Let the passenger know you've arrived");
   };
 
   const handleStartRide = async () => {
     const success = await startRide(rideId);
-    if (success) {
-      setRideStage('to_destination');
-      if (ride) {
-        setDestinationLocation({
-          latitude: ride.destination_latitude,
-          longitude: ride.destination_longitude,
-          address: ride.destination_address,
-        });
-      }
-      Alert.alert('Ride Started', 'Navigate to destination');
-    } else {
+    if (!success) {
       Alert.alert('Error', 'Could not start the ride');
+      return;
     }
+    setRideStage('to_destination');
+    if (ride) {
+      setDestinationLocation({
+        latitude: ride.destination_latitude,
+        longitude: ride.destination_longitude,
+        address: ride.destination_address,
+      });
+    }
+    Alert.alert('Ride Started', 'Navigate to destination');
   };
 
   const handleCompleteRide = async () => {
     if (!rideId) return;
-
     setIsRequestingComplete(true);
     try {
       await requestRideCompletion(rideId, user?.id);
       setCompletionRequested(true);
-
-      Alert.alert(
-        "Waiting for passenger",
-        "We’ve asked the passenger to confirm they’re at the destination."
-      );
-
-      // IMPORTANT: do NOT navigate away
+      Alert.alert("Waiting for passenger", "We’ve asked the passenger to confirm they’re at the destination.");
     } catch (e: any) {
       Alert.alert("Error", e?.message || "Could not request completion");
     } finally {
@@ -210,24 +193,10 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId }) => {
     }
   };
 
-  useEffect(() => {
-    if (ride?.status === "completed") {
-      Alert.alert("Ride Completed", "Passenger confirmed arrival.", [
-        {
-          text: "OK",
-          onPress: () => router.replace("/(root)/(tabs)/home"),
-        },
-      ]);
-    }
-  }, [ride?.status]);
-
-
   const openNavigation = () => {
     if (!ride) return;
-
     const toLat = rideStage === 'to_pickup' ? ride.origin_latitude : ride.destination_latitude;
     const toLng = rideStage === 'to_pickup' ? ride.origin_longitude : ride.destination_longitude;
-
     const fromLat = currentLocation?.latitude;
     const fromLng = currentLocation?.longitude;
 
@@ -243,76 +212,10 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId }) => {
         `https://www.google.com/maps/dir/?api=1` +
         (fromLat != null && fromLng != null ? `&origin=${fromLat},${fromLng}` : '') +
         `&destination=${toLat},${toLng}&travelmode=driving`;
-
       Linking.canOpenURL(appUrl)
         .then(supported => Linking.openURL(supported ? appUrl : webUrl))
         .catch(() => Linking.openURL(webUrl));
     }
-  };
-
-  const handleMessagePassenger = () => {
-    if (!passengerInfo || !passengerInfo.id) {
-      Alert.alert('Error', 'Cannot find passenger information');
-      return;
-    }
-
-    router.push({
-      pathname: '/chat',
-      params: {
-        otherPersonId: passengerInfo.id,
-        otherPersonName: passengerInfo.firstName,
-        rideId: rideId,
-        context: 'active_ride',
-      },
-    });
-  };
-
-  const handleContactPassengerPhone = async () => {
-    try {
-      let phone = phoneNumber;
-
-      if (!phone) {
-        if (!ride?.user_id) {
-          Alert.alert('Contact Info', 'Passenger ID is missing');
-          return;
-        }
-        const q = query(collection(db, 'passengers'), where('clerkId', '==', ride.user_id), limit(1));
-        const snap = await getDocs(q);
-        if (!snap.empty) {
-          const data = snap.docs[0].data() as any;
-          phone = data.phoneNumber || data.phone || null;
-          if (phone) setPhoneNumber(phone);
-        }
-      }
-
-      if (!phone) {
-        Alert.alert('Contact Info', 'Phone number is not available');
-        return;
-      }
-
-      const raw = phone.toString().trim();
-      const digits = raw.replace(/[^\d+]/g, '');
-      const normalized = digits.startsWith('+') ? digits : digits.length === 10 ? `+1${digits}` : digits;
-
-      if (!normalized) {
-        Alert.alert('Contact Info', 'Phone number format is invalid');
-        return;
-      }
-
-      const url = `tel:${normalized}`;
-      const supported = await Linking.canOpenURL(url);
-      if (!supported) {
-        Alert.alert('Error', 'Calling is not supported on this device');
-        return;
-      }
-      await Linking.openURL(url);
-    } catch {
-      Alert.alert('Error', 'Could not open phone dialer');
-    }
-  };
-
-  const handleGoToHome = () => {
-    router.push({ pathname: '/(root)/(tabs)/home' });
   };
 
   const target = useMemo(() => {
@@ -328,15 +231,6 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId }) => {
     { pollMs: 15000 }
   );
 
-  const originShort = useMemo(
-    () => (ride?.origin_address ? String(ride.origin_address).split(',')[0] : 'Origin'),
-    [ride?.origin_address]
-  );
-  const destinationShort = useMemo(
-    () => (ride?.destination_address ? String(ride.destination_address).split(',')[0] : 'Destination'),
-    [ride?.destination_address]
-  );
-
   if (isLoading || !ride) {
     return (
       <View style={styles.loadingContainer}>
@@ -347,105 +241,30 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.topBar}>
-        <TouchableOpacity style={styles.backButton} onPress={handleGoToHome}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
-        </TouchableOpacity>
-
-        <View style={styles.titleBlock}>
-          <Text style={styles.topBarText}>Active Ride</Text>
-          <Text numberOfLines={1} ellipsizeMode="tail" style={styles.routeText}>
-            {originShort} → {destinationShort}
-          </Text>
-        </View>
-
-        <View style={styles.headerSpacer} />
-      </View>
-
       <View style={styles.mapContainer}>
-        <DriverMap showLocationButton={true} />
+        <DriverMap showLocationButton />
       </View>
-
       <View style={styles.rideInfoContainer}>
-        <View style={styles.headerContainer}>
-          <View style={styles.passengerRow}>
-            <Image
-              source={
-                passengerInfo?.photoUrl
-                  ? { uri: passengerInfo.photoUrl }
-                  : require("@/assets/icons/person.png")
-              }
-              style={styles.passengerImage}
-            />
-
-            <Text style={styles.stageText}>
-              {rideStage === 'to_pickup'
-                ? `Heading to pickup ${passengerInfo?.firstName || 'passenger'}`
-                : `Taking ${passengerInfo?.firstName || 'passenger'} to destination`}
-            </Text>
-          </View>
-        </View>
-
-
         <Text style={styles.addressText}>
           {rideStage === 'to_pickup' ? ride.origin_address : ride.destination_address}
         </Text>
-
-        {currentLocation && target ? (
-          etaMin != null ? (
-            <Text style={styles.etaText}>
-              {rideStage === 'to_pickup' ? 'ETA to pickup' : 'ETA to dropoff'}: {etaMin} min (~{arrivalText})
-            </Text>
-          ) : (
-            <Text style={styles.etaText}>Calculating ETA…</Text>
-          )
+        {etaMin != null ? (
+          <Text style={styles.etaText}>
+            {rideStage === 'to_pickup' ? 'ETA to pickup' : 'ETA to dropoff'}: {etaMin} min (~{arrivalText})
+          </Text>
         ) : (
-          <Text style={styles.etaText}>Waiting for location…</Text>
+          <Text style={styles.etaText}>Calculating ETA…</Text>
         )}
-
-        <View style={styles.buttonContainer}>
-          <CustomButton
-            title="Navigate"
-            bgVariant="tertiary"
-            textVariant="primary"
-            onPress={openNavigation}
-            IconLeft={() => <Ionicons name="navigate" size={20} color="black" marginRight="5" />}
-            style={styles.navigationButton}
-          />
-
-          <View style={styles.messageWrapper}>
-            <CustomButton
-              title="Call Passenger"
-              bgVariant="tertiary"
-              textVariant="primary"
-              onPress={handleContactPassengerPhone}
-              IconLeft={() => <Ionicons name="call-outline" size={20} color="black" marginRight="5" />}
-              style={styles.messageButton}
-            />
-            {unreadCount > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
-              </View>
-            )}
-          </View>
-        </View>
-
         <View style={styles.actionButtonContainer}>
           {rideStage === 'to_pickup' && ride.status !== 'arrived_at_pickup' ? (
-            <CustomButton
-              title="Arrived at Pickup"
-              bgVariant="primary"
-              onPress={handleArriveAtPickup}
-              style={styles.customActionButton}
-            />
+            <CustomButton title="Arrived at Pickup" bgVariant="primary" onPress={handleArriveAtPickup} />
           ) : ride.status === 'arrived_at_pickup' ? (
-            <CustomButton title="Start Ride" bgVariant="primary" onPress={handleStartRide} style={styles.customActionButton} />
+            <CustomButton title="Start Ride" bgVariant="primary" onPress={handleStartRide} />
           ) : (
             <CustomButton
               title={completionRequested ? "Waiting for passenger…" : "Complete Ride"}
               bgVariant="primary"
               onPress={handleCompleteRide}
-              style={styles.customActionButton}
               disabled={isRequestingComplete || completionRequested}
             />
           )}
@@ -456,72 +275,9 @@ const ActiveRideScreen: React.FC<ActiveRideProps> = ({ rideId }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'white',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backButton: {
-    padding: 8,
-  },
-  topBar: {
-    height: 36,
-    backgroundColor: 'white',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-    zIndex: 10,
-    marginBottom: 15,
-    marginTop: 15,
-  },
-  topBarText: {
-    fontSize: 18,
-    fontFamily: 'DMSans-SemiBold',
-    color: '#333',
-  },
-  titleBlock: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'column',
-  },
-  routeText: {
-    fontSize: 14,
-    fontFamily: 'DMSans',
-    color: '#666',
-    marginTop: 4,
-    textAlign: 'center',
-    maxWidth: '80%',
-  },
-  headerSpacer: {
-    width: 40,
-  },
-  mapContainer: {
-    flex: 1,
-  },
-  infoScroll: {
-    maxHeight: 100,
-  },
-  headerContainer: {
-    marginBottom: 8,
-  },
-  passengerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-
-  passengerImage: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    marginRight: 12,
-  },
-
+  container: { flex: 1, backgroundColor: 'white' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  mapContainer: { flex: 1 },
   rideInfoContainer: {
     position: 'absolute',
     bottom: 0,
@@ -531,69 +287,10 @@ const styles = StyleSheet.create({
     padding: 16,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.27,
-    shadowRadius: 4.65,
-    elevation: 6,
   },
-  stageText: {
-    fontSize: 20,
-    fontFamily: 'DMSans-Bold',
-    marginBottom: 4,
-  },
-  addressText: {
-    fontSize: 20,
-    marginBottom: 8,
-    marginTop: 8,
-    fontFamily: 'DMSans-Medium',
-  },
-  etaText: {
-    fontSize: 16,
-    marginTop: 4,
-    paddingBottom: 10,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: 20,
-  },
-  actionButtonContainer: {
-    marginTop: 15,
-    marginBottom: 40,
-  },
-  navigationButton: {
-    flex: 1,
-    marginRight: 10,
-  },
-  messageButton: {
-    flex: 1,
-  },
-  messageWrapper: {
-    flex: 1,
-    marginLeft: 10,
-    position: 'relative',
-  },
-  badge: {
-    position: 'absolute',
-    top: -6,
-    right: -6,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    paddingHorizontal: 4,
-    backgroundColor: '#FF3B30',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badgeText: {
-    color: '#fff',
-    fontSize: 11,
-    fontFamily: 'DMSans-Bold',
-  },
-  customActionButton: {
-    width: '100%',
-  },
+  addressText: { fontSize: 18, marginBottom: 8 },
+  etaText: { fontSize: 16, marginBottom: 12 },
+  actionButtonContainer: { marginTop: 10, marginBottom: 30 },
 });
 
 export default ActiveRideScreen;

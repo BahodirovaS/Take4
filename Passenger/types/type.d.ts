@@ -277,3 +277,10 @@ export type SetupIntentResponse = {
   ephemeralKeySecret: string;
   setupIntentClientSecret: string;
 };
+
+export type CancelReason =
+  | "wait_too_long"
+  | "changed_mind"
+  | "wrong_pickup"
+  | "found_other"
+  | "other";
