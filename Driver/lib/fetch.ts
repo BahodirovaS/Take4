@@ -1144,17 +1144,11 @@ export async function createStripeDashboardLink(
 /** Build WalletData summary from Firestore rides */
 export async function getWalletSummary(userId: string): Promise<WalletData> {
   if (!userId) {
-    return {
-      totalEarnings: 0,
-      availableBalance: 0,
-      pendingBalance: 0,
-      recentPayments: [],
-    };
+    return { totalEarnings: 0, availableBalance: 0, pendingBalance: 0, recentPayments: [] };
   }
 
   const ridesQ = query(collection(db, "rideRequests"), where("driver_id", "==", userId));
   const snap = await getDocs(ridesQ);
-
   const allRides: any[] = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
   const toDate = (ts: any): Date => {
@@ -1167,38 +1161,33 @@ export async function getWalletSummary(userId: string): Promise<WalletData> {
     return isNaN(parsed.getTime()) ? new Date(0) : parsed;
   };
 
-  const isCancelled = (status: string) =>
-    status === "cancelled_by_user" || status === "cancelled_by_driver";
+  const isCancelled = (s: string) => s === "cancelled_by_user" || s === "cancelled_by_driver";
+  const isCompletedStatus = (s: string) => s === "completed" || s === "rated";
 
-  const isCompletedStatus = (status: string) => status === "completed" || status === "rated";
+  const isFinalizedPayment = (ride: any) => {
+    const ps = String(ride.payment_status || "");
+    const payout = String(ride.payout_status || "");
+    return ps === "paid" || ps === "captured" || payout === "paid";
+  };
 
-  const isAvailable = (status: string, paymentStatus: string) =>
-    isCompletedStatus(status) && paymentStatus === "captured";
-
-  const shouldIncludeForWallet = (paymentStatus: string) => {
-    const ps = String(paymentStatus || "");
-    return ps === "authorized" || ps === "paid" || ps === "captured" || ps === "capture_failed";
+  const isAvailable = (ride: any) => {
+    const s = String(ride.status || "");
+    return isCompletedStatus(s) && isFinalizedPayment(ride);
   };
 
   let availableCents = 0;
   let pendingCents = 0;
-
   const recentPayments: Payment[] = [];
 
   for (const ride of allRides) {
     const status = String(ride.status || "");
-    const paymentStatus = String(ride.payment_status || "");
-
     if (isCancelled(status)) continue;
-    if (!shouldIncludeForWallet(paymentStatus)) continue;
 
     const driverShareCents = Number(ride.driver_share || 0);
     if (!Number.isFinite(driverShareCents) || driverShareCents <= 0) continue;
 
-    const createdAt = toDate(ride.createdAt ?? ride.created_at ?? ride.completed_at);
-
-    const paymentItemStatus: "pending" | "available" =
-      isAvailable(status, paymentStatus) ? "available" : "pending";
+    const createdAt = toDate(ride.completed_at ?? ride.createdAt ?? ride.created_at);
+    const paymentItemStatus: "pending" | "available" = isAvailable(ride) ? "available" : "pending";
 
     if (paymentItemStatus === "available") availableCents += driverShareCents;
     else pendingCents += driverShareCents;
@@ -1217,10 +1206,7 @@ export async function getWalletSummary(userId: string): Promise<WalletData> {
     const tipAmount = Number(ride.tip_amount || 0);
     if (Number.isFinite(tipAmount) && tipAmount > 0 && isCompletedStatus(status)) {
       const tipDate =
-        toDate(ride.tipped_at) ||
-        toDate(ride.rated_at) ||
-        toDate(ride.completed_at) ||
-        createdAt;
+        toDate(ride.tipped_at) || toDate(ride.rated_at) || toDate(ride.completed_at) || createdAt;
 
       recentPayments.push({
         id: `${ride.id}_tip`,
