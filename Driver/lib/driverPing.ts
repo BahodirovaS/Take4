@@ -3,6 +3,7 @@ export async function pingDriverAdmin(params: {
   driverId: string;
   name?: string;
   email?: string;
+  phoneNumber?: string;
   lat: number;
   lng: number;
   status?: "offline" | "available" | "on_trip";
@@ -15,6 +16,7 @@ export async function pingDriverAdmin(params: {
         driverId: params.driverId,
         name: params.name,
         email: params.email,
+        phoneNumber: params.phoneNumber,
         lat: params.lat,
         lng: params.lng,
         status: params.status ?? "available",

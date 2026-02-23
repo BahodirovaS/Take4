@@ -43,7 +43,7 @@ export default function DriverLocationPublisher({ isOnline }: { isOnline: boolea
           const id = driverDocIdRef.current;
           if (!id || !user?.id) return;
 
-          
+
           try {
             await updateDoc(doc(db, "drivers", id), {
               latitude,
@@ -54,12 +54,16 @@ export default function DriverLocationPublisher({ isOnline }: { isOnline: boolea
             console.warn("Failed to publish location to Firestore:", e);
           }
 
-          
+
           await pingDriverAdmin({
             adminBaseUrl: ADMIN_BASE_URL,
             driverId: user.id,
             name: user.fullName ?? `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim(),
             email: user.primaryEmailAddress?.emailAddress,
+            phoneNumber:
+              user?.phoneNumbers?.[0]?.phoneNumber ??
+              (user as any)?.primaryPhoneNumber?.phoneNumber ??
+              undefined,
             lat: latitude,
             lng: longitude,
             status: isOnline ? "available" : "offline",
@@ -70,7 +74,7 @@ export default function DriverLocationPublisher({ isOnline }: { isOnline: boolea
 
     const stopWatch = () => {
       if (watchSub.current) {
-        try { watchSub.current.remove(); } catch {}
+        try { watchSub.current.remove(); } catch { }
         watchSub.current = null;
       }
     };
