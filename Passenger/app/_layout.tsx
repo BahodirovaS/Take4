@@ -9,6 +9,7 @@ import { useLocationStore } from "@/store";
 import * as Location from "expo-location";
 import { tokenCache } from "@/lib/auth";
 import { StripeProvider } from "@stripe/stripe-react-native";
+import { StatusBar } from "expo-status-bar";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -71,6 +72,7 @@ export default function RootLayout() {
           merchantIdentifier="merchant.com.uber"
           urlScheme="myapp"
         >
+          <StatusBar style="dark" />
           <Stack>
             <Stack.Screen name="index" options={{ headerShown: false }} />
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />

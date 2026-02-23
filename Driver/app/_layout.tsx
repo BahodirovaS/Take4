@@ -15,6 +15,7 @@ import { useLocationStore } from "@/store";
 import * as Location from "expo-location";
 import DriverLocationPublisher from "@/components/DriverLocationPublisher";
 import ScheduledRequestBottomSheet from "@/components/ScheduledRequest";
+import { StatusBar } from "expo-status-bar";
 
 
 SplashScreen.preventAutoHideAsync();
@@ -99,7 +100,7 @@ const RideRequestListener: React.FC = () => {
   }, [user?.id]);
 
 
-return (
+  return (
     <>
       <RideRequestBottomSheet />
       <ScheduledRequestBottomSheet />
@@ -151,6 +152,7 @@ export default function RootLayout() {
     <ClerkProvider tokenCache={tokenCache} publishableKey={publishableKey}>
       <RideRequestProvider>
         <ClerkLoaded>
+          <StatusBar style="dark" />
           <RideRequestListener />
           <Stack>
             <Stack.Screen name="index" options={{ headerShown: false }} />
