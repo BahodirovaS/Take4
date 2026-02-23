@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { fetchPricing } from "@/lib/fetch";
+import { Pricing } from "@/types/type";
 
 export const usePriceCalculator = (
   origin: { latitude: number; longitude: number },
@@ -9,17 +11,41 @@ export const usePriceCalculator = (
   const [distance, setDistance] = useState<number>(0);
   const [time, setTime] = useState<number>(0);
   const [arrivalTime, setArrivalTime] = useState<string>("");
+  const [pricing, setPricing] = useState<Pricing | null>(null);
 
-  const basePrice = 2.5;
-  const perMileRate = 1.0;
-  const perMinuteRate = 0.1;
-  const minimumPrice = 5.0;
-  const fixedPickupTime = 5;
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const p = await fetchPricing();
+        if (!cancelled) setPricing(p);
+      } catch (e) {
+        console.warn("Failed to load pricing:", e);
+        if (!cancelled) {
+          setPricing({
+            basePrice: 2.5,
+            perMileRate: 1.0,
+            perMinuteRate: 0.1,
+            minimumPrice: 5.0,
+            fixedPickupTime: 5,
+          });
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const calculatePriceAndArrival = async () => {
+      if (!pricing) return;
+
       const originString = `${origin.latitude},${origin.longitude}`;
       const destinationString = `${destination.latitude},${destination.longitude}`;
+
       const response = await fetch(
         `https://maps.googleapis.com/maps/api/directions/json?origin=${originString}&destination=${destinationString}&departure_time=now&key=${mileageAPI}`
       );
@@ -30,6 +56,7 @@ export const usePriceCalculator = (
         const distanceInMeters: number = legs.distance.value;
         const durationInSeconds: number =
           legs.duration_in_traffic?.value || legs.duration.value;
+
         const distanceInMiles = distanceInMeters * 0.000621371;
         const durationInMinutes = Math.round(durationInSeconds / 60);
 
@@ -37,13 +64,14 @@ export const usePriceCalculator = (
         setTime(durationInMinutes);
 
         const calculatedPrice =
-          basePrice +
-          distanceInMiles * perMileRate +
-          durationInMinutes * perMinuteRate;
-        const finalPrice = Math.max(calculatedPrice, minimumPrice);
-        setPrice(finalPrice);
+          pricing.basePrice +
+          distanceInMiles * pricing.perMileRate +
+          durationInMinutes * pricing.perMinuteRate;
 
-        const totalTravelTime = durationInMinutes + fixedPickupTime;
+        const finalPrice = Math.max(calculatedPrice, pricing.minimumPrice);
+        setPrice(Number(finalPrice.toFixed(2)));
+
+        const totalTravelTime = durationInMinutes + pricing.fixedPickupTime;
         const now = new Date();
         now.setMinutes(now.getMinutes() + totalTravelTime);
         setArrivalTime(
@@ -53,6 +81,7 @@ export const usePriceCalculator = (
     };
 
     if (
+      pricing &&
       origin?.latitude != null &&
       origin?.longitude != null &&
       destination?.latitude != null &&
@@ -60,7 +89,7 @@ export const usePriceCalculator = (
     ) {
       calculatePriceAndArrival();
     }
-  }, [origin, destination, mileageAPI]);
+  }, [origin, destination, mileageAPI, pricing]);
 
   return { price, distance, time, arrivalTime };
 };

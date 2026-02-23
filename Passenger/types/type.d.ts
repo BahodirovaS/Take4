@@ -284,3 +284,11 @@ export type CancelReason =
   | "wrong_pickup"
   | "found_other"
   | "other";
+
+  export type Pricing = {
+  basePrice: number;
+  perMileRate: number;
+  perMinuteRate: number;
+  minimumPrice: number;
+  fixedPickupTime: number;
+};

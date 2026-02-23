@@ -24,7 +24,8 @@ import {
   MarkerData,
   CardPM,
   PaymentMethodsResponse,
-  SetupIntentResponse
+  SetupIntentResponse,
+  Pricing
 } from "@/types/type";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
@@ -1127,4 +1128,31 @@ export const detachPaymentMethod = async (payload: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
+};
+
+let cachedPricing: { value: Pricing; expiresAt: number } | null = null;
+const adminBase = process.env.EXPO_PUBLIC_ADMIN_BASE_URL;
+
+
+export const fetchPricing = async (): Promise<Pricing> => {
+  const now = Date.now();
+
+  // cache 5 min
+  if (cachedPricing && cachedPricing.expiresAt > now) {
+    return cachedPricing.value;
+  }
+
+  const res = await fetch(`${adminBase}/api/pricing/current`);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch pricing: ${res.status}`);
+  }
+
+  const data = (await res.json()) as Pricing;
+
+  cachedPricing = {
+    value: data,
+    expiresAt: now + 5 * 60 * 1000,
+  };
+
+  return data;
 };
