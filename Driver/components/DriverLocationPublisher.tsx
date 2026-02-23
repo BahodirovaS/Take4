@@ -11,18 +11,30 @@ export default function DriverLocationPublisher({ isOnline }: { isOnline: boolea
   const { user } = useUser();
   const watchSub = useRef<Location.LocationSubscription | null>(null);
   const driverDocIdRef = useRef<string | null>(null);
+  const driverPhoneRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!user?.id) return;
 
     let active = true;
+
     (async () => {
-      const snap = await getDocs(query(collection(db, "drivers"), where("clerkId", "==", user.id)));
+      const snap = await getDocs(
+        query(collection(db, "drivers"), where("clerkId", "==", user.id))
+      );
       if (!active || snap.empty) return;
-      driverDocIdRef.current = snap.docs[0].id;
+
+      const doc0 = snap.docs[0];
+      driverDocIdRef.current = doc0.id;
+
+      const data: any = doc0.data();
+      driverPhoneRef.current =
+        data.phoneNumber ?? data.phone_number ?? null;
     })();
 
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [user?.id]);
 
   useEffect(() => {
@@ -63,6 +75,7 @@ export default function DriverLocationPublisher({ isOnline }: { isOnline: boolea
             phoneNumber:
               user?.phoneNumbers?.[0]?.phoneNumber ??
               (user as any)?.primaryPhoneNumber?.phoneNumber ??
+              driverPhoneRef.current ??
               undefined,
             lat: latitude,
             lng: longitude,
