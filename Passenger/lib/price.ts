@@ -28,7 +28,7 @@ export const usePriceCalculator = (
             perMileRate: 1.0,
             perMinuteRate: 0.1,
             minimumPrice: 5.0,
-            fixedPickupTime: 5,
+            fixedPickupTime: 1,
           });
         }
       }
