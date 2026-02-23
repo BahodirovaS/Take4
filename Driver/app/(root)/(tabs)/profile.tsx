@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
+  Linking,
 } from "react-native";
 import { useRouter } from "expo-router";
 import CustomButton from "@/components/CustomButton";
@@ -47,6 +48,23 @@ const DriverInfo = () => {
     profilePhotoUrl: "",
   });
 
+  const ADMIN_EMAIL = "bahodirova2000@gmail.com";
+  const ADMIN_URL = "https://take4admin-n2wr.vercel.app/admin";
+
+  const isAdmin =
+    (user?.primaryEmailAddress?.emailAddress ?? "").toLowerCase() ===
+    ADMIN_EMAIL.toLowerCase();
+
+  const openAdmin = async () => {
+    try {
+      const ok = await Linking.canOpenURL(ADMIN_URL);
+      if (!ok) return Alert.alert("Error", "Cannot open admin link on this device.");
+      await Linking.openURL(ADMIN_URL);
+    } catch {
+      Alert.alert("Error", "Failed to open admin page.");
+    }
+  };
+
   const [driverDocId, setDriverDocId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
@@ -62,7 +80,7 @@ const DriverInfo = () => {
       }));
 
       const { driverData, driverDocId: docId, error } = await fetchDriverInfo(user.id);
-      
+
       if (error) {
         Alert.alert("Error", "Failed to load driver information.");
         return;
@@ -361,7 +379,13 @@ const DriverInfo = () => {
               <CustomButton title="Update Profile" onPress={onSubmit} style={styles.updateButton} />
             </View>
           </View>
-
+          {isAdmin && (
+            <CustomButton
+              title="Open Admin Dashboard"
+              onPress={openAdmin}
+              style={{ marginTop: 16, justifyContent: "center", alignSelf: "center", width: "70%" }}
+            />
+          )}
           <CustomButton
             title="Log Out"
             onPress={handleSignOut}
