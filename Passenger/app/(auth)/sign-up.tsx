@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
     },
     verifyButton: {
         marginTop: 20,
-        backgroundColor: "#0f0",
+        backgroundColor: "#289dd2",
     },
     successImage: {
         width: 110,

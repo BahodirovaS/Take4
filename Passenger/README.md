@@ -1,17 +1,15 @@
 ## WHERE I LEFT OFF 
-
+changed verify email button color to blue for passengers (haven't pushed to store). Need to allow the same email to be used for both apps. 
 
 ## UI Updates:
-- tap to change photo for driver crashes the app
-- FORMAT THE STYLE SECTION FOR SEVERAL COMPONENTS
 
 ## Logic Updates:
 - see if you can use address strings instead of coordinate points when clicking "navigate"
-- make admin page to change pricing of rides
 
 ## Future updates to features:
 
 ## Fixed Updates:
+- [FIXED]make admin page to change pricing of rides
 - [FIXED]filter pets
 - [FIXED]if no drivers available, let the passenger know and say "try again later". maybe alert a driver "possible ride"
 - [FIXED]Be able to edit profile photo
