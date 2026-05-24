@@ -39,6 +39,7 @@ import stripe from "@/assets/images/stripe.png"
 import paypal from "@/assets/images/paypal.png"
 import wallet from "@/assets/icons/wallet.png"
 import credit from "@/assets/images/credit.png"
+import apple from "@/assets/icons/apple.png"
 
 export const images = {
   check,
@@ -85,5 +86,6 @@ export const icons = {
   car,
   taxi,
   wallet,
+  apple
 };
 

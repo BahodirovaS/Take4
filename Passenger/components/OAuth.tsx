@@ -55,6 +55,13 @@ const OAuth = () => {
         <CustomButton
           title="Sign In with Apple"
           style={styles.appleButton}
+           IconLeft={() => (
+          <Image
+            source={icons.apple}
+            resizeMode="contain"
+            style={styles.googleIcon}
+          />
+        )}
           bgVariant="outline"
           textVariant="primary"
           onPress={() => handleOAuthSignIn(startAppleOAuthFlow)}
@@ -90,7 +97,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
     width: "70%",
     alignSelf: "center",
-    borderColor: "#000",
   },
   googleIcon: {
     width: 20,

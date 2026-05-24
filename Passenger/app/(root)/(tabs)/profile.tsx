@@ -307,12 +307,11 @@ const Profile = () => {
                             bgVariant="danger"
                             style={styles.signOutButton}
                         />
-                        <CustomButton
-                            title="Delete Account"
-                            onPress={handleDeleteAccount}
-                            bgVariant="danger"
-                            style={styles.deleteAccountButton}
-                        />
+                        <TouchableOpacity onPress={handleDeleteAccount}>
+                            <Text style={styles.deleteAccountText}>
+                                Delete Account
+                            </Text>
+                        </TouchableOpacity>
                     </ScrollView>
                 </TouchableWithoutFeedback>
             </KeyboardAvoidingView>
@@ -426,12 +425,13 @@ const styles = StyleSheet.create({
         alignSelf: "center",
         width: "40%"
     },
-    deleteAccountButton: {
-        marginTop: 16,
-        justifyContent: "center",
-        alignSelf: "center",
-        width: "55%",
-    },
+    deleteAccountText: {
+    marginTop: 40,
+    textAlign: "center",
+    color: "#D11A2A",
+    fontSize: 16,
+    fontFamily: "DMSans-Medium",
+},
 });
 
 export default Profile;
