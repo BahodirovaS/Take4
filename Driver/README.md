@@ -29,21 +29,6 @@ Tech Stack
 - Linking (Apple/Google Maps handoff)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 Attributes:
 - hqrloveq for checkmark icon
 - kemalmoe for messages bubble

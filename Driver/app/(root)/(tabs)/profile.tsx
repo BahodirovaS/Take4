@@ -23,6 +23,16 @@ import {
   updateDriverStatusOnSignOut,
 } from "@/lib/fetch";
 import { DriverProfileForm } from "@/types/type"
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  query,
+  updateDoc,
+  where
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 const DriverInfo = () => {
   const router = useRouter();
@@ -48,8 +58,8 @@ const DriverInfo = () => {
     profilePhotoUrl: "",
   });
 
-  const ADMIN_EMAIL = "bahodirova2000@gmail.com";
-  const ADMIN_URL = "https://take4admin-n2wr.vercel.app/admin";
+  const ADMIN_EMAIL = process.env.EXPO_PUBLIC_ADMIN_EMAIL ?? "";
+  const ADMIN_URL = process.env.EXPO_PUBLIC_ADMIN_URL ?? "";
 
   const isAdmin =
     (user?.primaryEmailAddress?.emailAddress ?? "").toLowerCase() ===
@@ -118,15 +128,11 @@ const DriverInfo = () => {
       const clerkUrl = user?.externalAccounts?.[0]?.imageUrl ?? user?.imageUrl ?? "";
       if (!clerkUrl) return;
 
-      const { success } = await saveDriverProfile(
-        user.id,
-        { ...form, profilePhotoUrl: clerkUrl },
-        driverDocId
-      );
+      await updateDoc(doc(db, "drivers", driverDocId), {
+        profilePhotoUrl: clerkUrl,
+      });
 
-      if (success) {
-        setForm((prev) => ({ ...prev, profilePhotoUrl: clerkUrl }));
-      }
+      setForm((prev) => ({ ...prev, profilePhotoUrl: clerkUrl }));
     };
 
     saveClerkPhotoUrlIfMissing().catch(() => { });
@@ -140,6 +146,58 @@ const DriverInfo = () => {
     } catch (error) {
       console.error("Error during sign out:", error);
     }
+  };
+  const handleDeleteAccount = () => {
+    if (!user) {
+      return Alert.alert("Error", "User not found. Please log in again.");
+    }
+
+    Alert.alert(
+      "Delete Account?",
+      "Are you sure you want to permanently delete your account? This action cannot be undone.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const driverQuery = query(
+                collection(db, "drivers"),
+                where("clerkId", "==", user.id)
+              );
+
+              const userQuery = query(
+                collection(db, "users"),
+                where("clerkId", "==", user.id)
+              );
+
+              const driverSnapshot = await getDocs(driverQuery);
+              const userSnapshot = await getDocs(userQuery);
+
+              await Promise.all([
+                ...driverSnapshot.docs.map((doc) => deleteDoc(doc.ref)),
+                ...userSnapshot.docs.map((doc) => deleteDoc(doc.ref)),
+              ]);
+
+              await user.delete();
+              await signOut();
+
+              router.replace("/(auth)/sign-up");
+            } catch (error) {
+              console.error("Delete account error:", error);
+              Alert.alert(
+                "Error",
+                "We couldn't delete your account. Please try again."
+              );
+            }
+          },
+        },
+      ]
+    );
   };
 
   const pickImage = async () => {
@@ -392,6 +450,11 @@ const DriverInfo = () => {
             bgVariant="danger"
             style={styles.signOutButton}
           />
+          <TouchableOpacity onPress={handleDeleteAccount}>
+            <Text style={styles.deleteAccountText}>
+              Delete Account
+            </Text>
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -556,5 +619,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignSelf: "center",
     width: "70%"
+  },
+  deleteAccountText: {
+    marginTop: 40,
+    textAlign: "center",
+    color: "#D11A2A",
+    fontSize: 16,
+    fontFamily: "DMSans-Medium",
   },
 });
