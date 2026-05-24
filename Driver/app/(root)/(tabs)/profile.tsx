@@ -58,22 +58,47 @@ const DriverInfo = () => {
     profilePhotoUrl: "",
   });
 
-  const ADMIN_EMAIL = process.env.EXPO_PUBLIC_ADMIN_EMAIL ?? "";
-  const ADMIN_URL = process.env.EXPO_PUBLIC_ADMIN_URL ?? "";
+const [isAdmin, setIsAdmin] = useState(false);
+const [adminUrl, setAdminUrl] = useState("");
 
-  const isAdmin =
-    (user?.primaryEmailAddress?.emailAddress ?? "").toLowerCase() ===
-    ADMIN_EMAIL.toLowerCase();
+useEffect(() => {
+  const checkAdminAccess = async () => {
+    const email = user?.primaryEmailAddress?.emailAddress;
+    if (!email) return;
 
-  const openAdmin = async () => {
     try {
-      const ok = await Linking.canOpenURL(ADMIN_URL);
-      if (!ok) return Alert.alert("Error", "Cannot open admin link on this device.");
-      await Linking.openURL(ADMIN_URL);
-    } catch {
-      Alert.alert("Error", "Failed to open admin page.");
+      const res = await fetch(`${process.env.EXPO_PUBLIC_SERVER_URL}/api/admin-config`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await res.json();
+
+      setIsAdmin(!!data.isAdmin);
+      setAdminUrl(data.adminUrl || "");
+    } catch (error) {
+      console.error("Admin check failed:", error);
     }
   };
+
+  checkAdminAccess();
+}, [user]);
+
+ const openAdmin = async () => {
+  try {
+    if (!adminUrl) {
+      return Alert.alert("Error", "Admin link is unavailable.");
+    }
+
+    const ok = await Linking.canOpenURL(adminUrl);
+    if (!ok) return Alert.alert("Error", "Cannot open admin link on this device.");
+
+    await Linking.openURL(adminUrl);
+  } catch {
+    Alert.alert("Error", "Failed to open admin page.");
+  }
+};
 
   const [driverDocId, setDriverDocId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
