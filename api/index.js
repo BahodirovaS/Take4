@@ -13,7 +13,7 @@ if (!getApps().length) {
 }
 
 const db = getFirestore();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_default', {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2024-06-20',
 });
 
@@ -1007,6 +1007,16 @@ module.exports = async (req, res) => {
       }
     }
 
+    if (req.method === 'POST' && path === '/admin-config') {
+      const { email } = req.body || {};
+      const isAdmin =
+        String(email || '').toLowerCase() ===
+        String(process.env.ADMIN_EMAIL || '').toLowerCase();
+      return res.json({
+        isAdmin,
+        adminUrl: isAdmin ? process.env.ADMIN_URL : null,
+      });
+    }
 
     return res.status(404).json({ error: 'Not found', path });
   } catch (err) {
