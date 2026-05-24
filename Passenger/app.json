@@ -20,8 +20,8 @@
       "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSCameraUsageDescription": "Allow Cabbage to use your camera to take a profile photo.",
-        "NSPhotoLibraryUsageDescription": "Allow Cabbage to access your photos."
+        "NSCameraUsageDescription": "Cabbage uses the camera so you can take and upload a profile photo for your account.",
+        "NSPhotoLibraryUsageDescription": "Cabbage accesses your photo library so you can choose and upload a profile photo for your account."
       }
     },
     "android": {
@@ -39,11 +39,13 @@
       "expo-web-browser",
       "expo-apple-authentication",
       [
-        "expo-image-picker",
-        {
-          "photosPermission": "Allow Cabbage to access your photos.",
-          "cameraPermission": "Allow Cabbage to use your camera to take a profile photo."
-        }
+        [
+          "expo-image-picker",
+          {
+            "photosPermission": "Cabbage accesses your photo library so you can choose and upload a profile photo for your account.",
+            "cameraPermission": "Cabbage uses the camera so you can take and upload a profile photo for your account."
+          }
+        ]
       ]
     ],
     "experiments": {
