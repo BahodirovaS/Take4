@@ -26,6 +26,8 @@ import {
     getCurrentLocation,
     formatPhoneNumber
 } from "@/lib/fetch";
+import { collection, deleteDoc, getDocs, query, where } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 const Profile = () => {
     const { user } = useUser();
@@ -116,6 +118,58 @@ const Profile = () => {
         router.replace("/(auth)/sign-up");
     };
 
+    const handleDeleteAccount = () => {
+        if (!user) {
+            return Alert.alert("Error", "User not found. Please log in again.");
+        }
+
+        Alert.alert(
+            "Delete Account?",
+            "Are you sure you want to permanently delete your account? This action cannot be undone.",
+            [
+                {
+                    text: "Cancel",
+                    style: "cancel",
+                },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            const passengerQuery = query(
+                                collection(db, "passengers"),
+                                where("clerkId", "==", user.id)
+                            );
+
+                            const userQuery = query(
+                                collection(db, "users"),
+                                where("clerkId", "==", user.id)
+                            );
+
+                            const passengerSnapshot = await getDocs(passengerQuery);
+                            const userSnapshot = await getDocs(userQuery);
+
+                            await Promise.all([
+                                ...passengerSnapshot.docs.map((doc) => deleteDoc(doc.ref)),
+                                ...userSnapshot.docs.map((doc) => deleteDoc(doc.ref)),
+                            ]);
+
+                            await user.delete();
+                            await signOut();
+
+                            router.replace("/(auth)/sign-up");
+                        } catch (error) {
+                            console.error("Delete account error:", error);
+                            Alert.alert(
+                                "Error",
+                                "We couldn't delete your account. Please try again."
+                            );
+                        }
+                    },
+                },
+            ]
+        );
+    };
 
     const pickImage = async () => {
         setUploading(true);
@@ -253,6 +307,12 @@ const Profile = () => {
                             bgVariant="danger"
                             style={styles.signOutButton}
                         />
+                        <CustomButton
+                            title="Delete Account"
+                            onPress={handleDeleteAccount}
+                            bgVariant="danger"
+                            style={styles.deleteAccountButton}
+                        />
                     </ScrollView>
                 </TouchableWithoutFeedback>
             </KeyboardAvoidingView>
@@ -365,6 +425,12 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignSelf: "center",
         width: "40%"
+    },
+    deleteAccountButton: {
+        marginTop: 16,
+        justifyContent: "center",
+        alignSelf: "center",
+        width: "55%",
     },
 });
 
