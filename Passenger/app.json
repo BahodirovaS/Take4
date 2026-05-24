@@ -18,7 +18,9 @@
       "bundleIdentifier": "com.ridepal.take4.passenger",
       "buildNumber": "12",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Allow Cabbage to use your camera to take a profile photo.",
+        "NSPhotoLibraryUsageDescription": "Allow Cabbage to access your photos."
       }
     },
     "android": {
@@ -29,9 +31,18 @@
       "package": "com.ridepal.take4.passenger"
     },
     "plugins": [
-      ["expo-router"],
+      [
+        "expo-router"
+      ],
       "expo-secure-store",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Cabbage to access your photos.",
+          "cameraPermission": "Allow Cabbage to use your camera to take a profile photo."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
