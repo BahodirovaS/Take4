@@ -1,25 +1,26 @@
 import { useOAuth } from "@clerk/clerk-expo";
 import { router } from "expo-router";
-import { Alert, Image, Text, View, StyleSheet } from "react-native";
+import { Alert, Image, Text, View, StyleSheet, Platform } from "react-native";
 
 import CustomButton from "@/components/CustomButton";
 import { icons } from "@/constants";
 import { googleOAuth } from "@/lib/auth";
 
 const OAuth = () => {
-  const { startOAuthFlow } = useOAuth({ strategy: "oauth_google" });
+  const { startOAuthFlow: startGoogleOAuthFlow } = useOAuth({
+    strategy: "oauth_google",
+  });
 
-  const handleGoogleSignIn = async () => {
+  const { startOAuthFlow: startAppleOAuthFlow } = useOAuth({
+    strategy: "oauth_apple",
+  });
+
+  const handleOAuthResult = async (startOAuthFlow: any) => {
     const result = await googleOAuth(startOAuthFlow);
 
-    if (result.code === "cancelled") {
-      return;
-    }
-    if (result.code === "session_exists") {
-      router.replace("/(root)/(tabs)/home");
-      return;
-    }
-    if (result.success) {
+    if (result.code === "cancelled") return;
+
+    if (result.code === "session_exists" || result.success) {
       router.replace("/(root)/(tabs)/home");
       return;
     }
@@ -39,16 +40,22 @@ const OAuth = () => {
         title="Sign In with Google"
         style={styles.googleButton}
         IconLeft={() => (
-          <Image
-            source={icons.google}
-            resizeMode="contain"
-            style={styles.googleIcon}
-          />
+          <Image source={icons.google} resizeMode="contain" style={styles.googleIcon} />
         )}
         bgVariant="outline"
         textVariant="primary"
-        onPress={handleGoogleSignIn}
+        onPress={() => handleOAuthResult(startGoogleOAuthFlow)}
       />
+
+      {Platform.OS === "ios" && (
+        <CustomButton
+          title="Sign In with Apple"
+          style={styles.appleButton}
+          bgVariant="outline"
+          textVariant="primary"
+          onPress={() => handleOAuthResult(startAppleOAuthFlow)}
+        />
+      )}
     </View>
   );
 };
@@ -74,7 +81,14 @@ const styles = StyleSheet.create({
     marginTop: 20,
     width: "70%",
     shadowOpacity: 0,
-    alignSelf: "center"
+    alignSelf: "center",
+  },
+  appleButton: {
+    marginTop: 12,
+    width: "70%",
+    shadowOpacity: 0,
+    alignSelf: "center",
+    borderColor: "#000",
   },
   googleIcon: {
     width: 20,

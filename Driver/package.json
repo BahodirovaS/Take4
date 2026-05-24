@@ -68,7 +68,8 @@
     "react-native-webview": "13.13.5",
     "stripe": "^17.6.0",
     "uuid": "^11.0.5",
-    "zustand": "^5.0.3"
+    "zustand": "^5.0.3",
+    "expo-apple-authentication": "~7.2.4"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
