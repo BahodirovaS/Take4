@@ -17,6 +17,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.ridepal.take4.passenger",
       "buildNumber": "12",
+      "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "Allow Cabbage to use your camera to take a profile photo.",
@@ -36,6 +37,7 @@
       ],
       "expo-secure-store",
       "expo-web-browser",
+      "expo-apple-authentication",
       [
         "expo-image-picker",
         {

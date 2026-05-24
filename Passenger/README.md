@@ -1,10 +1,12 @@
 ## WHERE I LEFT OFF 
 changed verify email button color to blue for passengers (haven't pushed to store). Need to allow the same email to be used for both apps. Add the privacy and support links to profile page. None of this has been built or submitted to app store. More about passengers and drivers having 1 email and both accounts example: Tom made a passenger account. firebase saved it as "driver: false". tom then logged into the driver app and made a profile. this saved his profile to driver page, but the users still has him as driver:false. 
 
+## Build commands:
+eas build --platform ios --profile production
+eas submit --platform ios
+
 ## UI Updates:
 
-## Logic Updates:
-- see if you can use address strings instead of coordinate points when clicking "navigate"
 
 ## Future updates to features:
 

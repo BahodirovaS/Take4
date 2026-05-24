@@ -27,7 +27,8 @@
         <action android:name="android.intent.action.VIEW"/>
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
-        <data android:scheme="myapp"/>
+        <data android:scheme="passenger"/>
+        <data android:scheme="exp+passenger"/>
       </intent-filter>
     </activity>
   </application>
